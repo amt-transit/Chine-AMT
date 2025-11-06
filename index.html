@@ -3,133 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suivi de Fret</title>
+    <title>AMT Suivi de Fret</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>Application de Suivi de Fret</h1>
+    <header>
+        <div class="logo-container">
+            <img src="Chine.png" alt="Logo AMT Transit" class="logo"> </div>
+        <div class="header-info">
+            <span>Agence: <span id="agence-nom">Chine</span></span>
+        </div>
+    </header>
 
-    <nav class="tabs">
-        <button class="tab-link active" onclick="ouvrirOnglet(event, 'Envoi')">📦 Envoi (Chine)</button>
-        <button class="tab-link" onclick="ouvrirOnglet(event, 'Reception')">📥 Réception (Côte d'Ivoire)</button>
+    <nav class="main-nav">
+        <button class="nav-link active" onclick="ouvrirPage(event, 'Envoi')">📦 Envoi (Chine)</button>
+        <button class="nav-link" onclick="ouvrirPage(event, 'Reception')">📥 Réception (Côte d'Ivoire)</button>
     </nav>
 
-    <section id="Envoi" class="tab-content" style="display: block;">
-        <h2>Volet 1: Enregistrement d'un envoi</h2>
-        <form id="form-chine">
-            
-            <div class="form-group">
-                <label for="date-envoi">Date d'envoi</label>
-                <input type="date" id="date-envoi" required>
-            </div>
-
-            <div class="form-group">
-                <label for="type-envoi">Type d'envoi</label>
-                <select id="type-envoi" required>
-                    <option value="">-- Choisir un type --</option>
-                    <option value="aerien">Aérien (10 000 CFA/Kg)</option>
-                    <option value="maritime">Maritime (25 000 CFA/CBM)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="client-nom">Nom du client</label>
-                <input type="text" id="client-nom" placeholder="Nom de famille" required>
-            </div>
-
-            <div class="form-group">
-                <label for="client-prenom">Prénom du client</label>
-                <input type="text" id="client-prenom" placeholder="Prénom" required>
-            </div>
-
-            <div class="form-group">
-                <label for="quantite-envoyee">Quantité (ex: nb de colis)</label>
-                <input type="number" id="quantite-envoyee" min="0" required>
-            </div>
-
-            <div class="form-group" id="champ-poids">
-                <label for="poids-envoye">Poids (en Kg)</label>
-                <input type="number" id="poids-envoye" step="0.01" min="0" value="0">
-            </div>
-
-            <div class="form-group" id="champ-volume">
-                <label for="volume-envoye">Volume (en CBM)</label>
-                <input type="number" id="volume-envoye" step="0.01" min="0" value="0">
-            </div>
-
-            <div class="form-group">
-                <label for="photos-colis">Photos des colis (optionnel)</label>
-                <input type="file" id="photos-colis" accept="image/*" multiple>
-                <div id="apercu-photos"></div>
-            </div>
-
-            <hr>
-            <h3>Prix estimé : <span id="prix-calcule">0 CFA</span></h3>
-            
-            <button type="submit">Enregistrer l'expédition</button>
-        </form>
-    </section>
-
-    <section id="Reception" class="tab-content">
-        <h2>Volet 2: Réception des envois</h2>
-        
-        <h3>Clients/Expéditions enregistrés</h3>
-        
-        <div class="table-container">
-            <table id="table-expeditions">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Client</th>
-                        <th>Type</th>
-                        <th>Quantité</th>
-                        <th>Poids/Volume</th>
-                        <th>Prix</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="liste-clients-tbody">
-                    </tbody>
-            </table>
-        </div>
-
-        <div id="details-reception">
-            <h3>Détails pour : <span id="client-selectionne"></span></h3>
-            
-            <p>
-                <strong>Données envoyées (Chine) :</strong><br>
-                Quantité: <span id="qte-attendue"></span> colis<br>
-                Poids/Volume: <span id="poids-attendu"></span><br>
-                <strong>Prix estimé: <span id="prix-attendu" class="prix-final"></span></strong>
-            </p>
-
-            <form id="form-reception">
-                <div class="form-group">
-                    <label for="quantite-recue">Quantité effectivement reçue</label>
-                    <input type="number" id="quantite-recue" min="0">
-                </div>
+    <main>
+        <section id="Envoi" class="page-content" style="display: block;">
+            <h2>Enregistrer un nouvel envoi</h2>
+            <form id="form-chine" class="card">
                 
                 <div class="form-group">
-                    <label for="poids-recu">Donnée reçue (Kg ou CBM)</label>
-                    <input type="number" id="poids-recu" step="0.01" min="0">
+                    <label for="date-envoi">Date d'envoi</label>
+                    <input type="date" id="date-envoi" required>
                 </div>
 
-                <button type="button" onclick="comparerDonnees()">Vérifier les différences</button>
+                <div class="form-group">
+                    <label for="type-envoi">Type d'envoi</label>
+                    <select id="type-envoi" required>
+                        <option value="">-- Choisir un type --</option>
+                        <option value="aerien">Aérien (10 000 CFA/Kg)</option>
+                        <option value="maritime">Maritime (25 000 CFA/CBM)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-nom">Nom du client</label>
+                    <input type="text" id="client-nom" placeholder="Nom de famille" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-prenom">Prénom du client</label>
+                    <input type="text" id="client-prenom" placeholder="Prénom" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-tel">Numéro de téléphone</label>
+                    <input type="tel" id="client-tel" placeholder="+225 01 02 03 04 05" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantite-envoyee">Quantité (ex: nb de colis)</label>
+                    <input type="number" id="quantite-envoyee" min="0" required>
+                </div>
+
+                <div class="form-group" id="champ-poids">
+                    <label for="poids-envoye">Poids (en Kg)</label>
+                    <input type="number" id="poids-envoye" step="0.01" min="0" value="0">
+                </div>
+
+                <div class="form-group" id="champ-volume">
+                    <label for="volume-envoye">Volume (en CBM)</label>
+                    <input type="number" id="volume-envoye" step="0.01" min="0" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="photos-colis">Photos des colis (optionnel)</label>
+                    <input type="file" id="photos-colis" accept="image/*" multiple>
+                    <div id="apercu-photos"></div>
+                </div>
+
+                <hr>
+                <h3>Prix estimé : <span id="prix-calcule">0 CFA</span></h3>
+                
+                <button type="submit" class="btn-principal">Enregistrer l'expédition</button>
             </form>
+        </section>
 
-            <div id="differences">
-                <p id="diff-qte"></p>
-                <p id="diff-poids"></p>
+        <section id="Reception" class="page-content">
+            <h2>Suivi et réception des envois</h2>
+            
+            <div class="card">
+                <h3>Expéditions enregistrées</h3>
+                <div class="table-container">
+                    <table id="table-expeditions">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Téléphone</th>
+                                <th>Type</th>
+                                <th>Qté</th>
+                                <th>Poids/Vol.</th>
+                                <th>Prix</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="liste-clients-tbody">
+                            </tbody>
+                    </table>
+                </div>
             </div>
-            <button class="btn-masquer" onclick="masquerDetails()">Masquer les détails</button>
-        </div>
-    </section>
+        </section>
+    </main>
 
+
+    <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModal(event)">&times;</span>
+            
+            <div id="details-reception">
+                <h3>Détails pour : <span id="client-selectionne"></span></h3>
+                
+                <p>
+                    <strong>Données envoyées (Chine) :</strong><br>
+                    Téléphone: <span id="tel-attendu"></span><br>
+                    Quantité: <span id="qte-attendue"></span> colis<br>
+                    Poids/Volume: <span id="poids-attendu"></span><br>
+                    <strong>Prix estimé: <span id="prix-attendu" class="prix-final"></span></strong>
+                </p>
+
+                <div class="form-group" id="photos-recues-container" style="display: none;">
+                    <strong>Photos du colis (Chine) :</strong>
+                    <div id="photos-recues-apercu">
+                        </div>
+                </div>
+
+                <hr>
+                <strong>Vérification à la réception :</strong>
+                <form id="form-reception">
+                    <div class="form-group">
+                        <label for="quantite-recue">Quantité effectivement reçue</label>
+                        <input type="number" id="quantite-recue" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="poids-recu">Donnée reçue (Kg ou CBM)</label>
+                        <input type="number" id="poids-recu" step="0.01" min="0">
+                    </div>
+
+                    <button type="button" class="btn-principal" onclick="comparerDonnees()">Vérifier les différences</button>
+                </form>
+
+                <div id="differences">
+                    <p id="diff-qte"></p>
+                    <p id="diff-poids"></p>
+                </div>
+                <button class="btn-secondaire" onclick="fermerModal(event)">Fermer</button>
+            </div>
+            </div>
+    </div>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-    
     <script src="script.js"></script>
 
 </body>
