@@ -1,134 +1,200 @@
+/* Styles généraux et de base pour un look "TikTok-like" simplifié */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* Police moderne */
     margin: 0;
-    padding: 20px;
-    background-color: #f4f4f4;
-    color: #333;
+    padding: 0; /* Plus de padding global pour laisser le contenu gérer */
+    background-color: #f0f2f5; /* Un gris très clair */
+    color: #1a1a1a; /* Texte noir */
+    line-height: 1.6;
 }
+
 h1 {
     text-align: center;
+    color: #000;
+    padding: 20px 0;
+    margin-top: 0;
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    font-size: 1.8em;
+}
+
+h2 {
+    font-size: 1.5em;
+    color: #333;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+h3 {
+    font-size: 1.2em;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+/* Conteneur principal pour centrer le contenu */
+.container-app {
+    max-width: 900px; /* Largeur maximale pour le desktop */
+    margin: 20px auto; /* Centrer sur desktop */
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    overflow: hidden; /* Important pour les bords arrondis */
 }
 
 /* =================================== */
 /* SYSTÈME D'ONGLETS                    */
 /* =================================== */
 .tabs {
-    overflow: hidden;
+    display: flex; /* Utilisation de flexbox pour les onglets */
+    border-bottom: 1px solid #eee;
     background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 8px 8px 0 0;
-    display: flex;
+    position: sticky; /* Les onglets restent en haut lors du défilement */
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* Ombre légère pour les onglets */
 }
 .tab-link {
-    background-color: inherit;
+    background-color: transparent; /* Fond transparent */
     border: none;
     outline: none;
     cursor: pointer;
-    padding: 14px 20px;
-    font-size: 17px;
+    padding: 15px 20px;
+    font-size: 1em;
+    font-weight: 600; /* Plus gras */
     flex-grow: 1;
-    transition: 0.3s;
+    text-align: center;
+    transition: all 0.2s ease-in-out; /* Transition douce */
+    color: #888; /* Couleur du texte par défaut */
+    border-bottom: 3px solid transparent; /* Bordure inférieure invisible par défaut */
 }
 .tab-link:hover {
-    background-color: #f1f1f1;
+    color: #000; /* Texte noir au survol */
+    background-color: #f8f8f8;
 }
 /* Style du bouton d'onglet actif */
 .tab-link.active {
-    background-color: #007BFF;
-    color: white;
-    border-bottom: 3px solid #0056b3;
+    color: #000; /* Texte noir pour l'actif */
+    border-bottom: 3px solid #fe2c55; /* Bordure TikTok rouge en bas */
+    background-color: #fff;
 }
 /* Contenu de l'onglet */
 .tab-content {
     display: none; /* Caché par défaut */
-    padding: 20px;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    animation: fadeEffect 0.5s; /* Petite animation */
+    padding: 25px; /* Plus de padding pour le contenu */
+    animation: fadeIn 0.3s ease-out; /* Animation plus douce */
 }
-@keyframes fadeEffect {
-    from {opacity: 0;}
-    to {opacity: 1;}
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(10px);}
+    to {opacity: 1; transform: translateY(0);}
 }
 
 /* =================================== */
-/* FORMULAIRES (IDENTIQUE À AVANT)     */
+/* FORMULAIRES (Optimisé)              */
 /* =================================== */
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px; /* Espacement plus grand */
 }
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: 8px; /* Espacement label-input */
+    font-weight: 600; /* Plus gras */
+    color: #333;
+    font-size: 0.95em;
 }
 .form-group input,
 .form-group select {
-    width: calc(100% - 22px);
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box; /* Important */
+    width: 100%; /* Pleine largeur */
+    padding: 12px 15px; /* Plus de padding */
+    border: 1px solid #ddd;
+    border-radius: 8px; /* Coins plus arrondis */
+    box-sizing: border-box;
+    font-size: 1em;
+    background-color: #fcfcfc;
+    transition: border-color 0.2s;
 }
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #fe2c55; /* Bordure rouge au focus */
+    box-shadow: 0 0 0 2px rgba(254, 44, 85, 0.2);
+}
+
 button {
-    background-color: #007BFF;
+    background-color: #fe2c55; /* Bouton rouge TikTok */
     color: white;
-    padding: 12px 18px;
+    padding: 14px 25px; /* Plus grand */
     border: none;
-    border-radius: 4px;
+    border-radius: 8px; /* Coins arrondis */
     cursor: pointer;
-    font-size: 16px;
-    transition: 0.3s;
+    font-size: 1.05em;
+    font-weight: 700;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    width: 100%; /* Pleine largeur par défaut */
+    margin-top: 10px; /* Espace au-dessus */
 }
 button:hover {
-    background-color: #0056b3;
+    background-color: #e6234d; /* Rouge plus foncé au survol */
+    transform: translateY(-1px); /* Léger effet de soulèvement */
 }
 button:disabled {
-    background-color: #aaa;
+    background-color: #ccc;
     cursor: not-allowed;
+    transform: none;
+}
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 30px 0;
 }
 #prix-calcule, .prix-final {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #28a745;
+    font-size: 1.4em; /* Plus grand */
+    font-weight: 700; /* Plus gras */
+    color: #00c766; /* Vert pour le prix */
 }
 
 /* =================================== */
 /* NOUVEAU: TABLEAU DES EXPÉDITIONS    */
 /* =================================== */
 .table-container {
-    overflow-x: auto; /* Pour la responsivité sur mobile */
+    overflow-x: auto; /* Permet le défilement horizontal sur les petits écrans */
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 #table-expeditions {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    min-width: 600px; /* Largeur minimale pour que le tableau ne soit pas trop compressé */
 }
 #table-expeditions th,
 #table-expeditions td {
-    border: 1px solid #ddd;
-    padding: 12px;
+    padding: 12px 15px;
     text-align: left;
+    border-bottom: 1px solid #eee;
 }
 #table-expeditions th {
-    background-color: #f2f2f2;
-    font-weight: bold;
+    background-color: #f8f8f8;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    font-size: 0.85em;
 }
-#table-expeditions tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
+#table-expeditions tbody tr:last-child td {
+    border-bottom: none;
 }
 #table-expeditions tbody tr:hover {
-    background-color: #e6f7ff;
+    background-color: #fcfcfc;
 }
-#table-expeditions .btn-reception {
-    background-color: #28a745;
-    padding: 8px 12px;
-    font-size: 14px;
+#table-expeditions .btn-afficher {
+    background-color: #00c766; /* Vert pour l'action */
+    padding: 8px 15px;
+    font-size: 0.9em;
+    width: auto; /* Ne prend pas toute la largeur */
 }
-#table-expeditions .btn-reception:hover {
-    background-color: #218838;
+#table-expeditions .btn-afficher:hover {
+    background-color: #009a4d;
 }
 
 /* =================================== */
@@ -144,10 +210,11 @@ button:disabled {
 #details-reception {
     display: none;
     background-color: #f9f9f9;
-    padding: 20px;
-    border-radius: 8px;
-    margin-top: 25px;
-    border: 1px solid #e0e0e0;
+    padding: 25px;
+    border-radius: 10px;
+    margin-top: 30px;
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 /* Aperçu des photos */
@@ -155,29 +222,122 @@ button:disabled {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 15px;
 }
 #apercu-photos img {
-    width: 100px;
-    height: 100px;
+    width: 80px; /* Plus petit */
+    height: 80px;
     object-fit: cover;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 /* Messages de différence */
 #differences p {
-    padding: 10px;
-    border-radius: 4px;
-    margin: 5px 0;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-weight: 500;
 }
 .diff-erreur {
-    color: #721c24;
+    color: #dc3545; /* Rouge pour erreur */
     background-color: #f8d7da;
     border: 1px solid #f5c6cb;
 }
 .diff-ok {
-    color: #155724;
+    color: #28a745; /* Vert pour OK */
     background-color: #d4edda;
     border: 1px solid #c3e6cb;
+}
+
+/* Bouton Masquer les détails */
+.btn-masquer {
+    background-color: #6c757d; /* Gris pour masquer */
+    margin-top: 20px;
+}
+.btn-masquer:hover {
+    background-color: #5a6268;
+}
+
+/* =================================== */
+/* RESPONSIVE DESIGN (Mobilité)        */
+/* =================================== */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.5em;
+        padding: 15px 0;
+    }
+    .container-app {
+        margin: 0; /* Pas de marges latérales sur mobile */
+        border-radius: 0; /* Pas de bords arrondis sur les bords de l'écran */
+        box-shadow: none;
+    }
+    .tabs {
+        font-size: 0.9em;
+        padding: 0 10px; /* Un peu de padding horizontal */
+        top: 0; /* Toujours en haut */
+    }
+    .tab-link {
+        padding: 12px 10px; /* Padding ajusté */
+        font-size: 0.9em;
+    }
+    .tab-content {
+        padding: 15px; /* Moins de padding sur mobile */
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    button {
+        padding: 12px 20px;
+        font-size: 0.95em;
+    }
+
+    /* Tableau responsive pour mobile */
+    .table-container {
+        border-radius: 0; /* Pas de bords arrondis */
+        box-shadow: none;
+    }
+    #table-expeditions th,
+    #table-expeditions td {
+        padding: 10px;
+        font-size: 0.9em;
+    }
+    /* Les boutons d'action dans le tableau restent plus petits */
+    #table-expeditions .btn-afficher {
+        padding: 6px 10px;
+        font-size: 0.8em;
+    }
+
+    /* Le formulaire de réception s'adapte aussi */
+    #details-reception {
+        padding: 15px;
+        border-radius: 0; /* Pas de bords arrondis sur mobile */
+        margin-top: 20px;
+    }
+}
+
+/* Ajustements encore plus spécifiques pour les très petits écrans (ex: iPhone SE) */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.3em;
+    }
+    .tab-link {
+        font-size: 0.85em;
+        padding: 10px 8px;
+    }
+    .tab-content {
+        padding: 10px;
+    }
+    .form-group label {
+        font-size: 0.9em;
+    }
+    .form-group input,
+    .form-group select {
+        padding: 10px 12px;
+        font-size: 0.95em;
+    }
+    button {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
 }
