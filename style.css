@@ -3,28 +3,59 @@ body {
     margin: 0;
     padding: 20px;
     background-color: #f4f4f4;
+    color: #333;
 }
 h1 {
     text-align: center;
-    color: #333;
 }
-.container {
-    display: flex;
-    justify-content: space-around;
-    gap: 20px;
-}
-.volet {
-    width: 48%;
+
+/* =================================== */
+/* SYSTÈME D'ONGLETS                    */
+/* =================================== */
+.tabs {
+    overflow: hidden;
     background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+}
+.tab-link {
+    background-color: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 20px;
+    font-size: 17px;
+    flex-grow: 1;
+    transition: 0.3s;
+}
+.tab-link:hover {
+    background-color: #f1f1f1;
+}
+/* Style du bouton d'onglet actif */
+.tab-link.active {
+    background-color: #007BFF;
+    color: white;
+    border-bottom: 3px solid #0056b3;
+}
+/* Contenu de l'onglet */
+.tab-content {
+    display: none; /* Caché par défaut */
     padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    animation: fadeEffect 0.5s; /* Petite animation */
 }
-.volet h2 {
-    border-bottom: 2px solid #007BFF;
-    padding-bottom: 10px;
+@keyframes fadeEffect {
+    from {opacity: 0;}
+    to {opacity: 1;}
 }
+
+/* =================================== */
+/* FORMULAIRES (IDENTIQUE À AVANT)     */
+/* =================================== */
 .form-group {
     margin-bottom: 15px;
 }
@@ -35,77 +66,91 @@ h1 {
 }
 .form-group input,
 .form-group select {
-    width: calc(100% - 20px);
-    padding: 8px 10px;
+    width: calc(100% - 22px);
+    padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    box-sizing: border-box; /* Important */
 }
 button {
     background-color: #007BFF;
     color: white;
-    padding: 10px 15px;
+    padding: 12px 18px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 16px;
+    transition: 0.3s;
 }
 button:hover {
     background-color: #0056b3;
 }
-#prix-calcule {
+button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+#prix-calcule, .prix-final {
     font-size: 1.2em;
     font-weight: bold;
     color: #28a745;
 }
-#liste-clients li {
-    padding: 10px;
-    border: 1px solid #eee;
-    margin-bottom: 5px;
-    cursor: pointer;
-    border-radius: 4px;
-}
-#liste-clients li:hover {
-    background-color: #f0f0f0;
-}
-#details-reception {
-    display: none; /* Caché par défaut, le JS le montrera */
-    background-color: #f9f9f9;
-    padding: 15px;
-    border-radius: 5px;
-    margin-top: 15px;
-}
-#differences {
-    margin-top: 10px;
-}
-/* Classes pour les messages de différence */
-#differences p {
-    padding: 8px;
-    border-radius: 4px;
-}
-.diff-erreur {
-    color: #721c24;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-}
-.diff-ok {
-    color: #155724;
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
-}
 
-/* Gère l'affichage des champs Poids/Volume */
-#champ-poids, #champ-volume {
-    display: none; /* Cachés par défaut */
+/* =================================== */
+/* NOUVEAU: TABLEAU DES EXPÉDITIONS    */
+/* =================================== */
+.table-container {
+    overflow-x: auto; /* Pour la responsivité sur mobile */
 }
-/* AJOUTER CE CODE À LA FIN DE VOTRE style.css */
-
-/* Style pour le prix final dans le volet 2 */
-.prix-final {
-    color: #28a745;
+#table-expeditions {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+#table-expeditions th,
+#table-expeditions td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+#table-expeditions th {
+    background-color: #f2f2f2;
     font-weight: bold;
 }
+#table-expeditions tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+#table-expeditions tbody tr:hover {
+    background-color: #e6f7ff;
+}
+#table-expeditions .btn-reception {
+    background-color: #28a745;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+#table-expeditions .btn-reception:hover {
+    background-color: #218838;
+}
 
-/* Style pour l'aperçu des photos */
+/* =================================== */
+/* AUTRES ÉLÉMENTS                     */
+/* =================================== */
+
+/* Champs Poids/Volume cachés */
+#champ-poids, #champ-volume {
+    display: none;
+}
+
+/* Formulaire de réception (caché par défaut) */
+#details-reception {
+    display: none;
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 25px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Aperçu des photos */
 #apercu-photos {
     display: flex;
     flex-wrap: wrap;
@@ -118,4 +163,21 @@ button:hover {
     object-fit: cover;
     border: 1px solid #ddd;
     border-radius: 4px;
+}
+
+/* Messages de différence */
+#differences p {
+    padding: 10px;
+    border-radius: 4px;
+    margin: 5px 0;
+}
+.diff-erreur {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+.diff-ok {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
 }
