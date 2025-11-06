@@ -21,28 +21,25 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 
 // =======================================================
-// NOUVEAU: LOGIQUE DES ONGLETS
+// LOGIQUE DES ONGLETS
 // =======================================================
 function ouvrirOnglet(event, nomOnglet) {
-    // Cache tous les contenus d'onglets
     const tabContents = document.getElementsByClassName("tab-content");
     for (let i = 0; i < tabContents.length; i++) {
         tabContents[i].style.display = "none";
     }
 
-    // Désactive tous les boutons d'onglets
     const tabLinks = document.getElementsByClassName("tab-link");
     for (let i = 0; i < tabLinks.length; i++) {
         tabLinks[i].className = tabLinks[i].className.replace(" active", "");
     }
 
-    // Affiche l'onglet actuel et active son bouton
     document.getElementById(nomOnglet).style.display = "block";
     event.currentTarget.className += " active";
     
-    // Si on ouvre l'onglet Réception, on recharge la liste
     if (nomOnglet === 'Reception') {
         chargerClients();
+        masquerDetails(); // Masquer les détails à chaque changement d'onglet
     }
 }
 
@@ -50,6 +47,9 @@ function ouvrirOnglet(event, nomOnglet) {
 // Attend que tout le HTML soit chargé
 document.addEventListener('DOMContentLoaded', function() {
     
+    // Au démarrage, ouvrir le premier onglet par défaut
+    document.querySelector('.tab-link.active').click();
+
     // === LOGIQUE ONGLET 1 : ENVOI ===
     
     const formChine = document.getElementById('form-chine');
@@ -118,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Logique d'enregistrement sur Firebase (inchangée)
     formChine.addEventListener('submit', async function(e) {
         e.preventDefault();
         const bouton = formChine.querySelector('button');
@@ -162,18 +161,14 @@ document.addEventListener('DOMContentLoaded', function() {
             bouton.innerText = "Enregistrer l'expédition";
         }
     });
-
-    // === LOGIQUE ONGLET 2 : RÉCEPTION ===
-    chargerClients(); // Charger les clients une première fois au démarrage
 });
 
 
 // === Fonctions globales (accessibles partout) ===
 
-// MODIFIÉ: Charge les clients dans le tableau
 async function chargerClients() {
     const tbody = document.getElementById('liste-clients-tbody');
-    if (!tbody) return; // Sécurité
+    if (!tbody) return;
     
     tbody.innerHTML = '<tr><td colspan="7">Chargement des expéditions...</td></tr>';
 
@@ -185,13 +180,12 @@ async function chargerClients() {
             return;
         }
 
-        tbody.innerHTML = ''; // Vider la liste
+        tbody.innerHTML = '';
         
         snapshot.forEach(doc => {
             const envoi = doc.data();
             const id = doc.id;
 
-            // Détermine quelle donnée afficher (Poids ou Volume)
             let poidsVolume = '';
             let poidsVolumeLabel = '';
             if (envoi.type === 'aerien') {
@@ -202,7 +196,6 @@ async function chargerClients() {
                 poidsVolumeLabel = `${envoi.volumeEnvoye} CBM`;
             }
 
-            // Crée la ligne du tableau
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${envoi.date}</td>
@@ -212,20 +205,19 @@ async function chargerClients() {
                 <td>${poidsVolume}</td>
                 <td>${envoi.prixEstime}</td>
                 <td>
-                    <button class="btn-reception">Réceptionner</button>
+                    <button class="btn-afficher">Afficher</button>
                 </td>
             `;
 
-            // Ajoute les données au bouton pour les récupérer au clic
-            const boutonReception = tr.querySelector('.btn-reception');
-            boutonReception.setAttribute('data-id', id);
-            boutonReception.setAttribute('data-nom', `${envoi.prenom} ${envoi.nom}`);
-            boutonReception.setAttribute('data-qte', envoi.quantiteEnvoyee);
-            boutonReception.setAttribute('data-poids-volume', envoi.type === 'aerien' ? envoi.poidsEnvoye : envoi.volumeEnvoye);
-            boutonReception.setAttribute('data-poids-label', poidsVolumeLabel);
-            boutonReception.setAttribute('data-prix', envoi.prixEstime);
+            const boutonAfficher = tr.querySelector('.btn-afficher');
+            boutonAfficher.setAttribute('data-id', id);
+            boutonAfficher.setAttribute('data-nom', `${envoi.prenom} ${envoi.nom}`);
+            boutonAfficher.setAttribute('data-qte', envoi.quantiteEnvoyee);
+            boutonAfficher.setAttribute('data-poids-volume', envoi.type === 'aerien' ? envoi.poidsEnvoye : envoi.volumeEnvoye);
+            boutonAfficher.setAttribute('data-poids-label', poidsVolumeLabel);
+            boutonAfficher.setAttribute('data-prix', envoi.prixEstime);
             
-            boutonReception.onclick = () => selectionnerClient(boutonReception);
+            boutonAfficher.onclick = () => selectionnerClient(boutonAfficher);
 
             tbody.appendChild(tr);
         });
@@ -237,7 +229,6 @@ async function chargerClients() {
 }
 
 
-// Récupère les éléments du formulaire CI
 const detailsReceptionDiv = document.getElementById('details-reception');
 const clientSelectionneSpan = document.getElementById('client-selectionne');
 const qteAttendueSpan = document.getElementById('qte-attendue');
@@ -245,7 +236,6 @@ const poidsAttenduSpan = document.getElementById('poids-attendu');
 const prixAttenduSpan = document.getElementById('prix-attendu');
 const poidsRecuLabel = document.querySelector('label[for="poids-recu"]');
 
-// MODIFIÉ: Récupère les données depuis le bouton
 function selectionnerClient(bouton) {
     detailsReceptionDiv.style.display = 'block';
 
@@ -257,24 +247,34 @@ function selectionnerClient(bouton) {
 
     clientSelectionneSpan.innerText = nom;
     qteAttendueSpan.innerText = qteAttendue;
-    poidsAttenduSpan.innerText = poidsLabel; // Affiche "50 Kg" ou "10 CBM"
+    poidsAttenduSpan.innerText = poidsLabel;
     prixAttenduSpan.innerText = prixAttendu;
     
-    // Met à jour le label du champ de réception
     poidsRecuLabel.innerText = poidsLabel.includes('Kg') ? 'Poids effectivement reçu (Kg)' : 'Volume effectivement reçu (CBM)';
     
-    // Stocke les valeurs pour la comparaison
     detailsReceptionDiv.dataset.qteAttendue = qteAttendue;
-    detailsReceptionDiv.dataset.poidsAttendu = poidsVolumeAttendu; // Stocke la valeur brute (ex: 50)
+    detailsReceptionDiv.dataset.poidsAttendu = poidsVolumeAttendu;
     
-    // Vide les anciens résultats et champs
     document.getElementById('diff-qte').innerHTML = '';
     document.getElementById('diff-poids').innerHTML = '';
     document.getElementById('quantite-recue').value = '';
     document.getElementById('poids-recu').value = '';
+
+    // Défiler vers les détails si sur mobile
+    if (window.innerWidth < 768) {
+        detailsReceptionDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
-// Fonction de comparaison (inchangée)
+// NOUVEAU: Fonction pour masquer les détails
+function masquerDetails() {
+    detailsReceptionDiv.style.display = 'none';
+    // On pourrait aussi effacer les champs si on veut
+    // document.getElementById('quantite-recue').value = '';
+    // document.getElementById('poids-recu').value = '';
+}
+
+
 function comparerDonnees() {
     const qteAttendue = parseFloat(detailsReceptionDiv.dataset.qteAttendue);
     const poidsAttendu = parseFloat(detailsReceptionDiv.dataset.poidsAttendu);
