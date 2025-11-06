@@ -1,0 +1,121 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
+}
+h1 {
+    text-align: center;
+    color: #333;
+}
+.container {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+}
+.volet {
+    width: 48%;
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.volet h2 {
+    border-bottom: 2px solid #007BFF;
+    padding-bottom: 10px;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-group input,
+.form-group select {
+    width: calc(100% - 20px);
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+button {
+    background-color: #007BFF;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+button:hover {
+    background-color: #0056b3;
+}
+#prix-calcule {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #28a745;
+}
+#liste-clients li {
+    padding: 10px;
+    border: 1px solid #eee;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+#liste-clients li:hover {
+    background-color: #f0f0f0;
+}
+#details-reception {
+    display: none; /* Caché par défaut, le JS le montrera */
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+#differences {
+    margin-top: 10px;
+}
+/* Classes pour les messages de différence */
+#differences p {
+    padding: 8px;
+    border-radius: 4px;
+}
+.diff-erreur {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+.diff-ok {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+/* Gère l'affichage des champs Poids/Volume */
+#champ-poids, #champ-volume {
+    display: none; /* Cachés par défaut */
+}
+/* AJOUTER CE CODE À LA FIN DE VOTRE style.css */
+
+/* Style pour le prix final dans le volet 2 */
+.prix-final {
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* Style pour l'aperçu des photos */
+#apercu-photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+#apercu-photos img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
