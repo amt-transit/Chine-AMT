@@ -1,6 +1,6 @@
 // =======================================================
-// ÉTAPE 1 : CONFIGURATION FIREBASE
-// !! REMPLACEZ CECI PAR VOS PROPRES CLÉS OBTENUES SUR LE SITE DE FIREBASE !!
+// CONFIGURATION FIREBASE
+// (Assurez-vous que vos clés sont bien ici)
 // =======================================================
 const firebaseConfig = {
   apiKey: "AIzaSyA0_2U_6muRzphWlvKZN-lP6mytzaKIj1A",
@@ -12,17 +12,45 @@ const firebaseConfig = {
 };
 
 // Initialiser Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
-// Créer des "raccourcis" vers les services Firebase
-const db = firebase.firestore(); // La base de données (Firestore)
-const storage = firebase.storage(); // Le stockage de fichiers (Storage)
+// Raccourcis vers les services
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+// =======================================================
+// NOUVEAU: LOGIQUE DES ONGLETS
+// =======================================================
+function ouvrirOnglet(event, nomOnglet) {
+    // Cache tous les contenus d'onglets
+    const tabContents = document.getElementsByClassName("tab-content");
+    for (let i = 0; i < tabContents.length; i++) {
+        tabContents[i].style.display = "none";
+    }
+
+    // Désactive tous les boutons d'onglets
+    const tabLinks = document.getElementsByClassName("tab-link");
+    for (let i = 0; i < tabLinks.length; i++) {
+        tabLinks[i].className = tabLinks[i].className.replace(" active", "");
+    }
+
+    // Affiche l'onglet actuel et active son bouton
+    document.getElementById(nomOnglet).style.display = "block";
+    event.currentTarget.className += " active";
+    
+    // Si on ouvre l'onglet Réception, on recharge la liste
+    if (nomOnglet === 'Reception') {
+        chargerClients();
+    }
+}
 
 
-// Attend que tout le HTML soit chargé avant d'exécuter le script
+// Attend que tout le HTML soit chargé
 document.addEventListener('DOMContentLoaded', function() {
     
-    // === VOLET 1 : LOGIQUE POUR LA CHINE ===
+    // === LOGIQUE ONGLET 1 : ENVOI ===
     
     const formChine = document.getElementById('form-chine');
     const typeEnvoi = document.getElementById('type-envoi');
@@ -37,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const PRIX_AERIEN_KG = 10000;
     const PRIX_MARITIME_CBM = 25000;
 
-    // Fonctions pour calculer le prix (INCHANGÉ)
     function gererChampsEnvoi() {
         const type = typeEnvoi.value;
         if (type === 'aerien') {
@@ -76,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
     volumeInput.addEventListener('input', calculerPrix);
     gererChampsEnvoi();
     
-    // Aperçu photos (INCHANGÉ)
     photosInput.addEventListener('change', function() {
         apercuPhotosDiv.innerHTML = '';
         for (const file of this.files) {
@@ -92,16 +118,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // *** NOUVEAU : Logique d'enregistrement sur Firebase ***
+    // Logique d'enregistrement sur Firebase (inchangée)
     formChine.addEventListener('submit', async function(e) {
-        e.preventDefault(); // Empêche la page de se recharger
-
+        e.preventDefault();
         const bouton = formChine.querySelector('button');
         bouton.disabled = true;
         bouton.innerText = 'Enregistrement...';
 
         try {
-            // 1. Récupérer toutes les données du formulaire
             const envoi = {
                 date: document.getElementById('date-envoi').value,
                 type: typeEnvoi.value,
@@ -111,35 +135,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 poidsEnvoye: parseFloat(poidsInput.value) || 0,
                 volumeEnvoye: parseFloat(volumeInput.value) || 0,
                 prixEstime: prixCalculeSpan.innerText,
-                photosURLs: [], // On va remplir ça après
+                photosURLs: [],
                 creeLe: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            // 2. Envoyer les photos (s'il y en a)
             if (photosInput.files.length > 0) {
                 for (const file of photosInput.files) {
-                    // Créer un nom de fichier unique (ex: image_1678886400000.jpg)
                     const nomFichier = `colis_${Date.now()}_${file.name}`;
                     const refFichier = storage.ref(`images_colis/${nomFichier}`);
-                    
-                    // Envoyer le fichier
                     const snapshot = await refFichier.put(file);
-                    
-                    // Récupérer l'URL de téléchargement
                     const url = await snapshot.ref.getDownloadURL();
                     envoi.photosURLs.push(url);
                 }
             }
             
-            // 3. Envoyer les données (texte + URLs des photos) à Firestore
             await db.collection('expeditions').add(envoi);
-
             alert('Expédition enregistrée avec succès !');
-            formChine.reset(); // Vider le formulaire
+            formChine.reset();
             apercuPhotosDiv.innerHTML = '';
             
         } catch (erreur) {
-            console.error("Erreur lors de l'enregistrement: ", erreur);
+            console.error("Erreur enregistrement: ", erreur);
             alert("Échec de l'enregistrement: " + erreur.message);
         } finally {
             bouton.disabled = false;
@@ -147,88 +163,118 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-
-    // === VOLET 2 : LOGIQUE POUR LA CÔTE D'IVOIRE ===
-    
-    const listeClientsUl = document.getElementById('liste-clients');
-
-    // *** NOUVEAU : Charger les clients depuis Firebase ***
-    async function chargerClients() {
-        listeClientsUl.innerHTML = '<li>Chargement des clients...</li>';
-
-        try {
-            // Demander à Firestore toutes les 'expeditions', triées par date
-            const snapshot = await db.collection('expeditions').orderBy('creeLe', 'desc').get();
-            
-            if (snapshot.empty) {
-                listeClientsUl.innerHTML = '<li>Aucune expédition trouvée.</li>';
-                return;
-            }
-
-            listeClientsUl.innerHTML = ''; // Vider la liste
-            
-            // Pour chaque document trouvé, créer un <li>
-            snapshot.forEach(doc => {
-                const envoi = doc.data(); // Les données de l'envoi
-                const id = doc.id; // L'ID unique du document
-
-                const li = document.createElement('li');
-                li.innerText = `Client: ${envoi.prenom} ${envoi.nom} (Envoi du ${envoi.date})`;
-                
-                // On stocke TOUTES les infos dans les attributs data-*
-                li.setAttribute('data-id', id);
-                li.setAttribute('data-nom', `${envoi.prenom} ${envoi.nom}`);
-                li.setAttribute('data-qte', envoi.quantiteEnvoyee);
-                li.setAttribute('data-poids', envoi.poidsEnvoye);
-                li.setAttribute('data-prix', envoi.prixEstime);
-                
-                // On attache la fonction onclick
-                li.onclick = () => selectionnerClient(li);
-                
-                listeClientsUl.appendChild(li);
-            });
-
-        } catch (erreur) {
-            console.error("Erreur chargement clients: ", erreur);
-            listeClientsUl.innerHTML = '<li>Erreur de chargement.</li>';
-        }
-    }
-
-    // Charger les clients au démarrage
-    chargerClients();
+    // === LOGIQUE ONGLET 2 : RÉCEPTION ===
+    chargerClients(); // Charger les clients une première fois au démarrage
 });
 
 
-// === Fonctions globales pour le Volet 2 (INCHANGÉES) ===
+// === Fonctions globales (accessibles partout) ===
 
+// MODIFIÉ: Charge les clients dans le tableau
+async function chargerClients() {
+    const tbody = document.getElementById('liste-clients-tbody');
+    if (!tbody) return; // Sécurité
+    
+    tbody.innerHTML = '<tr><td colspan="7">Chargement des expéditions...</td></tr>';
+
+    try {
+        const snapshot = await db.collection('expeditions').orderBy('creeLe', 'desc').get();
+        
+        if (snapshot.empty) {
+            tbody.innerHTML = '<tr><td colspan="7">Aucune expédition trouvée.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = ''; // Vider la liste
+        
+        snapshot.forEach(doc => {
+            const envoi = doc.data();
+            const id = doc.id;
+
+            // Détermine quelle donnée afficher (Poids ou Volume)
+            let poidsVolume = '';
+            let poidsVolumeLabel = '';
+            if (envoi.type === 'aerien') {
+                poidsVolume = `${envoi.poidsEnvoye} Kg`;
+                poidsVolumeLabel = `${envoi.poidsEnvoye} Kg`;
+            } else {
+                poidsVolume = `${envoi.volumeEnvoye} CBM`;
+                poidsVolumeLabel = `${envoi.volumeEnvoye} CBM`;
+            }
+
+            // Crée la ligne du tableau
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${envoi.date}</td>
+                <td>${envoi.prenom} ${envoi.nom}</td>
+                <td>${envoi.type}</td>
+                <td>${envoi.quantiteEnvoyee}</td>
+                <td>${poidsVolume}</td>
+                <td>${envoi.prixEstime}</td>
+                <td>
+                    <button class="btn-reception">Réceptionner</button>
+                </td>
+            `;
+
+            // Ajoute les données au bouton pour les récupérer au clic
+            const boutonReception = tr.querySelector('.btn-reception');
+            boutonReception.setAttribute('data-id', id);
+            boutonReception.setAttribute('data-nom', `${envoi.prenom} ${envoi.nom}`);
+            boutonReception.setAttribute('data-qte', envoi.quantiteEnvoyee);
+            boutonReception.setAttribute('data-poids-volume', envoi.type === 'aerien' ? envoi.poidsEnvoye : envoi.volumeEnvoye);
+            boutonReception.setAttribute('data-poids-label', poidsVolumeLabel);
+            boutonReception.setAttribute('data-prix', envoi.prixEstime);
+            
+            boutonReception.onclick = () => selectionnerClient(boutonReception);
+
+            tbody.appendChild(tr);
+        });
+
+    } catch (erreur) {
+        console.error("Erreur chargement clients: ", erreur);
+        tbody.innerHTML = '<tr><td colspan="7">Erreur de chargement.</td></tr>';
+    }
+}
+
+
+// Récupère les éléments du formulaire CI
 const detailsReceptionDiv = document.getElementById('details-reception');
 const clientSelectionneSpan = document.getElementById('client-selectionne');
 const qteAttendueSpan = document.getElementById('qte-attendue');
 const poidsAttenduSpan = document.getElementById('poids-attendu');
 const prixAttenduSpan = document.getElementById('prix-attendu');
+const poidsRecuLabel = document.querySelector('label[for="poids-recu"]');
 
-function selectionnerClient(elementLi) {
+// MODIFIÉ: Récupère les données depuis le bouton
+function selectionnerClient(bouton) {
     detailsReceptionDiv.style.display = 'block';
 
-    const nom = elementLi.getAttribute('data-nom');
-    const qteAttendue = elementLi.getAttribute('data-qte');
-    const poidsAttendu = elementLi.getAttribute('data-poids');
-    const prixAttendu = elementLi.getAttribute('data-prix');
+    const nom = bouton.getAttribute('data-nom');
+    const qteAttendue = bouton.getAttribute('data-qte');
+    const poidsVolumeAttendu = bouton.getAttribute('data-poids-volume');
+    const poidsLabel = bouton.getAttribute('data-poids-label');
+    const prixAttendu = bouton.getAttribute('data-prix');
 
     clientSelectionneSpan.innerText = nom;
     qteAttendueSpan.innerText = qteAttendue;
-    poidsAttenduSpan.innerText = poidsAttendu;
+    poidsAttenduSpan.innerText = poidsLabel; // Affiche "50 Kg" ou "10 CBM"
     prixAttenduSpan.innerText = prixAttendu;
     
-    detailsReceptionDiv.dataset.qteAttendue = qteAttendue;
-    detailsReceptionDiv.dataset.poidsAttendu = poidsAttendu;
+    // Met à jour le label du champ de réception
+    poidsRecuLabel.innerText = poidsLabel.includes('Kg') ? 'Poids effectivement reçu (Kg)' : 'Volume effectivement reçu (CBM)';
     
+    // Stocke les valeurs pour la comparaison
+    detailsReceptionDiv.dataset.qteAttendue = qteAttendue;
+    detailsReceptionDiv.dataset.poidsAttendu = poidsVolumeAttendu; // Stocke la valeur brute (ex: 50)
+    
+    // Vide les anciens résultats et champs
     document.getElementById('diff-qte').innerHTML = '';
     document.getElementById('diff-poids').innerHTML = '';
     document.getElementById('quantite-recue').value = '';
     document.getElementById('poids-recu').value = '';
 }
 
+// Fonction de comparaison (inchangée)
 function comparerDonnees() {
     const qteAttendue = parseFloat(detailsReceptionDiv.dataset.qteAttendue);
     const poidsAttendu = parseFloat(detailsReceptionDiv.dataset.poidsAttendu);
@@ -249,14 +295,11 @@ function comparerDonnees() {
     }
 
     if (diffPoids === 0) {
-        diffPoidsEl.innerHTML = `Poids: OK (Reçu: ${poidsRecu} Kg)`;
+        diffPoidsEl.innerHTML = `Poids/Volume: OK (Reçu: ${poidsRecu})`;
         diffPoidsEl.className = 'diff-ok';
     } else {
         let signe = diffPoids > 0 ? '+' : '';
-        diffPoidsEl.innerHTML = `Différence Poids: ${signe}${diffPoids.toFixed(2)} Kg (Reçu: ${poidsRecu} Kg, Attendu: ${poidsAttendu} Kg)`;
+        diffPoidsEl.innerHTML = `Différence Poids/Volume: ${signe}${diffPoids.toFixed(2)} (Reçu: ${poidsRecu}, Attendu: ${poidsAttendu})`;
         diffPoidsEl.className = 'diff-erreur';
     }
-
-    // TODO : On pourrait aussi enregistrer ces données de réception dans Firebase
-    // db.collection('expeditions').doc(id_du_client).update({ ... });
 }
