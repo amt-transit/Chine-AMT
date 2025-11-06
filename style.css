@@ -5,7 +5,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f0f2f5; /* Fond gris clair */
+    background-color: #f0f2f5;
     color: #333;
     line-height: 1.5;
 }
@@ -25,7 +25,7 @@ h2 {
 }
 h3 {
     font-size: 1.2em;
-    color: #15609e; /* Bleu du header */
+    color: #15609e;
     margin-bottom: 15px;
 }
 .card {
@@ -34,6 +34,7 @@ h3 {
     border-radius: 8px;
     padding: 25px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 20px; /* Ajout d'espace entre les cartes */
 }
 
 /* =================================== */
@@ -49,7 +50,7 @@ header {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 .logo {
-    height: 40px; /* Hauteur fixe pour le logo */
+    height: 40px;
 }
 .header-info {
     font-size: 0.9em;
@@ -61,7 +62,7 @@ header {
 /* =================================== */
 .main-nav {
     display: flex;
-    background-color: #15609e; /* Bleu de l'image */
+    background-color: #15609e;
     padding: 0 20px;
 }
 .nav-link {
@@ -77,15 +78,15 @@ header {
     border-bottom: 3px solid transparent;
 }
 .nav-link:hover {
-    background-color: #1e7fc9; /* Bleu plus clair au survol */
+    background-color: #1e7fc9;
 }
 .nav-link.active {
     background-color: #fff;
-    color: #15609e; /* Bleu fonce */
-    border-bottom: 3px solid #f0a500; /* Une touche de couleur (jaune/or) */
+    color: #15609e;
+    border-bottom: 3px solid #f0a500;
 }
 .page-content {
-    display: none; /* Caché par défaut */
+    display: none;
     animation: fadeIn 0.3s ease-out;
 }
 @keyframes fadeIn {
@@ -122,6 +123,21 @@ header {
     box-shadow: 0 0 0 2px rgba(21, 96, 158, 0.2);
 }
 
+/* =================================== */
+/* NOUVEAUX BOUTONS D'EXPORT           */
+/* =================================== */
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.export-buttons button {
+    width: auto; /* Largeur auto pour les boutons d'export */
+    padding: 8px 15px;
+    font-size: 0.9em;
+}
+
+
 /* Style des boutons */
 button {
     cursor: pointer;
@@ -133,7 +149,7 @@ button {
     transition: all 0.2s ease;
 }
 .btn-principal {
-    background-color: #15609e; /* Bleu */
+    background-color: #15609e;
     color: white;
     width: 100%;
     margin-top: 10px;
@@ -142,7 +158,7 @@ button {
     background-color: #1e7fc9;
 }
 .btn-secondaire {
-    background-color: #6c757d; /* Gris */
+    background-color: #6c757d;
     color: white;
     width: 100%;
     margin-top: 10px;
@@ -159,16 +175,17 @@ hr {
 #prix-calcule, .prix-final {
     font-size: 1.4em;
     font-weight: 700;
-    color: #28a745; /* Vert */
+    color: #28a745;
 }
 
 /* =================================== */
-/* TABLEAU (Onglet Réception)          */
+/* TABLEAUX                            */
 /* =================================== */
 .table-container {
-    overflow-x: auto; /* Défilement horizontal sur mobile */
+    overflow-x: auto;
 }
-#table-expeditions {
+#table-expeditions,
+#table-envoi-en-cours { /* Applique le style aussi à la nouvelle table */
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
@@ -176,56 +193,63 @@ hr {
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 #table-expeditions th,
-#table-expeditions td {
+#table-expeditions td,
+#table-envoi-en-cours th,
+#table-envoi-en-cours td {
     padding: 12px 15px;
     text-align: left;
     border: 1px solid #ddd;
 }
-#table-expeditions th {
-    background-color: #f4f6f8; /* Fond d'en-tête de tableau */
+#table-expeditions th,
+#table-envoi-en-cours th {
+    background-color: #f4f6f8;
     font-weight: 600;
     color: #333;
     text-transform: uppercase;
 }
-#table-expeditions tbody tr:nth-child(even) {
+#table-expeditions tbody tr:nth-child(even),
+#table-envoi-en-cours tbody tr:nth-child(even) {
     background-color: #fdfdfd;
 }
-#table-expeditions tbody tr:hover {
-    background-color: #eaf6ff; /* Surlignage bleu clair */
+#table-expeditions tbody tr:hover,
+#table-envoi-en-cours tbody tr:hover {
+    background-color: #eaf6ff;
 }
 
-/* Nouveaux boutons d'action dans le tableau */
-#table-expeditions td:last-child {
-    text-align: center;
-    white-space: nowrap; /* Empêche les boutons de passer à la ligne */
-}
+/* Boutons d'action dans les tableaux */
 .btn-action {
     display: inline-block;
     padding: 6px 10px;
     font-size: 0.9em;
     margin: 0 3px;
-    width: auto;
+    width: auto; /* Largeur auto */
 }
 .btn-afficher {
-    background-color: #28a745; /* Vert */
+    background-color: #28a745;
     color: white;
 }
 .btn-afficher:hover {
     background-color: #218838;
 }
 .btn-supprimer {
-    background-color: #dc3545; /* Rouge */
+    background-color: #dc3545;
     color: white;
 }
 .btn-supprimer:hover {
     background-color: #c82333;
 }
+/* Style spécifique pour les boutons dans le modal */
+.modal-content .btn-principal,
+.modal-content .btn-secondaire {
+    width: 100%;
+}
+
 
 /* =================================== */
-/* NOUVEAU : FENÊTRE MODAL (Pop-up)    */
+/* FENÊTRE MODAL (Pop-up)              */
 /* =================================== */
 .modal-backdrop {
-    display: none; /* Caché par défaut */
+    display: none;
     position: fixed;
     z-index: 2000;
     left: 0;
@@ -233,7 +257,7 @@ hr {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.6); /* Fond assombri */
+    background-color: rgba(0,0,0,0.6);
     align-items: center;
     justify-content: center;
     animation: fadeInModal 0.3s;
@@ -247,9 +271,9 @@ hr {
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     width: 90%;
     max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
     animation: slideInModal 0.3s;
-    max-height: 90vh; /* Hauteur max */
-    overflow-y: auto; /* Défilement si contenu trop long */
 }
 .modal-close {
     color: #aaa;
@@ -273,11 +297,9 @@ hr {
     from {transform: translateY(-50px); opacity: 0;}
     to {transform: translateY(0); opacity: 1;}
 }
-/* Le contenu des détails est maintenant dans le modal */
 #details-reception {
-    display: block !important; /* S'assurer qu'il s'affiche dans le modal */
+    display: block !important;
 }
-/* Le bouton "Fermer" dans le modal */
 #details-reception .btn-secondaire {
     background-color: #6c757d;
 }
@@ -344,7 +366,7 @@ hr {
     }
     .nav-link {
         padding: 12px 10px;
-        flex-grow: 1; /* Pour qu'ils prennent toute la largeur */
+        flex-grow: 1;
         text-align: center;
     }
     main {
@@ -359,5 +381,11 @@ hr {
     .modal-content {
         padding: 20px;
         width: 95%;
+    }
+    .export-buttons {
+        flex-direction: column;
+    }
+    .export-buttons button {
+        width: 100%;
     }
 }
