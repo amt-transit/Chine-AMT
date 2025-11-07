@@ -136,6 +136,7 @@
                                 <th>Qté</th>
                                 <th>Poids/Vol.</th>
                                 <th>Prix</th>
+                                <th>Statut</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -170,25 +171,35 @@
                 </div>
 
                 <hr>
-                <strong>Vérification à la réception :</strong>
-                <form id="form-reception">
-                    <div class="form-group">
-                        <label for="quantite-recue">Quantité reçue</label>
-                        <input type="number" id="quantite-recue" min="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="poids-recu">Donnée reçue (Kg ou CBM)</label>
-                        <input type="number" id="poids-recu" step="0.01" min="0">
-                    </div>
 
-                    <button type="button" class="btn-principal" onclick="comparerDonnees()">Vérifier les différences</button>
-                </form>
-
-                <div id="differences">
-                    <p id="diff-qte"></p>
-                    <p id="diff-poids"></p>
+                <div id="reception-status-display">
+                    <strong>État Actuel de la Réception :</strong>
+                    <p id="reception-status" class="status-badge"></p>
+                    <div id="reception-summary">
+                        </div>
+                    <div id="reception-differences-display">
+                        </div>
                 </div>
+
+                <div id="form-reception-container">
+                    <hr>
+                    <strong>Ajouter une Réception :</strong>
+                    <form id="form-reception">
+                        <div class="form-group">
+                            <label for="quantite-recue">Ajouter Quantité reçue</label>
+                            <input type="number" id="quantite-recue" min="0" placeholder="ex: 3">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="poids-recu">Ajouter Poids/Volume reçu</label>
+                            <input type="number" id="poids-recu" step="0.01" min="0" placeholder="ex: 5.2">
+                        </div>
+
+                        <button type="button" class="btn-principal" onclick="enregistrerReception()">Enregistrer la Réception</button>
+                    </form>
+                </div>
+                
+                <hr>
                 <button class="btn-secondaire" onclick="fermerModal(event)">Fermer</button>
             </div>
             
@@ -198,10 +209,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-
     <script src="script.js"></script>
 
 </body>
