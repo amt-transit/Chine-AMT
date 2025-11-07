@@ -34,7 +34,7 @@ h3 {
     border-radius: 8px;
     padding: 25px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    margin-bottom: 20px; /* Ajout d'espace entre les cartes */
+    margin-bottom: 20px;
 }
 
 /* =================================== */
@@ -132,7 +132,7 @@ header {
     margin-bottom: 20px;
 }
 .export-buttons button {
-    width: auto; /* Largeur auto pour les boutons d'export */
+    width: auto;
     padding: 8px 15px;
     font-size: 0.9em;
 }
@@ -185,7 +185,7 @@ hr {
     overflow-x: auto;
 }
 #table-expeditions,
-#table-envoi-en-cours { /* Applique le style aussi à la nouvelle table */
+#table-envoi-en-cours {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
@@ -222,7 +222,7 @@ hr {
     padding: 6px 10px;
     font-size: 0.9em;
     margin: 0 3px;
-    width: auto; /* Largeur auto */
+    width: auto;
 }
 .btn-afficher {
     background-color: #28a745;
@@ -238,7 +238,6 @@ hr {
 .btn-supprimer:hover {
     background-color: #c82333;
 }
-/* Style spécifique pour les boutons dans le modal */
 .modal-content .btn-principal,
 .modal-content .btn-secondaire {
     width: 100%;
@@ -388,4 +387,35 @@ hr {
     .export-buttons button {
         width: 100%;
     }
+}
+
+/* =================================== */
+/* NOUVEAU: STYLES AUTOCOMPLÉTION      */
+/* =================================== */
+.autocomplete-container {
+    position: relative; /* Permet de positionner la liste des suggestions */
+}
+.autocomplete-items {
+    display: none; /* Caché par défaut */
+    position: absolute;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    z-index: 100;
+    top: 100%; /* Se positionne juste en dessous du champ */
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.autocomplete-items div {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+.autocomplete-items div:hover {
+    background-color: #f1f1f1;
+}
+.autocomplete-items div:last-child {
+    border-bottom: none;
 }
