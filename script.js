@@ -23,6 +23,7 @@ const storage = firebase.storage();
 // =Variables globales
 let envoiEnCours = []; // Stocke les clients avant la validation groupée
 let clientsCharges = []; // Stocke les clients chargés pour l'export
+let allPastClients = []; // NOUVEAU: Stocke la liste unique des clients pour l'autocomplétion
 const PRIX_AERIEN_KG = 10000;
 const PRIX_MARITIME_CBM = 25000;
 
@@ -47,7 +48,7 @@ function ouvrirPage(event, nomPage) {
         agenceNomEl.innerText = 'Chine';
     } else if (nomPage === 'Reception') {
         agenceNomEl.innerText = 'Abidjan';
-        chargerClients(); // Charger les clients en ouvrant la page
+        chargerClients();
     }
 }
 
@@ -60,11 +61,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const activeLink = document.querySelector('.nav-link.active');
         if (activeLink) activeLink.click();
     }, 10);
-
+    
+    // NOUVEAU: Charger la liste de clients pour l'autocomplétion au démarrage
+    loadAllClientsForAutocomplete();
 
     // === LOGIQUE PAGE 1 : ENVOI ===
     
-    // Récupération des champs du formulaire d'ajout
     const typeEnvoiSelect = document.getElementById('type-envoi');
     const champPoids = document.getElementById('champ-poids');
     const champVolume = document.getElementById('champ-volume');
@@ -73,8 +75,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const prixCalculeSpan = document.getElementById('prix-calcule');
     const photosInput = document.getElementById('photos-colis');
     const apercuPhotosDiv = document.getElementById('apercu-photos');
-
-    // Récupération des boutons d'action
     const btnAjouterClient = document.getElementById('btn-ajouter-client');
     const btnValiderEnvoiGroupe = document.getElementById('btn-valider-envoi-groupe');
 
@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     volumeInput.addEventListener('input', calculerPrixClient);
     
     function gererChampsEnvoi() {
+        // ... (code inchangé) ...
         const type = typeEnvoiSelect.value;
         if (type === 'aerien') {
             champPoids.style.display = 'block';
@@ -102,18 +103,14 @@ document.addEventListener('DOMContentLoaded', function() {
         calculerPrixClient();
     }
     
-    // Calcul du prix pour UN client
     function calculerPrixClient() {
+        // ... (code inchangé) ...
         const type = typeEnvoiSelect.value;
         const poids = parseFloat(poidsInput.value) || 0;
         const volume = parseFloat(volumeInput.value) || 0;
         let prix = 0;
-
-        if (type === 'aerien') {
-            prix = poids * PRIX_AERIEN_KG;
-        } else if (type === 'maritime') {
-            prix = volume * PRIX_MARITIME_CBM;
-        }
+        if (type === 'aerien') prix = poids * PRIX_AERIEN_KG;
+        else if (type === 'maritime') prix = volume * PRIX_MARITIME_CBM;
         prixCalculeSpan.innerText = prix.toLocaleString('fr-FR') + ' CFA';
     }
     gererChampsEnvoi();
@@ -136,8 +133,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // NOUVELLE LOGIQUE: Bouton "Ajouter à l'envoi"
+    // Bouton "Ajouter à l'envoi"
     btnAjouterClient.addEventListener('click', function() {
+        // ... (code inchangé, voir fonction globale) ...
         // 1. Valider les champs requis
         const typeEnvoi = document.getElementById('type-envoi').value;
         const dateEnvoi = document.getElementById('date-envoi').value;
@@ -145,16 +143,13 @@ document.addEventListener('DOMContentLoaded', function() {
             alert("Veuillez d'abord remplir les 'Informations communes' (Date et Type d'envoi).");
             return;
         }
-
         const nom = document.getElementById('client-nom').value;
         const prenom = document.getElementById('client-prenom').value;
         const tel = document.getElementById('client-tel').value;
-        
         if (!nom || !prenom || !tel) {
             alert("Veuillez remplir le Nom, Prénom et Téléphone du client.");
             return;
         }
-
         // 2. Créer l'objet client
         const clientData = {
             nom: nom,
@@ -164,44 +159,35 @@ document.addEventListener('DOMContentLoaded', function() {
             poidsEnvoye: parseFloat(poidsInput.value) || 0,
             volumeEnvoye: parseFloat(volumeInput.value) || 0,
             prixEstime: prixCalculeSpan.innerText,
-            photosFiles: Array.from(photosInput.files) // Stocke les fichiers
+            photosFiles: Array.from(photosInput.files)
         };
-
         // 3. Ajouter à la liste
         envoiEnCours.push(clientData);
-        
         // 4. Mettre à jour le tableau HTML
         mettreAJourTableauEnvoiEnCours();
-
         // 5. Réinitialiser le formulaire client
         document.getElementById('form-ajout-client').reset();
         apercuPhotosDiv.innerHTML = '';
         calculerPrixClient();
     });
 
-    // NOUVELLE LOGIQUE: Bouton "Valider l'envoi groupé"
+    // Bouton "Valider l'envoi groupé"
     btnValiderEnvoiGroupe.addEventListener('click', async function() {
+        // ... (code inchangé, voir fonction globale) ...
         if (envoiEnCours.length === 0) {
             alert("La liste d'envoi est vide. Veuillez ajouter au moins un client.");
             return;
         }
-
         this.disabled = true;
         this.innerText = 'Enregistrement en cours...';
-
         try {
-            // 1. Récupérer les infos communes
             const dateEnvoi = document.getElementById('date-envoi').value;
             const typeEnvoi = document.getElementById('type-envoi').value;
-
-            // 2. Générer la référence unique
             const typeRef = typeEnvoi === 'aerien' ? 'AMTA' : 'AMTM';
             const date = new Date();
             const refNum = `${typeRef}${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}-${date.getHours().toString().padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}`;
             
-            // 3. Boucler sur chaque client et l'envoyer à Firebase
             for (const client of envoiEnCours) {
-                // 3a. Télécharger les photos pour CE client
                 let photosURLs = [];
                 if (client.photosFiles.length > 0) {
                     for (const file of client.photosFiles) {
@@ -212,8 +198,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         photosURLs.push(url);
                     }
                 }
-
-                // 3b. Créer l'objet final pour Firebase
                 const envoiFinal = {
                     reference: refNum,
                     date: dateEnvoi,
@@ -228,12 +212,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     photosURLs: photosURLs,
                     creeLe: firebase.firestore.FieldValue.serverTimestamp()
                 };
-
-                // 3c. Envoyer à la collection
                 await db.collection('expeditions').add(envoiFinal);
             }
-
-            // 4. Tout réinitialiser
             alert(`Envoi groupé ${refNum} enregistré avec succès !`);
             envoiEnCours = [];
             mettreAJourTableauEnvoiEnCours();
@@ -265,8 +245,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.style.display = "";
                     continue;
                 }
-                const nomClient = row.cells[2].innerText.toLowerCase(); // Colonne Client
-                const telephone = row.cells[3].innerText.toLowerCase(); // Colonne Téléphone
+                const nomClient = row.cells[2].innerText.toLowerCase();
+                const telephone = row.cells[3].innerText.toLowerCase();
                 if (nomClient.includes(query) || telephone.includes(query)) {
                     row.style.display = "";
                 } else {
@@ -276,14 +256,106 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // NOUVEAU: Logique d'export
+    // Logique d'export (inchangée)
     const btnExportPDF = document.getElementById('btn-export-pdf');
     const btnExportExcel = document.getElementById('btn-export-excel');
-    
     if(btnExportPDF) btnExportPDF.addEventListener('click', exporterPDF);
     if(btnExportExcel) btnExportExcel.addEventListener('click', exporterExcel);
+    
+    
+    // =======================================================
+    // NOUVEAU: LOGIQUE D'AUTOCOMPLÉTION (PAGE ENVOI)
+    // =======================================================
+    const nomInput = document.getElementById('client-nom');
+    const suggestionsBox = document.getElementById('autocomplete-suggestions');
+
+    // Se déclenche quand on tape dans le champ "Nom"
+    nomInput.addEventListener('input', function() {
+        const query = nomInput.value.toLowerCase();
+        
+        if (query.length < 1) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+
+        // Filtrer la liste des clients
+        const matches = allPastClients.filter(client => 
+            client.nom.toLowerCase().startsWith(query)
+        );
+
+        // Afficher les suggestions
+        showSuggestions(matches);
+    });
+
+    // Cacher les suggestions si on clique ailleurs
+    document.addEventListener('click', function(e) {
+        if (e.target.id !== 'client-nom') {
+            suggestionsBox.style.display = 'none';
+        }
+    });
 
 }); // <-- FIN DE DOMContentLoaded
+
+
+// =======================================================
+// NOUVEAU: FONCTIONS D'AUTOCOMPLÉTION
+// =======================================================
+
+// Charge tous les clients uniques depuis Firebase au démarrage
+async function loadAllClientsForAutocomplete() {
+    try {
+        const clientMap = new Map();
+        const snapshot = await db.collection('expeditions').get();
+        
+        snapshot.forEach(doc => {
+            const envoi = doc.data();
+            // Utiliser le numéro de téléphone comme clé unique pour dé-dupliquer
+            if (envoi.tel) {
+                clientMap.set(envoi.tel, {
+                    nom: envoi.nom,
+                    prenom: envoi.prenom,
+                    tel: envoi.tel
+                });
+            }
+        });
+        
+        allPastClients = Array.from(clientMap.values());
+        console.log(`Chargé ${allPastClients.length} clients uniques pour l'autocomplétion.`);
+        
+    } catch (erreur) {
+        console.error("Erreur lors du chargement des clients pour autocomplétion: ", erreur);
+    }
+}
+
+// Affiche la boîte de suggestions
+function showSuggestions(matches) {
+    const suggestionsBox = document.getElementById('autocomplete-suggestions');
+    suggestionsBox.innerHTML = ''; // Vider la liste
+
+    if (matches.length === 0) {
+        suggestionsBox.style.display = 'none';
+        return;
+    }
+
+    matches.slice(0, 5).forEach(client => { // Limite à 5 suggestions
+        const div = document.createElement('div');
+        div.innerHTML = `<strong>${client.nom}</strong> ${client.prenom} (${client.tel})`;
+        div.addEventListener('click', () => {
+            selectSuggestion(client);
+        });
+        suggestionsBox.appendChild(div);
+    });
+
+    suggestionsBox.style.display = 'block';
+}
+
+// Remplit les champs quand une suggestion est cliquée
+function selectSuggestion(client) {
+    document.getElementById('client-nom').value = client.nom;
+    document.getElementById('client-prenom').value = client.prenom;
+    document.getElementById('client-tel').value = client.tel;
+    document.getElementById('autocomplete-suggestions').style.display = 'none';
+}
 
 
 // =======================================================
@@ -291,18 +363,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // =======================================================
 
 function mettreAJourTableauEnvoiEnCours() {
+    // ... (code inchangé) ...
     const tbody = document.getElementById('tbody-envoi-en-cours');
-    tbody.innerHTML = ''; // Vider la table
-
+    tbody.innerHTML = '';
     if (envoiEnCours.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6">Aucun client ajouté.</td></tr>';
         return;
     }
-
     envoiEnCours.forEach((client, index) => {
         const typeEnvoi = document.getElementById('type-envoi').value;
         let poidsVolume = typeEnvoi === 'aerien' ? `${client.poidsEnvoye} Kg` : `${client.volumeEnvoye} CBM`;
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${client.prenom} ${client.nom}</td>
@@ -311,7 +381,7 @@ function mettreAJourTableauEnvoiEnCours() {
             <td>${poidsVolume}</td>
             <td>${client.prixEstime}</td>
             <td>
-                <button classclass="btn-action btn-supprimer" onclick="supprimerClientEnvoiEnCours(${index})">X</button>
+                <button class="btn-action btn-supprimer" onclick="supprimerClientEnvoiEnCours(${index})">X</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -319,9 +389,10 @@ function mettreAJourTableauEnvoiEnCours() {
 }
 
 function supprimerClientEnvoiEnCours(index) {
+    // ... (code inchangé) ...
     if (confirm("Voulez-vous retirer ce client de la liste ?")) {
-        envoiEnCours.splice(index, 1); // Retire l'élément à l'index donné
-        mettreAJourTableauEnvoiEnCours(); // Met à jour le tableau
+        envoiEnCours.splice(index, 1);
+        mettreAJourTableauEnvoiEnCours();
     }
 }
 
@@ -332,27 +403,22 @@ function supprimerClientEnvoiEnCours(index) {
 
 // Charge les clients dans le tableau
 async function chargerClients() {
-    clientsCharges = []; // Vider la liste pour l'export
+    // ... (code inchangé) ...
+    clientsCharges = [];
     const tbody = document.getElementById('liste-clients-tbody');
     if (!tbody) return;
-    
     tbody.innerHTML = '<tr><td colspan="9">Chargement des expéditions...</td></tr>';
-
     try {
         const snapshot = await db.collection('expeditions').orderBy('creeLe', 'desc').get();
-        
         if (snapshot.empty) {
             tbody.innerHTML = '<tr><td colspan="9">Aucune expédition trouvée.</td></tr>';
             return;
         }
-
         tbody.innerHTML = '';
-        
         snapshot.forEach(doc => {
             const envoi = doc.data();
             const id = doc.id;
             const nomClient = `${envoi.prenom} ${envoi.nom}`;
-
             let poidsVolume = '';
             let poidsVolumeLabel = '';
             if (envoi.type === 'aerien') {
@@ -362,15 +428,9 @@ async function chargerClients() {
                 poidsVolume = `${envoi.volumeEnvoye} CBM`;
                 poidsVolumeLabel = `${envoi.volumeEnvoye} CBM`;
             }
-            
-            // Stocker pour l'export
             clientsCharges.push({
-                id: id,
-                ...envoi,
-                nomClient: nomClient,
-                poidsVolume: poidsVolume
+                id: id, ...envoi, nomClient: nomClient, poidsVolume: poidsVolume
             });
-
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${envoi.reference || 'N/A'}</td>
@@ -386,11 +446,8 @@ async function chargerClients() {
                     <button class="btn-action btn-supprimer">X</button>
                 </td>
             `;
-
             const boutonAfficher = tr.querySelector('.btn-afficher');
             const boutonSupprimer = tr.querySelector('.btn-supprimer');
-
-            // Stocker les données sur le bouton "Afficher"
             boutonAfficher.setAttribute('data-nom', nomClient);
             boutonAfficher.setAttribute('data-ref', envoi.reference || 'N/A');
             boutonAfficher.setAttribute('data-tel', envoi.tel || '');
@@ -400,17 +457,12 @@ async function chargerClients() {
             boutonAfficher.setAttribute('data-prix', envoi.prixEstime);
             const photosURLs = envoi.photosURLs || [];
             boutonAfficher.setAttribute('data-photos', JSON.stringify(photosURLs));
-            
-            // Stocker les données sur le bouton "Supprimer"
             boutonSupprimer.setAttribute('data-id', id);
             boutonSupprimer.setAttribute('data-nom', nomClient);
-            
             boutonAfficher.onclick = () => selectionnerClient(boutonAfficher);
             boutonSupprimer.onclick = () => supprimerEnvoi(boutonSupprimer);
-
             tbody.appendChild(tr);
         });
-
     } catch (erreur) {
         console.error("Erreur chargement clients: ", erreur);
         tbody.innerHTML = '<tr><td colspan="9">Erreur de chargement.</td></tr>';
@@ -431,7 +483,7 @@ const photosRecuesApercu = document.getElementById('photos-recues-apercu');
 const detailsReceptionDiv = document.getElementById('details-reception');
 
 function selectionnerClient(bouton) {
-    // Récupération des données
+    // ... (code inchangé) ...
     const nom = bouton.getAttribute('data-nom');
     const ref = bouton.getAttribute('data-ref');
     const telAttendu = bouton.getAttribute('data-tel');
@@ -439,8 +491,6 @@ function selectionnerClient(bouton) {
     const poidsVolumeAttendu = bouton.getAttribute('data-poids-volume');
     const poidsLabel = bouton.getAttribute('data-poids-label');
     const prixAttendu = bouton.getAttribute('data-prix');
-
-    // Affichage des données
     clientSelectionneSpan.innerText = nom;
     refAttendueSpan.innerText = ref;
     telAttenduSpan.innerText = telAttendu || 'N/A';
@@ -448,22 +498,15 @@ function selectionnerClient(bouton) {
     poidsAttenduSpan.innerText = poidsLabel;
     prixAttenduSpan.innerText = prixAttendu;
     poidsRecuLabel.innerText = poidsLabel.includes('Kg') ? 'Poids reçu (Kg)' : 'Volume reçu (CBM)';
-    
-    // Stockage des données pour comparaison
     detailsReceptionDiv.dataset.qteAttendue = qteAttendue;
     detailsReceptionDiv.dataset.poidsAttendu = poidsVolumeAttendu;
-    
-    // Nettoyage
     document.getElementById('diff-qte').innerHTML = '';
     document.getElementById('diff-poids').innerHTML = '';
     document.getElementById('quantite-recue').value = '';
     document.getElementById('poids-recu').value = '';
-
-    // Affichage des photos
     photosRecuesApercu.innerHTML = '';
     const photosURLsString = bouton.getAttribute('data-photos');
     const photosURLs = JSON.parse(photosURLsString);
-
     if (photosURLs && photosURLs.length > 0) {
         photosURLs.forEach(url => {
             const img = document.createElement('img');
@@ -476,12 +519,11 @@ function selectionnerClient(bouton) {
     } else {
         photosRecuesContainer.style.display = 'none';
     }
-
-    // Afficher le modal
     modalBackdrop.style.display = 'flex';
 }
 
 function fermerModal(event) {
+    // ... (code inchangé) ...
     if (event.target.id === 'modal-backdrop' || 
         event.target.classList.contains('modal-close') ||
         event.target.classList.contains('btn-secondaire')) 
@@ -494,19 +536,18 @@ function fermerModal(event) {
 
 // FONCTION: SUPPRIMER UN ENVOI
 async function supprimerEnvoi(bouton) {
+    // ... (code inchangé) ...
     const id = bouton.getAttribute('data-id');
     const nom = bouton.getAttribute('data-nom');
-    
     if (!id) {
         alert('Erreur: ID de document non trouvé.');
         return;
     }
-
     if (confirm(`Voulez-vous vraiment supprimer l'expédition pour ${nom} ?\nCette action est irréversible.`)) {
         try {
             await db.collection('expeditions').doc(id).delete();
             alert('Envoi supprimé avec succès.');
-            chargerClients(); // Recharger la liste
+            chargerClients();
         } catch (erreur) {
             console.error("Erreur lors de la suppression: ", erreur);
             alert("Échec de la suppression: " + erreur.message);
@@ -517,7 +558,7 @@ async function supprimerEnvoi(bouton) {
 
 // Fonction de comparaison
 function comparerDonnees() {
-    // ... (Logique de comparaison inchangée) ...
+    // ... (code inchangé) ...
     const qteAttendue = parseFloat(detailsReceptionDiv.dataset.qteAttendue);
     const poidsAttendu = parseFloat(detailsReceptionDiv.dataset.poidsAttendu);
     const qteRecue = parseFloat(document.getElementById('quantite-recue').value) || 0;
@@ -526,7 +567,6 @@ function comparerDonnees() {
     const diffPoidsEl = document.getElementById('diff-poids');
     const diffQte = qteRecue - qteAttendue;
     const diffPoids = poidsRecu - poidsAttendu;
-
     if (diffQte === 0) {
         diffQteEl.innerHTML = `Quantité: OK (Reçu: ${qteRecue})`;
         diffQteEl.className = 'diff-ok';
@@ -547,34 +587,23 @@ function comparerDonnees() {
 
 
 // =======================================================
-// NOUVELLES FONCTIONS D'EXPORT
+// FONCTIONS D'EXPORT
 // =======================================================
 
 function exporterExcel() {
+    // ... (code inchangé) ...
     if (clientsCharges.length === 0) {
         alert("Aucune donnée à exporter.");
         return;
     }
-    
     let csvContent = "data:text/csv;charset=utf-8,";
-    // Entêtes
     csvContent += "Référence,Date,Client,Téléphone,Type,Quantité,Poids/Volume,Prix\r\n";
-    
-    // Lignes
     clientsCharges.forEach(client => {
         csvContent += [
-            `"${client.reference || ''}"`,
-            `"${client.date}"`,
-            `"${client.nomClient}"`,
-            `"${client.tel || ''}"`,
-            `"${client.type}"`,
-            client.quantiteEnvoyee,
-            `"${client.poidsVolume}"`,
-            `"${client.prixEstime}"`
+            `"${client.reference || ''}"`, `"${client.date}"`, `"${client.nomClient}"`, `"${client.tel || ''}"`,
+            `"${client.type}"`, client.quantiteEnvoyee, `"${client.poidsVolume}"`, `"${client.prixEstime}"`
         ].join(',') + "\r\n";
     });
-    
-    // Créer le lien de téléchargement
     var encodedUri = encodeURI(csvContent);
     var link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -585,32 +614,23 @@ function exporterExcel() {
 }
 
 function exporterPDF() {
+    // ... (code inchangé) ...
     if (clientsCharges.length === 0) {
         alert("Aucune donnée à exporter.");
         return;
     }
-    
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-
     const headers = [["Référence", "Date", "Client", "Téléphone", "Type", "Qté", "Poids/Vol", "Prix"]];
     const body = clientsCharges.map(client => [
-        client.reference || '',
-        client.date,
-        client.nomClient,
-        client.tel || '',
-        client.type,
-        client.quantiteEnvoyee,
-        client.poidsVolume,
-        client.prixEstime
+        client.reference || '', client.date, client.nomClient, client.tel || '',
+        client.type, client.quantiteEnvoyee, client.poidsVolume, client.prixEstime
     ]);
-
     doc.autoTable({
         head: headers,
         body: body,
         styles: { fontSize: 8 },
-        headStyles: { fillColor: [21, 96, 158] } // Bleu
+        headStyles: { fillColor: [21, 96, 158] }
     });
-
     doc.save('expeditions.pdf');
 }
