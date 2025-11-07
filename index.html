@@ -45,10 +45,13 @@
             <form id="form-ajout-client" class="card">
                 <h3>2. Ajouter des clients à cet envoi</h3>
                 <p>Remplissez les champs et cliquez sur "Ajouter à l'envoi".</p>
-                <div class="form-group">
+                
+                <div class="form-group autocomplete-container">
                     <label for="client-nom">Nom du client</label>
-                    <input type="text" id="client-nom" placeholder="Nom de famille" required>
+                    <input type="text" id="client-nom" placeholder="Nom de famille" required autocomplete="off">
+                    <div id="autocomplete-suggestions" class="autocomplete-items"></div>
                 </div>
+
                 <div class="form-group">
                     <label for="client-prenom">Prénom du client</label>
                     <input type="text" id="client-prenom" placeholder="Prénom" required>
@@ -96,7 +99,8 @@
                             </tr>
                         </thead>
                         <tbody id="tbody-envoi-en-cours">
-                            </tbody>
+                            <tr><td colspan="6">Aucun client ajouté.</td></tr>
+                        </tbody>
                     </table>
                 </div>
                 <hr>
@@ -153,7 +157,8 @@
                 
                 <p>
                     <strong>Données envoyées (Chine) :</strong><br>
-                    Référence: <span id="ref-attendue"></span><br> Téléphone: <span id="tel-attendu"></span><br>
+                    Référence: <span id="ref-attendue"></span><br>
+                    Téléphone: <span id="tel-attendu"></span><br>
                     Quantité: <span id="qte-attendue"></span> colis<br>
                     Poids/Volume: <span id="poids-attendu"></span><br>
                     <strong>Prix estimé: <span id="prix-attendu" class="prix-final"></span></strong>
