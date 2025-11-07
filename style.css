@@ -166,6 +166,11 @@ button {
 .btn-secondaire:hover {
     background-color: #5a6268;
 }
+.btn-principal:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+
 
 hr {
     border: none;
@@ -241,6 +246,57 @@ hr {
 .modal-content .btn-principal,
 .modal-content .btn-secondaire {
     width: 100%;
+}
+
+/* =================================== */
+/* NOUVEAU: BADGES DE STATUT           */
+/* =================================== */
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #fff;
+    display: inline-block;
+    margin: 5px 0;
+}
+.status-attente {
+    background-color: #6c757d; /* Gris */
+}
+.status-conforme {
+    background-color: #28a745; /* Vert */
+}
+.status-ecart {
+    background-color: #dc3545; /* Rouge */
+}
+/* NOUVELLE CLASSE POUR LE STATUT SUPÉRIEUR */
+.status-superieur {
+    background-color: #15609e; /* Bleu */
+}
+
+/* Style pour les différences affichées */
+#reception-summary {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin: 10px 0;
+}
+#reception-differences-display p {
+    margin: 5px 0;
+    padding: 8px;
+    border-radius: 4px;
+}
+#reception-differences-display .diff-ok {
+    color: #155724;
+    background-color: #d4edda;
+}
+#reception-differences-display .diff-erreur {
+    color: #721c24;
+    background-color: #f8d7da;
+}
+/* NOUVELLE CLASSE POUR LE SURPLUS */
+#reception-differences-display .diff-superieur {
+    color: #0f518a; /* Bleu foncé */
+    background-color: #eaf6ff; /* Bleu clair */
 }
 
 
@@ -329,26 +385,6 @@ hr {
 }
 
 /* =================================== */
-/* MESSAGES DE DIFFÉRENCE (Identique)  */
-/* =================================== */
-#differences p {
-    padding: 12px;
-    border-radius: 8px;
-    margin: 10px 0;
-    font-weight: 500;
-}
-.diff-erreur {
-    color: #dc3545;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-}
-.diff-ok {
-    color: #28a745;
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
-}
-
-/* =================================== */
 /* RESPONSIVE DESIGN                   */
 /* =================================== */
 @media (max-width: 768px) {
@@ -390,18 +426,18 @@ hr {
 }
 
 /* =================================== */
-/* NOUVEAU: STYLES AUTOCOMPLÉTION      */
+/* STYLES AUTOCOMPLÉTION               */
 /* =================================== */
 .autocomplete-container {
-    position: relative; /* Permet de positionner la liste des suggestions */
+    position: relative;
 }
 .autocomplete-items {
-    display: none; /* Caché par défaut */
+    display: none;
     position: absolute;
     border: 1px solid #ddd;
     background-color: #fff;
     z-index: 100;
-    top: 100%; /* Se positionne juste en dessous du champ */
+    top: 100%;
     left: 0;
     right: 0;
     max-height: 200px;
