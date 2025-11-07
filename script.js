@@ -21,9 +21,9 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 
 // =Variables globales
-let envoiEnCours = []; // Stocke les clients avant la validation groupée
-let clientsCharges = []; // Stocke les clients chargés pour l'export
-let allPastClients = []; // NOUVEAU: Stocke la liste unique des clients pour l'autocomplétion
+let envoiEnCours = [];
+let clientsCharges = [];
+let allPastClients = [];
 const PRIX_AERIEN_KG = 10000;
 const PRIX_MARITIME_CBM = 25000;
 
@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (activeLink) activeLink.click();
     }, 10);
     
-    // NOUVEAU: Charger la liste de clients pour l'autocomplétion au démarrage
     loadAllClientsForAutocomplete();
 
     // === LOGIQUE PAGE 1 : ENVOI ===
@@ -84,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
     volumeInput.addEventListener('input', calculerPrixClient);
     
     function gererChampsEnvoi() {
-        // ... (code inchangé) ...
         const type = typeEnvoiSelect.value;
         if (type === 'aerien') {
             champPoids.style.display = 'block';
@@ -104,7 +102,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function calculerPrixClient() {
-        // ... (code inchangé) ...
         const type = typeEnvoiSelect.value;
         const poids = parseFloat(poidsInput.value) || 0;
         const volume = parseFloat(volumeInput.value) || 0;
@@ -115,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     gererChampsEnvoi();
     
-    // Aperçu Photos (inchangé)
+    // Aperçu Photos
     photosInput.addEventListener('change', function() {
         apercuPhotosDiv.innerHTML = '';
         if (this.files.length > 0) {
@@ -135,8 +132,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Bouton "Ajouter à l'envoi"
     btnAjouterClient.addEventListener('click', function() {
-        // ... (code inchangé, voir fonction globale) ...
-        // 1. Valider les champs requis
         const typeEnvoi = document.getElementById('type-envoi').value;
         const dateEnvoi = document.getElementById('date-envoi').value;
         if (!typeEnvoi || !dateEnvoi) {
@@ -150,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
             alert("Veuillez remplir le Nom, Prénom et Téléphone du client.");
             return;
         }
-        // 2. Créer l'objet client
         const clientData = {
             nom: nom,
             prenom: prenom,
@@ -161,19 +155,15 @@ document.addEventListener('DOMContentLoaded', function() {
             prixEstime: prixCalculeSpan.innerText,
             photosFiles: Array.from(photosInput.files)
         };
-        // 3. Ajouter à la liste
         envoiEnCours.push(clientData);
-        // 4. Mettre à jour le tableau HTML
         mettreAJourTableauEnvoiEnCours();
-        // 5. Réinitialiser le formulaire client
         document.getElementById('form-ajout-client').reset();
         apercuPhotosDiv.innerHTML = '';
         calculerPrixClient();
     });
 
-    // Bouton "Valider l'envoi groupé"
+    // Bouton "Valider l'envoi groupé" (MODIFIÉ)
     btnValiderEnvoiGroupe.addEventListener('click', async function() {
-        // ... (code inchangé, voir fonction globale) ...
         if (envoiEnCours.length === 0) {
             alert("La liste d'envoi est vide. Veuillez ajouter au moins un client.");
             return;
@@ -198,6 +188,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         photosURLs.push(url);
                     }
                 }
+
+                // Calculs initiaux
+                const quantiteEnvoyeeNum = parseInt(client.quantiteEnvoyee) || 0;
+                const poidsEnvoyeNum = (typeEnvoi === 'aerien') ? client.poidsEnvoye : client.volumeEnvoye;
+                const diffPoidsInitial = -poidsEnvoyeNum;
+                let prixDiffInitial = 0;
+                if (typeEnvoi === 'aerien') {
+                    prixDiffInitial = diffPoidsInitial * PRIX_AERIEN_KG;
+                } else {
+                    prixDiffInitial = diffPoidsInitial * PRIX_MARITIME_CBM;
+                }
+
                 const envoiFinal = {
                     reference: refNum,
                     date: dateEnvoi,
@@ -205,12 +207,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     nom: client.nom,
                     prenom: client.prenom,
                     tel: client.tel,
-                    quantiteEnvoyee: client.quantiteEnvoyee,
+                    quantiteEnvoyee: quantiteEnvoyeeNum,
                     poidsEnvoye: client.poidsEnvoye,
                     volumeEnvoye: client.volumeEnvoye,
                     prixEstime: client.prixEstime,
                     photosURLs: photosURLs,
-                    creeLe: firebase.firestore.FieldValue.serverTimestamp()
+                    creeLe: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'En attente',
+                    quantiteRecue: 0,
+                    poidsRecu: 0,
+                    differenceQuantite: -quantiteEnvoyeeNum,
+                    differencePoids: diffPoidsInitial,
+                    prixDifference: prixDiffInitial
                 };
                 await db.collection('expeditions').add(envoiFinal);
             }
@@ -218,6 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
             envoiEnCours = [];
             mettreAJourTableauEnvoiEnCours();
             document.getElementById('form-envoi-commun').reset();
+            loadAllClientsForAutocomplete();
             
         } catch (erreur) {
             console.error("Erreur enregistrement groupé: ", erreur);
@@ -231,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // === LOGIQUE PAGE 2 : RECEPTION ===
     
-    // Logique de recherche (inchangée)
+    // Logique de recherche
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
@@ -256,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Logique d'export (inchangée)
+    // Logique d'export
     const btnExportPDF = document.getElementById('btn-export-pdf');
     const btnExportExcel = document.getElementById('btn-export-excel');
     if(btnExportPDF) btnExportPDF.addEventListener('click', exporterPDF);
@@ -264,32 +273,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
     
     // =======================================================
-    // NOUVEAU: LOGIQUE D'AUTOCOMPLÉTION (PAGE ENVOI)
+    // LOGIQUE D'AUTOCOMPLÉTION (PAGE ENVOI)
     // =======================================================
     const nomInput = document.getElementById('client-nom');
     const suggestionsBox = document.getElementById('autocomplete-suggestions');
 
-    // Se déclenche quand on tape dans le champ "Nom"
     nomInput.addEventListener('input', function() {
         const query = nomInput.value.toLowerCase();
-        
         if (query.length < 1) {
             suggestionsBox.style.display = 'none';
             return;
         }
-
-        // Filtrer la liste des clients
         const matches = allPastClients.filter(client => 
-            client.nom.toLowerCase().startsWith(query)
+            client.nom.toLowerCase().startsWith(query) || 
+            client.prenom.toLowerCase().startsWith(query)
         );
-
-        // Afficher les suggestions
         showSuggestions(matches);
     });
 
-    // Cacher les suggestions si on clique ailleurs
     document.addEventListener('click', function(e) {
-        if (e.target.id !== 'client-nom') {
+        if (!e.target.closest('.autocomplete-container')) {
             suggestionsBox.style.display = 'none';
         }
     });
@@ -298,18 +301,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // =======================================================
-// NOUVEAU: FONCTIONS D'AUTOCOMPLÉTION
+// FONCTIONS D'AUTOCOMPLÉTION
 // =======================================================
-
-// Charge tous les clients uniques depuis Firebase au démarrage
 async function loadAllClientsForAutocomplete() {
     try {
         const clientMap = new Map();
         const snapshot = await db.collection('expeditions').get();
-        
         snapshot.forEach(doc => {
             const envoi = doc.data();
-            // Utiliser le numéro de téléphone comme clé unique pour dé-dupliquer
             if (envoi.tel) {
                 clientMap.set(envoi.tel, {
                     nom: envoi.nom,
@@ -318,26 +317,20 @@ async function loadAllClientsForAutocomplete() {
                 });
             }
         });
-        
         allPastClients = Array.from(clientMap.values());
         console.log(`Chargé ${allPastClients.length} clients uniques pour l'autocomplétion.`);
-        
     } catch (erreur) {
-        console.error("Erreur lors du chargement des clients pour autocomplétion: ", erreur);
+        console.error("Erreur chargement clients pour autocomplétion: ", erreur);
     }
 }
-
-// Affiche la boîte de suggestions
 function showSuggestions(matches) {
     const suggestionsBox = document.getElementById('autocomplete-suggestions');
-    suggestionsBox.innerHTML = ''; // Vider la liste
-
+    suggestionsBox.innerHTML = '';
     if (matches.length === 0) {
         suggestionsBox.style.display = 'none';
         return;
     }
-
-    matches.slice(0, 5).forEach(client => { // Limite à 5 suggestions
+    matches.slice(0, 5).forEach(client => {
         const div = document.createElement('div');
         div.innerHTML = `<strong>${client.nom}</strong> ${client.prenom} (${client.tel})`;
         div.addEventListener('click', () => {
@@ -345,11 +338,8 @@ function showSuggestions(matches) {
         });
         suggestionsBox.appendChild(div);
     });
-
     suggestionsBox.style.display = 'block';
 }
-
-// Remplit les champs quand une suggestion est cliquée
 function selectSuggestion(client) {
     document.getElementById('client-nom').value = client.nom;
     document.getElementById('client-prenom').value = client.prenom;
@@ -357,13 +347,10 @@ function selectSuggestion(client) {
     document.getElementById('autocomplete-suggestions').style.display = 'none';
 }
 
-
 // =======================================================
 // FONCTIONS GLOBALES (PAGE ENVOI)
 // =======================================================
-
 function mettreAJourTableauEnvoiEnCours() {
-    // ... (code inchangé) ...
     const tbody = document.getElementById('tbody-envoi-en-cours');
     tbody.innerHTML = '';
     if (envoiEnCours.length === 0) {
@@ -387,31 +374,25 @@ function mettreAJourTableauEnvoiEnCours() {
         tbody.appendChild(tr);
     });
 }
-
 function supprimerClientEnvoiEnCours(index) {
-    // ... (code inchangé) ...
     if (confirm("Voulez-vous retirer ce client de la liste ?")) {
         envoiEnCours.splice(index, 1);
         mettreAJourTableauEnvoiEnCours();
     }
 }
 
-
 // =======================================================
 // FONCTIONS GLOBALES (PAGE RÉCEPTION)
 // =======================================================
-
-// Charge les clients dans le tableau
 async function chargerClients() {
-    // ... (code inchangé) ...
     clientsCharges = [];
     const tbody = document.getElementById('liste-clients-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="9">Chargement des expéditions...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10">Chargement des expéditions...</td></tr>';
     try {
         const snapshot = await db.collection('expeditions').orderBy('creeLe', 'desc').get();
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="9">Aucune expédition trouvée.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10">Aucune expédition trouvée.</td></tr>';
             return;
         }
         tbody.innerHTML = '';
@@ -419,19 +400,30 @@ async function chargerClients() {
             const envoi = doc.data();
             const id = doc.id;
             const nomClient = `${envoi.prenom} ${envoi.nom}`;
+
             let poidsVolume = '';
-            let poidsVolumeLabel = '';
             if (envoi.type === 'aerien') {
                 poidsVolume = `${envoi.poidsEnvoye} Kg`;
-                poidsVolumeLabel = `${envoi.poidsEnvoye} Kg`;
             } else {
                 poidsVolume = `${envoi.volumeEnvoye} CBM`;
-                poidsVolumeLabel = `${envoi.volumeEnvoye} CBM`;
             }
-            clientsCharges.push({
-                id: id, ...envoi, nomClient: nomClient, poidsVolume: poidsVolume
-            });
+            
+            clientsCharges.push({ id: id, ...envoi, nomClient: nomClient, poidsVolume: poidsVolume });
+
             const tr = document.createElement('tr');
+            
+            let statusHtml = '';
+            let statusClass = 'status-attente';
+            let statusText = envoi.status || 'En attente';
+            if (statusText === 'Reçu - Conforme') {
+                statusClass = 'status-conforme';
+            } else if (statusText === 'Reçu - Supérieur') { // NOUVEAU STATUT
+                statusClass = 'status-superieur';
+            } else if (statusText === 'Reçu - Ecart') {
+                statusClass = 'status-ecart';
+            }
+            statusHtml = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+
             tr.innerHTML = `
                 <td>${envoi.reference || 'N/A'}</td>
                 <td>${envoi.date}</td>
@@ -441,35 +433,32 @@ async function chargerClients() {
                 <td>${envoi.quantiteEnvoyee}</td>
                 <td>${poidsVolume}</td>
                 <td>${envoi.prixEstime}</td>
+                <td>${statusHtml}</td>
                 <td>
                     <button class="btn-action btn-afficher">Afficher</button>
                     <button class="btn-action btn-supprimer">X</button>
                 </td>
             `;
+
             const boutonAfficher = tr.querySelector('.btn-afficher');
             const boutonSupprimer = tr.querySelector('.btn-supprimer');
-            boutonAfficher.setAttribute('data-nom', nomClient);
-            boutonAfficher.setAttribute('data-ref', envoi.reference || 'N/A');
-            boutonAfficher.setAttribute('data-tel', envoi.tel || '');
-            boutonAfficher.setAttribute('data-qte', envoi.quantiteEnvoyee);
-            boutonAfficher.setAttribute('data-poids-volume', envoi.type === 'aerien' ? envoi.poidsEnvoye : envoi.volumeEnvoye);
-            boutonAfficher.setAttribute('data-poids-label', poidsVolumeLabel);
-            boutonAfficher.setAttribute('data-prix', envoi.prixEstime);
-            const photosURLs = envoi.photosURLs || [];
-            boutonAfficher.setAttribute('data-photos', JSON.stringify(photosURLs));
+            
+            boutonAfficher.setAttribute('data-doc', JSON.stringify({id, ...envoi}));
             boutonSupprimer.setAttribute('data-id', id);
             boutonSupprimer.setAttribute('data-nom', nomClient);
+            
             boutonAfficher.onclick = () => selectionnerClient(boutonAfficher);
             boutonSupprimer.onclick = () => supprimerEnvoi(boutonSupprimer);
+
             tbody.appendChild(tr);
         });
     } catch (erreur) {
         console.error("Erreur chargement clients: ", erreur);
-        tbody.innerHTML = '<tr><td colspan="9">Erreur de chargement.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10">Erreur de chargement.</td></tr>';
     }
 }
 
-// LOGIQUE DE MODAL (FENÊTRE POP-UP)
+// LOGIQUE DE MODAL (TRÈS MODIFIÉE)
 const modalBackdrop = document.getElementById('modal-backdrop');
 const clientSelectionneSpan = document.getElementById('client-selectionne');
 const refAttendueSpan = document.getElementById('ref-attendue');
@@ -480,35 +469,40 @@ const prixAttenduSpan = document.getElementById('prix-attendu');
 const poidsRecuLabel = document.querySelector('label[for="poids-recu"]');
 const photosRecuesContainer = document.getElementById('photos-recues-container');
 const photosRecuesApercu = document.getElementById('photos-recues-apercu');
-const detailsReceptionDiv = document.getElementById('details-reception');
+const formReceptionContainer = document.getElementById('form-reception-container');
+const receptionStatusDisplay = document.getElementById('reception-status-display');
+const receptionStatus = document.getElementById('reception-status');
+const receptionSummary = document.getElementById('reception-summary');
+const receptionDifferencesDisplay = document.getElementById('reception-differences-display');
+
 
 function selectionnerClient(bouton) {
-    // ... (code inchangé) ...
-    const nom = bouton.getAttribute('data-nom');
-    const ref = bouton.getAttribute('data-ref');
-    const telAttendu = bouton.getAttribute('data-tel');
-    const qteAttendue = bouton.getAttribute('data-qte');
-    const poidsVolumeAttendu = bouton.getAttribute('data-poids-volume');
-    const poidsLabel = bouton.getAttribute('data-poids-label');
-    const prixAttendu = bouton.getAttribute('data-prix');
-    clientSelectionneSpan.innerText = nom;
-    refAttendueSpan.innerText = ref;
-    telAttenduSpan.innerText = telAttendu || 'N/A';
-    qteAttendueSpan.innerText = qteAttendue;
+    const envoi = JSON.parse(bouton.getAttribute('data-doc'));
+    
+    modalBackdrop.dataset.docId = envoi.id;
+    modalBackdrop.dataset.envoi = bouton.getAttribute('data-doc');
+
+    // 1. Remplir les "Données envoyées (Chine)"
+    clientSelectionneSpan.innerText = `${envoi.prenom} ${envoi.nom}`;
+    refAttendueSpan.innerText = envoi.reference || 'N/A';
+    telAttenduSpan.innerText = envoi.tel || 'N/A';
+    qteAttendueSpan.innerText = envoi.quantiteEnvoyee;
+    prixAttenduSpan.innerText = envoi.prixEstime;
+
+    let poidsLabel = '';
+    if (envoi.type === 'aerien') {
+        poidsLabel = `${envoi.poidsEnvoye} Kg`;
+        poidsRecuLabel.innerText = 'Ajouter Poids (Kg)';
+    } else {
+        poidsLabel = `${envoi.volumeEnvoye} CBM`;
+        poidsRecuLabel.innerText = 'Ajouter Volume (CBM)';
+    }
     poidsAttenduSpan.innerText = poidsLabel;
-    prixAttenduSpan.innerText = prixAttendu;
-    poidsRecuLabel.innerText = poidsLabel.includes('Kg') ? 'Poids reçu (Kg)' : 'Volume reçu (CBM)';
-    detailsReceptionDiv.dataset.qteAttendue = qteAttendue;
-    detailsReceptionDiv.dataset.poidsAttendu = poidsVolumeAttendu;
-    document.getElementById('diff-qte').innerHTML = '';
-    document.getElementById('diff-poids').innerHTML = '';
-    document.getElementById('quantite-recue').value = '';
-    document.getElementById('poids-recu').value = '';
+    
+    // 2. Afficher les photos
     photosRecuesApercu.innerHTML = '';
-    const photosURLsString = bouton.getAttribute('data-photos');
-    const photosURLs = JSON.parse(photosURLsString);
-    if (photosURLs && photosURLs.length > 0) {
-        photosURLs.forEach(url => {
+    if (envoi.photosURLs && envoi.photosURLs.length > 0) {
+        envoi.photosURLs.forEach(url => {
             const img = document.createElement('img');
             img.src = url;
             img.alt = "Photo du colis";
@@ -519,24 +513,180 @@ function selectionnerClient(bouton) {
     } else {
         photosRecuesContainer.style.display = 'none';
     }
+
+    // 3. Mettre à jour l'état actuel de la réception
+    updateModalStatus(envoi);
+
+    // 4. Afficher le modal
     modalBackdrop.style.display = 'flex';
 }
 
+// MODIFIÉ: Met à jour l'état du modal, y compris le manque à gagner
+function updateModalStatus(envoi) {
+    const status = envoi.status || 'En attente';
+    const qteAttendue = envoi.quantiteEnvoyee;
+    const qteRecue = envoi.quantiteRecue || 0;
+    const diffQte = envoi.differenceQuantite; // Vient directement de la BDD
+
+    const poidsAttendu = (envoi.type === 'aerien') ? envoi.poidsEnvoye : envoi.volumeEnvoye;
+    const poidsRecu = envoi.poidsRecu || 0;
+    const diffPoids = envoi.differencePoids; // Vient directement de la BDD
+    const prixDiffNum = envoi.prixDifference || 0;
+    
+    // Mettre à jour le badge de statut
+    receptionStatus.innerText = status;
+    receptionStatus.className = 'status-badge';
+    if (status === 'Reçu - Conforme') {
+        receptionStatus.classList.add('status-conforme');
+    } else if (status === 'Reçu - Supérieur') {
+        receptionStatus.classList.add('status-superieur');
+    } else if (status === 'Reçu - Ecart') {
+        receptionStatus.classList.add('status-ecart');
+    } else {
+        receptionStatus.classList.add('status-attente');
+    }
+
+    // Mettre à jour le résumé
+    receptionSummary.innerHTML = `
+        <p>Quantité Reçue: <strong>${qteRecue} / ${qteAttendue}</strong></p>
+        <p>Poids/Vol. Reçu: <strong>${poidsRecu.toFixed(2)} / ${poidsAttendu.toFixed(2)}</strong></p>
+    `;
+
+    // Mettre à jour les différences
+    receptionDifferencesDisplay.innerHTML = '';
+    if (status !== 'En attente') {
+        if (diffQte === 0) {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-ok">Quantité: OK</p>`;
+        } else if (diffQte > 0) {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-superieur">Surplus Quantité: +${diffQte} colis</p>`;
+        } else {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-erreur">Écart Quantité: ${diffQte} colis</p>`;
+        }
+        
+        if (Math.abs(diffPoids) < 0.001) {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-ok">Poids/Volume: OK</p>`;
+        } else if (diffPoids > 0) {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-superieur">Surplus Poids/Volume: +${diffPoids.toFixed(2)}</p>`;
+        } else {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-erreur">Écart Poids/Volume: ${diffPoids.toFixed(2)}</p>`;
+        }
+        
+        // AFFICHAGE DU MANQUE À GAGNER / GAIN
+        if (Math.abs(prixDiffNum) < 1) { // Si c'est 0
+             // Ne rien afficher
+        } else if (prixDiffNum > 0) {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-superieur">Gain Inattendu: ${prixDiffNum.toLocaleString('fr-FR')} CFA</p>`;
+        } else {
+            receptionDifferencesDisplay.innerHTML += `<p class="diff-erreur">Manque à Gagner: ${Math.abs(prixDiffNum).toLocaleString('fr-FR')} CFA</p>`;
+        }
+    }
+
+    // Cacher le formulaire si c'est conforme
+    if (status === 'Reçu - Conforme') {
+        formReceptionContainer.style.display = 'none';
+    } else {
+        formReceptionContainer.style.display = 'block';
+    }
+}
+
+
 function fermerModal(event) {
-    // ... (code inchangé) ...
     if (event.target.id === 'modal-backdrop' || 
         event.target.classList.contains('modal-close') ||
         event.target.classList.contains('btn-secondaire')) 
     {
         modalBackdrop.style.display = 'none';
-        photosRecuesContainer.style.display = 'none';
-        photosRecuesApercu.innerHTML = '';
+        modalBackdrop.dataset.docId = '';
+        modalBackdrop.dataset.envoi = '';
     }
 }
 
+// MODIFIÉ: La fonction AJOUTE la réception
+async function enregistrerReception() {
+    const bouton = document.querySelector('#form-reception-container .btn-principal');
+    bouton.disabled = true;
+    bouton.innerText = "Enregistrement...";
+
+    try {
+        const docId = modalBackdrop.dataset.docId;
+        const envoi = JSON.parse(modalBackdrop.dataset.envoi);
+
+        const qteNouvelle = parseInt(document.getElementById('quantite-recue').value) || 0;
+        const poidsNouveau = parseFloat(document.getElementById('poids-recu').value) || 0;
+        
+        if (qteNouvelle === 0 && poidsNouveau === 0) {
+             alert("Veuillez entrer une quantité ou un poids.");
+             throw new Error("Entrée vide");
+        }
+
+        const qteAttendue = parseInt(envoi.quantiteEnvoyee);
+        const poidsAttendu = (envoi.type === 'aerien') ? envoi.poidsEnvoye : envoi.volumeEnvoye;
+
+        const qteDejaRecue = envoi.quantiteRecue || 0;
+        const poidsDejaRecu = envoi.poidsRecu || 0;
+
+        const qteTotalRecue = qteDejaRecue + qteNouvelle;
+        const poidsTotalRecu = poidsDejaRecu + poidsNouveau;
+
+        const diffQte = qteTotalRecue - qteAttendue;
+        const diffPoids = poidsTotalRecu - poidsAttendu;
+        
+        let prixDifference = 0;
+        if (envoi.type === 'aerien') {
+            prixDifference = diffPoids * PRIX_AERIEN_KG;
+        } else {
+            prixDifference = diffPoids * PRIX_MARITIME_CBM;
+        }
+
+        // NOUVELLE LOGIQUE DE STATUT
+        let status = '';
+        const estConforme = (diffQte === 0 && Math.abs(diffPoids) < 0.001);
+        const estSuperieur = (diffQte >= 0 && diffPoids >= -0.001); // (diffQte >= 0 AND diffPoids >= 0, avec tolérance)
+
+        if (estConforme) {
+            status = 'Reçu - Conforme';
+        } else if (estSuperieur) {
+            status = 'Reçu - Supérieur';
+        } else {
+            status = 'Reçu - Ecart';
+        }
+
+        const receptionData = {
+            status: status,
+            quantiteRecue: qteTotalRecue,
+            poidsRecu: poidsTotalRecu,
+            differenceQuantite: diffQte,
+            differencePoids: diffPoids,
+            prixDifference: prixDifference, // Stocke le N°
+            dateReception: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('expeditions').doc(docId).update(receptionData);
+
+        const nouvelEnvoi = { ...envoi, ...receptionData };
+        modalBackdrop.dataset.envoi = JSON.stringify(nouvelEnvoi);
+
+        updateModalStatus(nouvelEnvoi);
+        
+        document.getElementById('quantite-recue').value = '';
+        document.getElementById('poids-recu').value = '';
+
+        chargerClients();
+
+    } catch (erreur) {
+        if (erreur.message !== "Entrée vide") {
+            console.error("Erreur lors de l'enregistrement de la réception: ", erreur);
+            alert("Échec de l'enregistrement: " + erreur.message);
+        }
+    } finally {
+        bouton.disabled = false;
+        bouton.innerText = "Enregistrer la Réception";
+    }
+}
+
+
 // FONCTION: SUPPRIMER UN ENVOI
 async function supprimerEnvoi(bouton) {
-    // ... (code inchangé) ...
     const id = bouton.getAttribute('data-id');
     const nom = bouton.getAttribute('data-nom');
     if (!id) {
@@ -556,81 +706,59 @@ async function supprimerEnvoi(bouton) {
 }
 
 
-// Fonction de comparaison
-function comparerDonnees() {
-    // ... (code inchangé) ...
-    const qteAttendue = parseFloat(detailsReceptionDiv.dataset.qteAttendue);
-    const poidsAttendu = parseFloat(detailsReceptionDiv.dataset.poidsAttendu);
-    const qteRecue = parseFloat(document.getElementById('quantite-recue').value) || 0;
-    const poidsRecu = parseFloat(document.getElementById('poids-recu').value) || 0;
-    const diffQteEl = document.getElementById('diff-qte');
-    const diffPoidsEl = document.getElementById('diff-poids');
-    const diffQte = qteRecue - qteAttendue;
-    const diffPoids = poidsRecu - poidsAttendu;
-    if (diffQte === 0) {
-        diffQteEl.innerHTML = `Quantité: OK (Reçu: ${qteRecue})`;
-        diffQteEl.className = 'diff-ok';
-    } else {
-        let signe = diffQte > 0 ? '+' : '';
-        diffQteEl.innerHTML = `Différence Quantité: ${signe}${diffQte} (Reçu: ${qteRecue}, Attendu: ${qteAttendue})`;
-        diffQteEl.className = 'diff-erreur';
-    }
-    if (diffPoids === 0) {
-        diffPoidsEl.innerHTML = `Poids/Volume: OK (Reçu: ${poidsRecu})`;
-        diffPoidsEl.className = 'diff-ok';
-    } else {
-        let signe = diffPoids > 0 ? '+' : '';
-        diffPoidsEl.innerHTML = `Différence Poids/Volume: ${signe}${diffPoids.toFixed(2)} (Reçu: ${poidsRecu}, Attendu: ${poidsAttendu})`;
-        diffPoidsEl.className = 'diff-erreur';
-    }
-}
-
-
 // =======================================================
-// FONCTIONS D'EXPORT
+// FONCTIONS D'EXPORT (MODIFIÉES)
 // =======================================================
-
 function exporterExcel() {
-    // ... (code inchangé) ...
     if (clientsCharges.length === 0) {
         alert("Aucune donnée à exporter.");
         return;
     }
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Référence,Date,Client,Téléphone,Type,Quantité,Poids/Volume,Prix\r\n";
+    csvContent += "Référence,Date,Client,Téléphone,Type,Qté Envoyée,Poids/Vol Envoyé,Prix Estimé,Statut,Qté Reçue,Poids/Vol Reçu,Diff. Qté,Diff. Poids,Prix Écart (CFA)\r\n";
+    
     clientsCharges.forEach(client => {
         csvContent += [
             `"${client.reference || ''}"`, `"${client.date}"`, `"${client.nomClient}"`, `"${client.tel || ''}"`,
-            `"${client.type}"`, client.quantiteEnvoyee, `"${client.poidsVolume}"`, `"${client.prixEstime}"`
+            `"${client.type}"`, client.quantiteEnvoyee, `"${client.poidsVolume}"`, `"${client.prixEstime}"`,
+            `"${client.status || 'En attente'}"`, client.quantiteRecue || 0, client.poidsRecu || 0,
+            client.differenceQuantite || 0, client.differencePoids || 0, client.prixDifference || 0
         ].join(',') + "\r\n";
     });
+    
     var encodedUri = encodeURI(csvContent);
     var link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "expeditions.csv");
+    link.setAttribute("download", "expeditions_complet.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
 function exporterPDF() {
-    // ... (code inchangé) ...
     if (clientsCharges.length === 0) {
         alert("Aucune donnée à exporter.");
         return;
     }
+    
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const headers = [["Référence", "Date", "Client", "Téléphone", "Type", "Qté", "Poids/Vol", "Prix"]];
+    const doc = new jsPDF('l', 'mm', 'a4');
+    
+    const headers = [["Ref", "Date", "Client", "Téléphone", "Type", "Qté Env.", "Poids/Vol", "Statut", "Qté Reçue", "Diff. Qté", "Diff. Poids", "Prix Écart"]];
     const body = clientsCharges.map(client => [
         client.reference || '', client.date, client.nomClient, client.tel || '',
-        client.type, client.quantiteEnvoyee, client.poidsVolume, client.prixEstime
+        client.type, client.quantiteEnvoyee, client.poidsVolume, client.status || 'En attente',
+        client.quantiteRecue || 0, client.differenceQuantite || 0, client.differencePoids.toFixed(2) || 0,
+        (client.prixDifference || 0).toLocaleString('fr-FR')
     ]);
+
     doc.autoTable({
         head: headers,
         body: body,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [21, 96, 158] }
+        styles: { fontSize: 6 },
+        headStyles: { fillColor: [21, 96, 158] },
+        margin: { top: 10 }
     });
-    doc.save('expeditions.pdf');
+
+    doc.save('expeditions_complet.pdf');
 }
