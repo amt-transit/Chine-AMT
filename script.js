@@ -228,6 +228,7 @@ async function chargerCompta(typeFiltre) {
 
         let items = [];
 
+        // ... (La récupération et le tri ne changent pas) ...
         snapshotEntrees.forEach(doc => {
             const data = doc.data();
             let isMatch = false;
@@ -260,7 +261,6 @@ async function chargerCompta(typeFiltre) {
             }
         });
 
-        // Tri par groupe puis référence
         items.sort((a, b) => {
             const gA = a.sortGroup || ""; const gB = b.sortGroup || "";
             if (gA.startsWith('EV') && gB.startsWith('EV')) {
@@ -270,42 +270,30 @@ async function chargerCompta(typeFiltre) {
             return (a.sortRef||"").localeCompare(b.sortRef||"");
         });
 
-        // Variables Totaux Généraux
+        // --- INITIALISATION DES TOTAUX ---
         let totalCredit = 0, totalCaisse = 0, totalBonus = 0;
+        // On distingue bien OM et Wave
         let totauxMode = { Espece: 0, Cheque: 0, OM: 0, Wave: 0, CB: 0 };
         let totauxSortieMode = { Espece: 0, Cheque: 0, OM: 0, Wave: 0, CB: 0 };
         
-        // Variables Totaux Groupe
-        let currentGroup = null;
-        let groupVol = 0; // Sera affiché sur la colonne Client
-        let groupDu = 0;
-        let groupReste = 0;
-        let groupEntree = 0;
-        let groupSortie = 0;
+        let currentGroup = null; let groupQty = 0; let groupVol = 0;
 
         tbody.innerHTML = '';
 
         items.forEach((item, index) => {
+            // ... (Gestion Rupture Groupe inchangée) ...
             let thisGroup = item.sortGroup;
-            
-            // --- AFFICHAGE LIGNE TOTALE GROUPE PRÉCÉDENT ---
             if (currentGroup !== null && thisGroup !== currentGroup && !currentGroup.startsWith('ZZZ')) {
                  let wLabel = typeFiltre.startsWith('aerien') ? 'Kg' : 'CBM';
-                 tbody.innerHTML += `
-                    <tr class="group-summary-row">
-                        <td colspan="3" style="text-align:right;">TOTAL ${currentGroup}</td>
-                        <td>${groupVol.toFixed(2)} ${wLabel}</td>
-                        <td>${groupDu.toLocaleString('fr-FR')}</td>
-                        <td>${groupReste.toLocaleString('fr-FR')}</td>
-                        <td>${groupEntree.toLocaleString('fr-FR')}</td>
-                        <td>${groupSortie.toLocaleString('fr-FR')}</td>
-                        <td></td>
-                        <td></td>
-                    </tr>`;
-                 // Reset compteurs groupe
-                 groupVol = 0; groupDu = 0; groupReste = 0; groupEntree = 0; groupSortie = 0;
+                 tbody.innerHTML += `<tr class="group-summary-row"><td colspan="4">TOTAL ${currentGroup}</td><td colspan="2">${groupQty} Colis</td><td colspan="4">${groupVol.toFixed(3)} ${wLabel}</td></tr>`;
+                 groupQty = 0; groupVol = 0;
             }
             currentGroup = thisGroup;
+            
+            if (!item.isDepense) {
+                groupQty += parseInt(item.quantiteEnvoyee) || 0;
+                groupVol += parseFloat(typeFiltre.startsWith('aerien') ? item.poidsEnvoye : item.volumeEnvoye) || 0;
+            }
 
             const dateStr = item.sortDate.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
             const monthIndex = item.sortDate.getMonth(); 
@@ -314,95 +302,88 @@ async function chargerCompta(typeFiltre) {
             if (item.isDepense) {
                 let m = parseFloat(item.montant) || 0;
                 totalCaisse -= m;
-                groupSortie += m; // Ajout au total groupe
-
-                let mode = item.moyenPaiement || 'Espece';
+                
+                // --- MAPPING SORTIES SÉPARÉ ---
+                let mode = item.moyenPaiement || 'Espèce';
                 if(mode.includes('Chèque')) totauxSortieMode.Cheque += m;
                 else if(mode.includes('OM')) totauxSortieMode.OM += m;
-                else if(mode.includes('Wave')) totauxSortieMode.Wave += m;
+                else if(mode.includes('Wave')) totauxSortieMode.Wave += m; // Séparé
                 else if(mode.includes('CB')) totauxSortieMode.CB += m;
                 else totauxSortieMode.Espece += m;
 
                 htmlRow = `<tr class="row-month-${monthIndex}"><td>${dateStr}</td><td>-</td><td>${item.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red">${m.toLocaleString('fr-FR')}</td><td>${item.moyenPaiement}</td><td><button class="btn-suppr-small" onclick="supprimerDepense('${item.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
             } else {
                 let prixDu = parseInt(item.prixEstime.replace(/[^0-9]/g, '')) || 0;
-                let payeTotal = item.montantPaye || 0;
-                
-                // Calculs depuis historique pour plus de précision
+                let payeTotal = 0;
+
+                // --- MAPPING ENTRÉES SÉPARÉ ---
                 if (item.history && item.history.length > 0) {
-                    payeTotal = 0; // On recalcule
                     item.history.forEach(h => {
                         let m = parseFloat(h.montant)||0;
                         payeTotal += m;
                         let typ = h.moyen || 'Espèce';
                         if(typ.includes('Chèque')) totauxMode.Cheque += m;
                         else if(typ.includes('OM')) totauxMode.OM += m;
-                        else if(typ.includes('Wave')) totauxMode.Wave += m;
+                        else if(typ.includes('Wave')) totauxMode.Wave += m; // Séparé
                         else if(typ.includes('CB')) totauxMode.CB += m;
                         else totauxMode.Espece += m;
                     });
                 } else {
-                    // Legacy: Si pas d'historique, on ajoute au mode 'Espèce' par défaut ou on ignore si on veut être strict
+                    // Fallback si pas d'historique
+                    payeTotal = item.montantPaye || 0;
+                    // On assume Espèce par défaut si pas de détail
                     totauxMode.Espece += payeTotal;
                 }
-
-                let reste = prixDu - payeTotal;
-
-                totalCaisse += payeTotal;
-                if (reste > 0) totalCredit += reste;
                 
+                let reste = prixDu - payeTotal;
+                totalCaisse += payeTotal;
+                if(reste > 0) totalCredit += reste;
+
                 let diff = payeTotal - prixDu;
                 if (diff > 0) totalBonus += diff;
                 else if (diff < 0 && Math.abs(diff) < 500) totalBonus += diff;
-
-                // Cumul Groupe
-                groupVol += parseFloat(typeFiltre.startsWith('aerien') ? item.poidsEnvoye : item.volumeEnvoye) || 0;
-                groupDu += prixDu;
-                if(reste > 0) groupReste += reste; // On ne soustrait pas les trop perçus du reste groupe
-                groupEntree += payeTotal;
 
                 htmlRow = `<tr class="row-month-${monthIndex} interactive-table-row" onclick='selectionnerClient(${JSON.stringify({id: item.id, ...item})})'><td>${dateStr}</td><td>${item.reference}</td><td>${item.description||'-'}</td><td>${item.prenom} ${item.nom}</td><td>${prixDu.toLocaleString('fr-FR')}</td><td style="${reste>0?'color:#c0392b':'color:#27ae60'}">${reste.toLocaleString('fr-FR')}</td><td class="text-green">${payeTotal.toLocaleString('fr-FR')}</td><td>-</td><td>${item.moyenPaiement||'-'}</td><td></td></tr>`;
             }
             tbody.innerHTML += htmlRow;
 
-            // Fin tableau: Afficher dernier total groupe
             if (index === items.length - 1 && currentGroup !== "" && !currentGroup.startsWith('ZZZ')) {
                 let wLabel = typeFiltre.startsWith('aerien') ? 'Kg' : 'CBM';
-                tbody.innerHTML += `
-                    <tr class="group-summary-row">
-                        <td colspan="3" style="text-align:right;">TOTAL ${currentGroup}</td>
-                        <td>${groupVol.toFixed(2)} ${wLabel}</td>
-                        <td>${groupDu.toLocaleString('fr-FR')}</td>
-                        <td>${groupReste.toLocaleString('fr-FR')}</td>
-                        <td>${groupEntree.toLocaleString('fr-FR')}</td>
-                        <td>${groupSortie.toLocaleString('fr-FR')}</td>
-                        <td></td>
-                        <td></td>
-                    </tr>`;
+                tbody.innerHTML += `<tr class="group-summary-row"><td colspan="4">TOTAL ${currentGroup}</td><td colspan="2">${groupQty} Colis</td><td colspan="4">${groupVol.toFixed(3)} ${wLabel}</td></tr>`;
             }
         });
 
+        // --- MISE A JOUR DE L'AFFICHAGE DES TOTAUX ---
         document.getElementById('total-credit').innerText = totalCredit.toLocaleString('fr-FR') + ' CFA';
         const elC = document.getElementById('total-caisse');
         elC.innerText = totalCaisse.toLocaleString('fr-FR') + ' CFA';
         elC.className = totalCaisse>=0 ? 'text-green' : 'text-red';
         document.getElementById('total-bonus').innerText = totalBonus.toLocaleString('fr-FR') + ' CFA';
 
+        // Remplissage du tableau des paiements (SEPARÉ)
         document.getElementById('pay-espece-in').innerText = totauxMode.Espece.toLocaleString('fr-FR');
         document.getElementById('pay-espece-out').innerText = totauxSortieMode.Espece.toLocaleString('fr-FR');
+        
         document.getElementById('pay-cheque-in').innerText = totauxMode.Cheque.toLocaleString('fr-FR');
         document.getElementById('pay-cheque-out').innerText = totauxSortieMode.Cheque.toLocaleString('fr-FR');
-        document.getElementById('pay-mobile-in').innerText = (totauxMode.OM+totauxMode.Wave).toLocaleString('fr-FR');
-        document.getElementById('pay-mobile-out').innerText = (totauxSortieMode.OM+totauxSortieMode.Wave).toLocaleString('fr-FR');
+        
+        // OM
+        document.getElementById('pay-om-in').innerText = totauxMode.OM.toLocaleString('fr-FR');
+        document.getElementById('pay-om-out').innerText = totauxSortieMode.OM.toLocaleString('fr-FR');
+        
+        // Wave
+        document.getElementById('pay-wave-in').innerText = totauxMode.Wave.toLocaleString('fr-FR');
+        document.getElementById('pay-wave-out').innerText = totauxSortieMode.Wave.toLocaleString('fr-FR');
+        
         document.getElementById('pay-cb-in').innerText = totauxMode.CB.toLocaleString('fr-FR');
         document.getElementById('pay-cb-out').innerText = totauxSortieMode.CB.toLocaleString('fr-FR');
-        
-        let tIn = Object.values(totauxMode).reduce((a,b)=>a+b,0);
-        let tOut = Object.values(totauxSortieMode).reduce((a,b)=>a+b,0);
-        document.getElementById('pay-total-in').innerText = tIn.toLocaleString('fr-FR');
-        document.getElementById('pay-total-out').innerText = tOut.toLocaleString('fr-FR');
 
-    } catch (e) { console.error(e); tbody.innerHTML = '<tr><td colspan="10">Erreur.</td></tr>'; }
+        let totalIn = Object.values(totauxMode).reduce((a,b)=>a+b,0);
+        let totalOut = Object.values(totauxSortieMode).reduce((a,b)=>a+b,0);
+        document.getElementById('pay-total-in').innerText = totalIn.toLocaleString('fr-FR');
+        document.getElementById('pay-total-out').innerText = totalOut.toLocaleString('fr-FR');
+
+    } catch (e) { console.error(e); tbody.innerHTML = '<tr><td colspan="10">Erreur chargement.</td></tr>'; }
 }
 
 // =======================================================
