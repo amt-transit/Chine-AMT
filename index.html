@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AMT Suivi de Fret</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="logo_amt.png">
 </head>
 <body>
 
     <header>
         <div class="logo-container">
-            <img src="Chine.png" alt="Logo AMT Transit" class="logo">
+            <img src="logo_amt.png" alt="Logo AMT Transit" class="logo">
         </div>
         <div class="header-info">
             <span>Agence: <span id="agence-nom">Chine</span></span>
@@ -19,15 +21,15 @@
 
     <nav class="main-nav">
         <button class="nav-link active" onclick="ouvrirPage(event, 'Envoi')">📦 Envoi (Chine)</button>
-        <button class="nav-link" onclick="ouvrirPage(event, 'Reception')">📥 Réception (Côte d'Ivoire)</button>
+        <button class="nav-link" onclick="ouvrirPage(event, 'Reception')">📥 Réception (Abidjan)</button>
+        <button class="nav-link" onclick="ouvrirPage(event, 'Comptabilite')">💰 Comptabilité</button>
     </nav>
 
     <main>
         <section id="Envoi" class="page-content" style="display: block;">
             <h2>Enregistrer un envoi groupé</h2>
-            
             <form id="form-envoi-commun" class="card">
-                <h3>1. Informations communes à l'envoi</h3>
+                <h3>1. Informations communes (Groupe d'envoi)</h3>
                 <div class="form-group">
                     <label for="date-envoi">Date d'envoi</label>
                     <input type="date" id="date-envoi" required>
@@ -35,183 +37,305 @@
                 <div class="form-group">
                     <label for="type-envoi">Type d'envoi</label>
                     <select id="type-envoi" required>
-                        <option value="">-- Choisir un type --</option>
-                        <option value="aerien">Aérien</option>
-                        <option value="maritime">Maritime</option>
+                        <option value="">-- Choisir --</option>
+                        <option value="aerien_normal">Aérien Normal (10 000/Kg)</option>
+                        <option value="aerien_express">Aérien Express (12 000/Kg)</option>
+                        <option value="maritime">Maritime (250 000/CBM)</option>
                     </select>
                 </div>
+                <p class="info-text"><i class="fas fa-info-circle"></i> Référence groupe (ex: EV10) générée automatiquement.</p>
             </form>
 
             <form id="form-ajout-client" class="card">
-                <h3>2. Ajouter des clients à cet envoi</h3>
-                <p>Remplissez les champs et cliquez sur "Ajouter à l'envoi".</p>
-                
+                <h3>2. Ajouter un client</h3>
                 <div class="form-group autocomplete-container">
                     <label for="client-nom">Nom du client</label>
                     <input type="text" id="client-nom" placeholder="Nom de famille" required autocomplete="off">
                     <div id="autocomplete-suggestions" class="autocomplete-items"></div>
                 </div>
-
                 <div class="form-group">
-                    <label for="client-prenom">Prénom du client</label>
+                    <label for="client-prenom">Prénom</label>
                     <input type="text" id="client-prenom" placeholder="Prénom" required>
                 </div>
                 <div class="form-group">
-                    <label for="client-tel">Numéro de téléphone</label>
-                    <input type="tel" id="client-tel" placeholder="+225 01 02 03 04 05" required>
+                    <label for="client-tel">Téléphone</label>
+                    <input type="tel" id="client-tel" placeholder="+225..." required>
                 </div>
                 <div class="form-group">
-                    <label for="quantite-envoyee">Quantité (ex: nb de colis)</label>
+                    <label for="client-desc">Description du colis</label>
+                    <input type="text" id="client-desc" placeholder="ex: Chaussures..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantite-envoyee">Quantité (nb colis)</label>
                     <input type="number" id="quantite-envoyee" min="0" required>
                 </div>
                 <div class="form-group" id="champ-poids">
-                    <label for="poids-envoye">Poids (en Kg)</label>
-                    <input type="number" id="poids-envoye" step="0.01" min="0" value="0">
+                    <label for="poids-envoye">Poids (Kg)</label>
+                    <input type="number" id="poids-envoye" step="0.01" min="0">
                 </div>
                 <div class="form-group" id="champ-volume">
-                    <label for="volume-envoye">Volume (en CBM)</label>
-                    <input type="number" id="volume-envoye" step="0.01" min="0" value="0">
+                    <label for="volume-envoye">Volume (CBM)</label>
+                    <input type="number" id="volume-envoye" step="0.001" min="0">
                 </div>
                 <div class="form-group">
-                    <label for="photos-colis">Photos des colis (optionnel)</label>
+                    <label for="photos-colis">Photos (optionnel)</label>
                     <input type="file" id="photos-colis" accept="image/*" multiple>
                     <div id="apercu-photos"></div>
                 </div>
                 <hr>
-                <h3>Prix estimé (pour ce client) : <span id="prix-calcule">0 CFA</span></h3>
-                
-                <button type="button" id="btn-ajouter-client" class="btn-secondaire">Ajouter à l'envoi</button>
+                <h3>Prix estimé : <span id="prix-calcule">0 CFA</span></h3>
+                <button type="button" id="btn-ajouter-client" class="btn-secondaire">Ajouter à la liste</button>
             </form>
 
             <div class="card">
-                <h3>3. Liste des clients pour cet envoi</h3>
-                <p>Vérifiez la liste. Vous pouvez supprimer un client avant de valider.</p>
+                <h3>3. Liste d'attente</h3>
                 <div class="table-container">
                     <table id="table-envoi-en-cours">
-                        <thead>
-                            <tr>
-                                <th>Nom</th>
-                                <th>Téléphone</th>
-                                <th>Qté</th>
-                                <th>Poids/Vol.</th>
-                                <th>Prix</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-envoi-en-cours">
-                            <tr><td colspan="6">Aucun client ajouté.</td></tr>
-                        </tbody>
+                        <thead><tr><th>Nom</th><th>Desc.</th><th>Qté</th><th>Poids/Vol</th><th>Prix</th><th>Action</th></tr></thead>
+                        <tbody id="tbody-envoi-en-cours"><tr><td colspan="6">Aucun client.</td></tr></tbody>
                     </table>
                 </div>
                 <hr>
-                <button type="button" id="btn-valider-envoi-groupe" class="btn-principal">Valider l'envoi groupé</button>
+                <button type="button" id="btn-valider-envoi-groupe" class="btn-principal">Valider et Générer Références</button>
             </div>
         </section>
 
         <section id="Reception" class="page-content">
-            <h2>Suivi et réception des envois</h2>
-            
+            <h2>Réception et Paiement</h2>
             <div class="card">
-                <h3>Expéditions enregistrées</h3>
-
                 <div class="form-group">
-                    <label for="search-input">Rechercher (par nom ou téléphone) :</label>
-                    <input type="text" id="search-input" placeholder="Entrez un nom ou un numéro pour filtrer...">
+                    <input type="text" id="search-input" placeholder="Rechercher (Nom, Ref, Tel)...">
+                </div>
+                <div class="export-buttons">
+                    <button id="btn-export-pdf" class="btn-secondaire">PDF</button>
+                    <button id="btn-export-excel" class="btn-secondaire">Excel</button>
+                </div>
+                <div class="table-container">
+                    <table id="table-expeditions" class="interactive-table">
+                        <thead><tr><th>Ref</th><th>Date</th><th>Client</th><th>Desc.</th><th>Type</th><th>Qté</th><th>Poids/Vol</th><th>Prix Est.</th><th>Statut</th></tr></thead>
+                        <tbody id="liste-clients-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="Comptabilite" class="page-content">
+            <div class="sub-nav-container">
+                <button class="sub-nav-link active" onclick="ouvrirSousOngletCompta('maritime')"><i class="fas fa-ship"></i> Maritime</button>
+                <button class="sub-nav-link" onclick="ouvrirSousOngletCompta('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+            </div>
+
+            <div class="card compta-card">
+                <div class="compta-header">
+                    <h2 id="titre-compta">SUIVI FINANCIER</h2>
                 </div>
 
-                <div class="export-buttons">
-                    <button id="btn-export-pdf" class="btn-secondaire">Exporter PDF</button>
-                    <button id="btn-export-excel" class="btn-secondaire">Exporter Excel (CSV)</button>
+                <div class="dashboard-grid">
+                    <div class="dashboard-summary">
+                        <div class="summary-row red-bg">
+                            <span>Crédit (Non payé)</span>
+                            <span id="total-credit">0 CFA</span>
+                        </div>
+                        <div class="summary-row white-bg">
+                            <span>Solde Caisse</span>
+                            <span id="total-caisse" class="text-green">0 CFA</span>
+                        </div>
+                        <div class="summary-row blue-light-bg">
+                            <span>Bonus (Caisse)</span>
+                            <span id="total-bonus" class="text-blue">0 CFA</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-payments-modern">
+                        <table class="modern-payment-table">
+                            <thead>
+                                <tr>
+                                    <th>Type de Payement</th> <th>Entrée</th>
+                                    <th>Sortie</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="fas fa-money-bill-wave"></i> Espèce</td>
+                                    <td id="pay-espece-in">0</td>
+                                    <td id="pay-espece-out">0</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-money-check"></i> Chèque</td>
+                                    <td id="pay-cheque-in">0</td>
+                                    <td id="pay-cheque-out">0</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-mobile-alt"></i> OM / Wave</td>
+                                    <td id="pay-mobile-in">0</td>
+                                    <td id="pay-mobile-out">0</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-credit-card"></i> CB</td>
+                                    <td id="pay-cb-in">0</td>
+                                    <td id="pay-cb-out">0</td>
+                                </tr>
+                                <tr class="modern-total-row">
+                                    <td>TOTAL</td>
+                                    <td id="pay-total-in">0</td>
+                                    <td id="pay-total-out">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                
-                <div class="table-container">
-                    <table id="table-expeditions">
+
+                <div class="table-container mt-20">
+                    <button class="btn-secondaire btn-small" onclick="ouvrirModalDepense()">+ Ajouter une Dépense</button>
+                    
+                    <table id="table-compta-details" class="excel-table">
                         <thead>
                             <tr>
+                                <th>Date Opération</th>
                                 <th>Référence</th>
-                                <th>Date</th>
-                                <th>Client</th>
-                                <th>Téléphone</th>
-                                <th>Type</th>
-                                <th>Qté</th>
-                                <th>Poids/Vol.</th>
-                                <th>Prix</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
+                                <th>Description</th>
+                                <th>Client / Motif</th>
+                                <th>Montant Dû</th>
+                                <th>Reste</th>
+                                <th>Entrée</th>
+                                <th>Sortie</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody id="liste-clients-tbody">
-                            </tbody>
+                        <tbody id="tbody-compta"></tbody>
                     </table>
                 </div>
             </div>
         </section>
     </main>
 
-
     <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)">
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModal(event)">&times;</span>
-            
             <div id="details-reception">
-                <h3>Détails pour : <span id="client-selectionne"></span></h3>
-                
+                <h3>Détails : <span id="client-selectionne"></span></h3>
                 <p>
-                    <strong>Données envoyées (Chine) :</strong><br>
-                    Référence: <span id="ref-attendue"></span><br>
+                    Ref: <strong><span id="ref-attendue"></span></strong><br>
+                    Desc: <span id="desc-attendue"></span><br>
                     Téléphone: <span id="tel-attendu"></span><br>
-                    Quantité: <span id="qte-attendue"></span> colis<br>
-                    Poids/Volume: <span id="poids-attendu"></span><br>
-                    <strong>Prix estimé: <span id="prix-attendu" class="prix-final"></span></strong>
+                    Attendu: <span id="qte-attendue"></span> colis | <span id="poids-attendu"></span><br>
+                    <strong style="font-size: 1.2em; color: #dc3545;">Prix Restant: <span id="prix-restant"></span></strong>
+                    <span id="prix-attendu" style="display:none;"></span>
                 </p>
-
                 <div class="form-group" id="photos-recues-container" style="display: none;">
-                    <strong>Photos du colis (Chine) :</strong>
                     <div id="photos-recues-apercu"></div>
                 </div>
-
                 <hr>
-
                 <div id="reception-status-display">
-                    <strong>État Actuel de la Réception :</strong>
                     <p id="reception-status" class="status-badge"></p>
-                    <div id="reception-summary">
-                        </div>
-                    <div id="reception-differences-display">
-                        </div>
+                    <div id="reception-summary"></div>
+                    <div id="reception-differences-display"></div>
                 </div>
-
                 <div id="form-reception-container">
                     <hr>
-                    <strong>Ajouter une Réception :</strong>
+                    <strong>Ajouter Réception & Paiement :</strong>
                     <form id="form-reception">
                         <div class="form-group">
-                            <label for="quantite-recue">Ajouter Quantité reçue</label>
-                            <input type="number" id="quantite-recue" min="0" placeholder="ex: 3">
+                            <label>Quantité Reçue</label>
+                            <input type="number" id="quantite-recue" min="0" placeholder="0">
                         </div>
-                        
                         <div class="form-group">
-                            <label for="poids-recu">Ajouter Poids/Volume reçu</label>
-                            <input type="number" id="poids-recu" step="0.01" min="0" placeholder="ex: 5.2">
+                            <label id="label-poids-recu">Poids/Vol Reçu</label>
+                            <input type="number" id="poids-recu" step="0.01" min="0" placeholder="0">
                         </div>
-
-                        <button type="button" class="btn-principal" onclick="enregistrerReception()">Enregistrer la Réception</button>
+                        <div class="form-group">
+                            <label>Montant Versé (Tranche)</label>
+                            <input type="number" id="montant-paye" min="0" placeholder="Somme versée...">
+                        </div>
+                        <div class="form-group">
+                            <label>Type de Payement</label>
+                            <select id="moyen-paiement">
+                                <option value="Espèce">Espèce</option>
+                                <option value="Chèque">Chèque</option>
+                                <option value="OM">Orange Money</option>
+                                <option value="Wave">Wave</option>
+                                <option value="CB">Carte Bancaire</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn-principal" onclick="enregistrerReception()">Valider Tranche</button>
                     </form>
                 </div>
-                
-                <hr>
                 <button class="btn-secondaire" onclick="fermerModal(event)">Fermer</button>
             </div>
-            
         </div>
     </div>
-    
+
+    <div id="modal-historique" class="modal-backdrop" onclick="fermerModalHistorique(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModalHistorique(event)">&times;</span>
+            <h3>Historique des Transactions</h3>
+            <p>Client: <strong id="hist-client-nom"></strong> | Ref: <span id="hist-ref"></span></p>
+            
+            <table class="modern-payment-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Montant</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-historique"></tbody>
+            </table>
+            <br>
+            <button class="btn-secondaire" onclick="fermerModalHistorique(event)">Fermer</button>
+        </div>
+    </div>
+
+    <div id="modal-depense" class="modal-backdrop" onclick="fermerModalDepense(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModalDepense(event)">&times;</span>
+            <h3>Ajouter une Sortie</h3>
+            <form id="form-depense">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="depense-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="depense-type">
+                        <option value="maritime">Maritime</option>
+                        <option value="aerien">Aérien</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Lier au Groupe (Facultatif)</label>
+                    <input type="text" id="depense-groupe" placeholder="ex: EV1">
+                </div>
+
+                <div class="form-group">
+                    <label>Motif</label>
+                    <input type="text" id="depense-motif" required>
+                </div>
+                <div class="form-group">
+                    <label>Montant (CFA)</label>
+                    <input type="number" id="depense-montant" required>
+                </div>
+                <div class="form-group">
+                    <label>Type de Payement</label>
+                    <select id="depense-moyen">
+                        <option value="Espèce">Espèce</option>
+                        <option value="Chèque">Chèque</option>
+                        <option value="OM">OM</option>
+                        <option value="Wave">Wave</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-principal btn-supprimer" onclick="enregistrerDepense()">Valider Sortie</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="script.js"></script>
-
 </body>
 </html>
