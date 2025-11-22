@@ -1,0 +1,13 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyA0_2U_6muRzphWlvKZN-lP6mytzaKIj1A",
+  authDomain: "chine-amt.firebaseapp.com",
+  projectId: "chine-amt",
+  storageBucket: "chine-amt.firebasestorage.app",
+  messagingSenderId: "864644062373",
+  appId: "1:864644062373:web:a3066965408fdd9387c14c"
+};
+
+
+
+
+<link rel="icon" type="image/png" href="logo_amt.png">

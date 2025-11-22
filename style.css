@@ -225,3 +225,34 @@ tr.group-summary-row td { color: #00ffff !important; font-weight: bold; border: 
 .autocomplete-items div:hover { background: #e9e9e9; }
 
 @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } header { flex-direction: column; height: auto; } }
+/* ======================================================= */
+/* MISE EN PAGE ESTHÉTIQUE (GRILLE) POUR PC/TABLETTE       */
+/* ======================================================= */
+
+@media (min-width: 768px) {
+    /* Cible uniquement les formulaires dans l'onglet Envoi */
+    #form-envoi-commun, 
+    #form-ajout-client {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Crée 2 colonnes égales */
+        gap: 15px 25px; /* Espace vertical (15px) et horizontal (25px) */
+        align-items: end; /* Aligne les champs vers le bas */
+    }
+
+    /* Éléments qui doivent rester sur toute la largeur (titres, boutons, etc.) */
+    #form-envoi-commun h3,
+    #form-ajout-client h3,
+    #form-envoi-commun p,
+    #form-ajout-client p,
+    #form-ajout-client hr,
+    #form-ajout-client button {
+        grid-column: 1 / -1; /* Prend toute la largeur de la grille */
+    }
+
+    /* Cas particulier : Le champ Description et Photos sont souvent longs */
+    /* On peut choisir de les mettre en pleine largeur si on veut */
+    /* Exemple pour les photos : */
+    #form-ajout-client .form-group:has(input[type="file"]) {
+        grid-column: 1 / -1;
+    }
+}

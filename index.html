@@ -103,7 +103,18 @@
 
         <section id="Reception" class="page-content">
             <h2>Réception et Paiement</h2>
+            
+            <div class="sub-nav-container">
+                <button class="sub-nav-link active" id="btn-rec-maritime" onclick="ouvrirSousOngletReception('maritime')">
+                    <i class="fas fa-ship"></i> Maritime
+                </button>
+                <button class="sub-nav-link" id="btn-rec-aerien" onclick="ouvrirSousOngletReception('aerien')">
+                    <i class="fas fa-plane"></i> Aérien
+                </button>
+            </div>
+
             <div class="card">
+                <h3>Expéditions enregistrées</h3>
                 <div class="form-group">
                     <input type="text" id="search-input" placeholder="Rechercher (Nom, Ref, Tel)...">
                 </div>
@@ -113,7 +124,19 @@
                 </div>
                 <div class="table-container">
                     <table id="table-expeditions" class="interactive-table">
-                        <thead><tr><th>Ref</th><th>Date</th><th>Client</th><th>Desc.</th><th>Type</th><th>Qté</th><th>Poids/Vol</th><th>Prix Est.</th><th>Statut</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Ref</th>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Desc.</th>
+                                <th>Type</th>
+                                <th>Qté</th>
+                                <th>Poids/Vol</th>
+                                <th>Prix Est.</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
                         <tbody id="liste-clients-tbody"></tbody>
                     </table>
                 </div>
