@@ -402,22 +402,66 @@ function selectionnerClient(envoi) {
     currentEnvoi = envoi;
     modalBackdrop.style.display = 'flex';
     
+    // Remplissage Infos Client
     clientSelectionneSpan.innerText = envoi.nom || 'Inconnu';
     refAttendueSpan.innerText = envoi.reference || '-';
     descAttendueSpan.innerText = envoi.description || '-';
     telAttenduSpan.innerText = envoi.tel || '-';
-    qteAttendueSpan.innerText = (envoi.quantiteEnvoyee || 0) + ' colis';
+    
+    // --- 1. QUANTITÉS (Attendue vs Reçue) ---
+    let qteTotale = parseInt(envoi.quantiteEnvoyee) || 0;
+    let qteDejaRecue = parseInt(envoi.quantiteRecue) || 0;
+    let qteReste = qteTotale - qteDejaRecue;
 
+    qteAttendueSpan.innerText = qteTotale + ' colis';
+
+    // Affichage du Reste Quantité
+    const spanQteRestant = document.getElementById('qte-restant');
+    if (qteReste > 0) {
+        spanQteRestant.innerText = qteReste + " colis";
+        spanQteRestant.style.color = "#dc3545"; // Rouge
+    } else if (qteReste === 0) {
+        spanQteRestant.innerText = "OK";
+        spanQteRestant.style.color = "green";
+    } else {
+        spanQteRestant.innerText = "+" + Math.abs(qteReste) + " (Surplus)";
+        spanQteRestant.style.color = "blue";
+    }
+
+    // --- 2. POIDS/VOLUME (Attendu vs Reçu) ---
     let typeStr = (envoi.type || "").toString();
     let isAerien = typeStr.startsWith('aerien');
-    let valeurPoidsVol = isAerien ? envoi.poidsEnvoye : envoi.volumeEnvoye;
-    let unite = isAerien ? ' Kg' : ' CBM';
-    poidsAttenduSpan.innerText = (valeurPoidsVol || 0) + unite;
     
+    let poidsTotal = parseFloat(isAerien ? envoi.poidsEnvoye : envoi.volumeEnvoye) || 0;
+    let poidsDejaRecu = parseFloat(envoi.poidsRecu) || 0;
+    let poidsReste = poidsTotal - poidsDejaRecu;
+    let unite = isAerien ? ' Kg' : ' CBM';
+    
+    poidsAttenduSpan.innerText = poidsTotal + unite;
+
+    // Affichage du Reste Poids/Vol
+    const spanPoidsRestant = document.getElementById('poids-restant');
+    // On arrondit pour éviter les bugs de décimales (ex: 0.0000001)
+    let diffPoids = parseFloat(poidsReste.toFixed(2));
+
+    if (diffPoids > 0) {
+        spanPoidsRestant.innerText = diffPoids + unite;
+        spanPoidsRestant.style.color = "#dc3545";
+    } else if (diffPoids === 0) {
+        spanPoidsRestant.innerText = "OK";
+        spanPoidsRestant.style.color = "green";
+    } else {
+        spanPoidsRestant.innerText = "+" + Math.abs(diffPoids) + unite + " (Surplus)";
+        spanPoidsRestant.style.color = "blue";
+    }
+    
+    // --- 3. PRIX (Restant à payer) ---
     let prixString = (envoi.prixEstime || "0").toString();
     let prixTotal = parseInt(prixString.replace(/[^0-9]/g, '')) || 0;
     let dejaPaye = parseInt(envoi.montantPaye) || 0;
     let restant = prixTotal - dejaPaye;
+    
+    prixAttenduSpan.innerText = prixTotal.toLocaleString('fr-FR') + ' CFA';
     
     if(restant <= 0) {
         prixRestantSpan.innerText = "SOLDÉ (0 CFA)";
@@ -429,6 +473,7 @@ function selectionnerClient(envoi) {
         document.getElementById('montant-paye').value = restant;
     }
 
+    // --- 4. PHOTOS & RESTE ---
     photosRecuesApercu.innerHTML = '';
     if(envoi.photosURLs && envoi.photosURLs.length > 0) {
         document.getElementById('photos-recues-container').style.display = 'block';
@@ -439,7 +484,7 @@ function selectionnerClient(envoi) {
     } else {
         document.getElementById('photos-recues-container').style.display = 'none';
     }
-    
+
     document.getElementById('quantite-recue').value = '';
     document.getElementById('poids-recu').value = '';
     const labelPoids = document.getElementById('label-poids-recu');
