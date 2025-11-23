@@ -173,9 +173,17 @@ tbody tr:hover { background-color: #e3f2fd; }
 .excel-table td:nth-child(7) { color: #27ae60; font-weight: bold; } /* Entrée */
 .excel-table td:nth-child(8) { color: #c0392b; font-weight: bold; } /* Sortie */
 
-/* LIGNE TOTAL GROUPE (CYAN) */
-tr.group-summary-row { background-color: #444 !important; }
-tr.group-summary-row td { color: #00ffff !important; font-weight: bold; border: 1px solid #666; text-align: center; padding: 5px; }
+/* LIGNE TOTAL GROUPE (CORRIGÉE) */
+tr.group-summary-row {
+    background-color: #747272 !important; /* Gris sombre */
+}
+tr.group-summary-row td {
+    color: rgb(0, 255, 255) !important; /* Vert Florissant (Cyan) */
+    font-weight: bold;
+    border: 1px solid #555;
+    text-align: center;
+    font-size: 1.1em; /* Un peu plus gros */
+}
 
 /* =================================== */
 /* BADGES & DASHBOARD                  */

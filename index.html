@@ -250,20 +250,30 @@
                     Téléphone: <span id="tel-attendu"></span><br>
                     Attendu: <span id="qte-attendue"></span> colis | <span id="poids-attendu"></span><br>
                     
-                    Reste à recevoir : <strong><span id="qte-restant"></span></strong> | <strong><span id="poids-restant"></span></strong><br>
+                    Prix estimé: <span id="prix-attendu" class="prix-final"></span><br>
                     
                     <strong style="font-size: 1.2em; color: #dc3545;">Prix Restant: <span id="prix-restant"></span></strong>
-                    <span id="prix-attendu" style="display:none;"></span>
                 </p>
+                
                 <div class="form-group" id="photos-recues-container" style="display: none;">
                     <div id="photos-recues-apercu"></div>
                 </div>
                 <hr>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">
+                        <i class="fas fa-tag"></i> Étiquette
+                    </button>
+                    <button class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">
+                        <i class="fas fa-file-invoice"></i> Facture
+                    </button>
+                </div>
                 <div id="reception-status-display">
                     <p id="reception-status" class="status-badge"></p>
                     <div id="reception-summary"></div>
                     <div id="reception-differences-display"></div>
                 </div>
+
                 <div id="form-reception-container">
                     <hr>
                     <strong>Ajouter Réception & Paiement :</strong>
@@ -272,14 +282,17 @@
                             <label>Quantité Reçue</label>
                             <input type="number" id="quantite-recue" min="0" placeholder="0">
                         </div>
+                        
                         <div class="form-group">
                             <label id="label-poids-recu">Poids/Vol Reçu</label>
                             <input type="number" id="poids-recu" step="0.01" min="0" placeholder="0">
                         </div>
+
                         <div class="form-group">
                             <label>Montant Versé (Tranche)</label>
                             <input type="number" id="montant-paye" min="0" placeholder="Somme versée...">
                         </div>
+
                         <div class="form-group">
                             <label>Type de Payement</label>
                             <select id="moyen-paiement">
@@ -290,6 +303,7 @@
                                 <option value="CB">Carte Bancaire</option>
                             </select>
                         </div>
+
                         <button type="button" class="btn-principal" onclick="enregistrerReception()">Valider Tranche</button>
                     </form>
                 </div>

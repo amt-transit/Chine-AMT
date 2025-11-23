@@ -1,6 +1,5 @@
 // =======================================================
 // 1. CONFIGURATION FIREBASE
-// !! REMPLACEZ PAR VOS PROPRES CLÉS !!
 // =======================================================
 const firebaseConfig = {
   apiKey: "AIzaSyA0_2U_6muRzphWlvKZN-lP6mytzaKIj1A",
@@ -11,36 +10,38 @@ const firebaseConfig = {
   appId: "1:864644062373:web:a3066965408fdd9387c14c"
 };
 
-// Initialiser Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const storage = firebase.storage();
 
 // =======================================================
-// 2. VARIABLES GLOBALES & TARIFS
+// 2. VARIABLES & UTILITAIRES
 // =======================================================
 let envoiEnCours = [];
-let clientsCharges = [];
+let clientsCharges = []; // Sert pour l'export Réception
 let allPastClients = [];
-
-// Variable pour le filtre Réception
-let currentReceptionType = 'maritime'; // Par défaut
+let currentReceptionType = 'maritime';
+let currentComptaType = 'maritime';
+let currentEnvoi = null;
 
 // Tarifs
 const PRIX_AERIEN_NORMAL = 10000;
 const PRIX_AERIEN_EXPRESS = 12000;
 const PRIX_MARITIME_CBM = 250000;
 
+// --- FONCTION DE FORMATAGE CORRIGÉE (Anti-Slash) ---
+function formatArgent(montant) {
+    if (isNaN(montant)) return "0";
+    // Convertit en entier et ajoute des espaces simples comme séparateurs
+    return parseInt(montant).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
 // =======================================================
-// 3. NAVIGATION PRINCIPALE
+// 3. NAVIGATION
 // =======================================================
 function ouvrirPage(event, nomPage) {
     const contents = document.getElementsByClassName("page-content");
     for (let i = 0; i < contents.length; i++) contents[i].style.display = "none";
-    
     const links = document.getElementsByClassName("nav-link");
     for (let i = 0; i < links.length; i++) links[i].className = links[i].className.replace(" active", "");
     
@@ -48,22 +49,21 @@ function ouvrirPage(event, nomPage) {
     event.currentTarget.className += " active";
     
     const agenceEl = document.getElementById('agence-nom');
-    
     if (nomPage === 'Envoi') {
         agenceEl.innerText = 'Chine';
-        loadAllClientsForAutocomplete(); 
+        loadAllClientsForAutocomplete();
     } else if (nomPage === 'Reception') {
         agenceEl.innerText = 'Abidjan';
-        // Ouvre par défaut sur Maritime quand on arrive sur l'onglet
+        // On charge par défaut le maritime pour remplir le tableau et activer l'export
         ouvrirSousOngletReception('maritime');
     } else if (nomPage === 'Comptabilite') {
         agenceEl.innerText = 'Abidjan - Compta';
-        ouvrirSousOngletCompta('maritime'); 
+        ouvrirSousOngletCompta('maritime');
     }
 }
 
 // =======================================================
-// 4. INITIALISATION (DOM READY)
+// 4. INITIALISATION
 // =======================================================
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     loadAllClientsForAutocomplete();
 
-    // --- ÉLÉMENTS DOM PAGE ENVOI ---
+    // --- PAGE ENVOI ---
     const typeEnvoiSelect = document.getElementById('type-envoi');
     const poidsInput = document.getElementById('poids-envoye');
     const volumeInput = document.getElementById('volume-envoye');
@@ -83,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnAjouterClient = document.getElementById('btn-ajouter-client');
     const btnValiderEnvoiGroupe = document.getElementById('btn-valider-envoi-groupe');
 
-    // --- LOGIQUE CALCUL PRIX ENVOI ---
     function gererChampsEnvoi() {
         const type = typeEnvoiSelect.value;
         const champPoids = document.getElementById('champ-poids');
@@ -109,12 +108,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const poids = parseFloat(poidsInput.value) || 0;
         const volume = parseFloat(volumeInput.value) || 0;
         let prix = 0;
-        
         if (type === 'aerien_normal') prix = poids * PRIX_AERIEN_NORMAL;
         else if (type === 'aerien_express') prix = poids * PRIX_AERIEN_EXPRESS;
         else if (type === 'maritime') prix = volume * PRIX_MARITIME_CBM;
         
-        prixCalculeSpan.innerText = prix.toLocaleString('fr-FR') + ' CFA';
+        // Utilisation du nouveau formatage
+        prixCalculeSpan.innerText = formatArgent(prix) + ' CFA';
     }
 
     if(typeEnvoiSelect) {
@@ -123,7 +122,6 @@ document.addEventListener('DOMContentLoaded', function() {
         volumeInput.addEventListener('input', calculerPrixClient);
     }
 
-    // --- APERÇU PHOTOS ---
     if(photosInput) {
         photosInput.addEventListener('change', function() {
             apercuPhotosDiv.innerHTML = '';
@@ -142,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- BOUTON: AJOUTER CLIENT ---
     if(btnAjouterClient) {
         btnAjouterClient.addEventListener('click', function() {
             const typeEnvoi = document.getElementById('type-envoi').value;
@@ -170,11 +167,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- BOUTON: VALIDER GROUPE ---
     if(btnValiderEnvoiGroupe) {
         btnValiderEnvoiGroupe.addEventListener('click', async function() {
             if (envoiEnCours.length === 0) return;
-            this.disabled = true; this.innerText = 'Enregistrement...';
+            this.disabled = true; 
+            this.innerText = 'Enregistrement...';
             
             try {
                 const dateEnvoi = document.getElementById('date-envoi').value;
@@ -188,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const refComplete = `${prefixRef}-${indexStr}-${refGroupe}`;
 
                     let photosURLs = [];
-                    // Upload simulation
                     if (client.photosFiles.length > 0) {
                         for (const file of client.photosFiles) {
                             const nomFichier = `colis/${refComplete}/${Date.now()}_${file.name}`;
@@ -218,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- RECHERCHE & EXPORT ---
+    // --- RECHERCHE ---
     const searchInput = document.getElementById('search-input');
     if(searchInput) {
         searchInput.addEventListener('input', function() {
@@ -231,6 +227,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // --- EXPORT ---
     const btnExpPDF = document.getElementById('btn-export-pdf');
     const btnExpExcel = document.getElementById('btn-export-excel');
     if(btnExpPDF) btnExpPDF.addEventListener('click', exporterPDF);
@@ -255,7 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // =======================================================
 // 5. FONCTIONS HELPERS
 // =======================================================
-
 async function genererRefGroupe(typeEnvoi) {
     const snapshot = await db.collection('expeditions').orderBy('creeLe', 'desc').limit(50).get();
     let lastNum = 0;
@@ -269,8 +266,6 @@ async function genererRefGroupe(typeEnvoi) {
     });
     return 'EV' + (lastNum + 1);
 }
-
-function putting(id) { return document.getElementById(id); } 
 
 function mettreAJourTableauEnvoiEnCours() {
     const tbody = document.getElementById('tbody-envoi-en-cours');
@@ -315,44 +310,25 @@ function showSuggestions(matches) {
 }
 
 // =======================================================
-// 6. FONCTIONS RECEPTION (FILTRAGE + MODAL)
+// 6. FONCTIONS RECEPTION
 // =======================================================
-
-// NOUVEAU : Navigation Sous-Onglets Réception
 function ouvrirSousOngletReception(type) {
     currentReceptionType = type;
-    
-    // Mise à jour visuelle des boutons
     const btnMer = document.getElementById('btn-rec-maritime');
     const btnAir = document.getElementById('btn-rec-aerien');
     
-    if (type === 'maritime') {
-        btnMer.classList.add('active');
-        btnAir.classList.remove('active');
-    } else {
-        btnMer.classList.remove('active');
-        btnAir.classList.add('active');
+    // Sécurité si les boutons n'existent pas encore (au chargement initial)
+    if (btnMer && btnAir) {
+        if (type === 'maritime') {
+            btnMer.classList.add('active');
+            btnAir.classList.remove('active');
+        } else {
+            btnMer.classList.remove('active');
+            btnAir.classList.add('active');
+        }
     }
-    
-    // Rechargement du tableau avec le filtre
     chargerClients();
 }
-
-// Variables Modal
-const modalBackdrop = document.getElementById('modal-backdrop');
-const clientSelectionneSpan = document.getElementById('client-selectionne');
-const refAttendueSpan = document.getElementById('ref-attendue');
-const descAttendueSpan = document.getElementById('desc-attendue');
-const telAttenduSpan = document.getElementById('tel-attendu');
-const qteAttendueSpan = document.getElementById('qte-attendue');
-const poidsAttenduSpan = document.getElementById('poids-attendu');
-const prixRestantSpan = document.getElementById('prix-restant');
-const photosRecuesContainer = document.getElementById('photos-recues-container');
-const photosRecuesApercu = document.getElementById('photos-recues-apercu');
-const receptionStatus = document.getElementById('reception-status');
-const receptionSummary = document.getElementById('reception-summary');
-
-let currentEnvoi = null;
 
 async function chargerClients() {
     const tbody = document.getElementById('liste-clients-tbody');
@@ -360,19 +336,23 @@ async function chargerClients() {
     tbody.innerHTML = '<tr><td colspan="9">Chargement...</td></tr>';
     
     try {
+        // On vide la liste globale avant de la remplir
+        clientsCharges = [];
+        
         const snapshot = await db.collection('expeditions').orderBy('creeLe', 'desc').get();
         tbody.innerHTML = '';
         
+        let hasData = false;
         snapshot.forEach(doc => {
             const data = doc.data();
             
-            // --- FILTRE LOGIQUE ---
             let isMatch = false;
             if (currentReceptionType === 'maritime' && data.type === 'maritime') isMatch = true;
             if (currentReceptionType === 'aerien' && data.type.startsWith('aerien')) isMatch = true;
 
             if (isMatch) {
-                clientsCharges.push({id: doc.id, ...data});
+                hasData = true;
+                clientsCharges.push({id: doc.id, ...data}); // Ajout pour l'export
 
                 let poidsVol = data.type.startsWith('aerien') ? `${data.poidsEnvoye} Kg` : `${data.volumeEnvoye} CBM`;
                 let statusClass = 'status-attente';
@@ -381,108 +361,83 @@ async function chargerClients() {
                     else if(data.status.includes('Supérieur')) statusClass = 'status-superieur';
                     else if(data.status.includes('Ecart')) statusClass = 'status-ecart';
                 }
+                
+                // Formatage prix pour affichage tableau
+                let prixStr = formatArgent(parseInt(data.prixEstime.replace(/[^0-9]/g, '')) || 0) + ' CFA';
 
                 const tr = document.createElement('tr');
                 tr.className = 'interactive-table-row';
-                tr.innerHTML = `<td>${data.reference}</td><td>${data.date}</td><td>${data.nom}</td><td>${data.description || ''}</td><td>${data.type}</td><td>${data.quantiteEnvoyee}</td><td>${poidsVol}</td><td>${data.prixEstime}</td><td><span class="status-badge ${statusClass}">${data.status || 'En attente'}</span></td>`;
+                tr.innerHTML = `<td>${data.reference}</td><td>${data.date}</td><td>${data.nom}</td><td>${data.description || ''}</td><td>${data.type}</td><td>${data.quantiteEnvoyee}</td><td>${poidsVol}</td><td>${prixStr}</td><td><span class="status-badge ${statusClass}">${data.status || 'En attente'}</span></td>`;
                 
                 tr.onclick = () => selectionnerClient({id: doc.id, ...data});
                 tbody.appendChild(tr);
             }
         });
         
-        if (tbody.innerHTML === '') {
-            tbody.innerHTML = '<tr><td colspan="9">Aucun envoi trouvé pour ce type.</td></tr>';
-        }
+        if (!hasData) tbody.innerHTML = '<tr><td colspan="9">Aucun envoi trouvé.</td></tr>';
 
     } catch (e) { console.error(e); }
 }
 
 function selectionnerClient(envoi) {
     currentEnvoi = envoi;
+    const modalBackdrop = document.getElementById('modal-backdrop');
     modalBackdrop.style.display = 'flex';
     
-    // Remplissage Infos Client
-    clientSelectionneSpan.innerText = envoi.nom || 'Inconnu';
-    refAttendueSpan.innerText = envoi.reference || '-';
-    descAttendueSpan.innerText = envoi.description || '-';
-    telAttenduSpan.innerText = envoi.tel || '-';
-    
-    // --- 1. QUANTITÉS (Attendue vs Reçue) ---
-    let qteTotale = parseInt(envoi.quantiteEnvoyee) || 0;
-    let qteDejaRecue = parseInt(envoi.quantiteRecue) || 0;
-    let qteReste = qteTotale - qteDejaRecue;
+    const clientSelectionneSpan = document.getElementById('client-selectionne');
+    const refAttendueSpan = document.getElementById('ref-attendue');
+    const descAttendueSpan = document.getElementById('desc-attendue');
+    const telAttenduSpan = document.getElementById('tel-attendu');
+    const qteAttendueSpan = document.getElementById('qte-attendue');
+    const poidsAttenduSpan = document.getElementById('poids-attendu');
+    const prixRestantSpan = document.getElementById('prix-restant');
+    const prixAttenduSpan = document.getElementById('prix-attendu');
+    const photosRecuesContainer = document.getElementById('photos-recues-container');
+    const photosRecuesApercu = document.getElementById('photos-recues-apercu');
 
-    qteAttendueSpan.innerText = qteTotale + ' colis';
+    if(clientSelectionneSpan) clientSelectionneSpan.innerText = envoi.nom || 'Inconnu';
+    if(refAttendueSpan) refAttendueSpan.innerText = envoi.reference || '-';
+    if(descAttendueSpan) descAttendueSpan.innerText = envoi.description || '-';
+    if(telAttenduSpan) telAttenduSpan.innerText = envoi.tel || '-';
+    if(qteAttendueSpan) qteAttendueSpan.innerText = (envoi.quantiteEnvoyee || 0) + ' colis';
 
-    // Affichage du Reste Quantité
-    const spanQteRestant = document.getElementById('qte-restant');
-    if (qteReste > 0) {
-        spanQteRestant.innerText = qteReste + " colis";
-        spanQteRestant.style.color = "#dc3545"; // Rouge
-    } else if (qteReste === 0) {
-        spanQteRestant.innerText = "OK";
-        spanQteRestant.style.color = "green";
-    } else {
-        spanQteRestant.innerText = "+" + Math.abs(qteReste) + " (Surplus)";
-        spanQteRestant.style.color = "blue";
-    }
-
-    // --- 2. POIDS/VOLUME (Attendu vs Reçu) ---
     let typeStr = (envoi.type || "").toString();
     let isAerien = typeStr.startsWith('aerien');
-    
-    let poidsTotal = parseFloat(isAerien ? envoi.poidsEnvoye : envoi.volumeEnvoye) || 0;
-    let poidsDejaRecu = parseFloat(envoi.poidsRecu) || 0;
-    let poidsReste = poidsTotal - poidsDejaRecu;
+    let valeurPoidsVol = isAerien ? envoi.poidsEnvoye : envoi.volumeEnvoye;
     let unite = isAerien ? ' Kg' : ' CBM';
+    if(poidsAttenduSpan) poidsAttenduSpan.innerText = (valeurPoidsVol || 0) + unite;
     
-    poidsAttenduSpan.innerText = poidsTotal + unite;
-
-    // Affichage du Reste Poids/Vol
-    const spanPoidsRestant = document.getElementById('poids-restant');
-    // On arrondit pour éviter les bugs de décimales (ex: 0.0000001)
-    let diffPoids = parseFloat(poidsReste.toFixed(2));
-
-    if (diffPoids > 0) {
-        spanPoidsRestant.innerText = diffPoids + unite;
-        spanPoidsRestant.style.color = "#dc3545";
-    } else if (diffPoids === 0) {
-        spanPoidsRestant.innerText = "OK";
-        spanPoidsRestant.style.color = "green";
-    } else {
-        spanPoidsRestant.innerText = "+" + Math.abs(diffPoids) + unite + " (Surplus)";
-        spanPoidsRestant.style.color = "blue";
-    }
-    
-    // --- 3. PRIX (Restant à payer) ---
+    // Calcul PRIX
     let prixString = (envoi.prixEstime || "0").toString();
     let prixTotal = parseInt(prixString.replace(/[^0-9]/g, '')) || 0;
     let dejaPaye = parseInt(envoi.montantPaye) || 0;
     let restant = prixTotal - dejaPaye;
     
-    prixAttenduSpan.innerText = prixTotal.toLocaleString('fr-FR') + ' CFA';
+    if(prixAttenduSpan) prixAttenduSpan.innerText = formatArgent(prixTotal) + ' CFA';
     
-    if(restant <= 0) {
-        prixRestantSpan.innerText = "SOLDÉ (0 CFA)";
-        prixRestantSpan.style.color = "green";
-        document.getElementById('montant-paye').value = 0; 
-    } else {
-        prixRestantSpan.innerText = restant.toLocaleString('fr-FR') + ' CFA';
-        prixRestantSpan.style.color = "#dc3545";
-        document.getElementById('montant-paye').value = restant;
+    if(prixRestantSpan) {
+        if(restant <= 0) {
+            prixRestantSpan.innerText = "SOLDÉ (0 CFA)";
+            prixRestantSpan.style.color = "green";
+            document.getElementById('montant-paye').value = 0; 
+        } else {
+            prixRestantSpan.innerText = formatArgent(restant) + ' CFA';
+            prixRestantSpan.style.color = "#dc3545";
+            document.getElementById('montant-paye').value = restant;
+        }
     }
 
-    // --- 4. PHOTOS & RESTE ---
-    photosRecuesApercu.innerHTML = '';
-    if(envoi.photosURLs && envoi.photosURLs.length > 0) {
-        document.getElementById('photos-recues-container').style.display = 'block';
-        envoi.photosURLs.forEach(url => {
-            const img = document.createElement('img'); img.src = url;
-            photosRecuesApercu.appendChild(img);
-        });
-    } else {
-        document.getElementById('photos-recues-container').style.display = 'none';
+    if(photosRecuesApercu) {
+        photosRecuesApercu.innerHTML = '';
+        if(envoi.photosURLs && envoi.photosURLs.length > 0) {
+            if(photosRecuesContainer) photosRecuesContainer.style.display = 'block';
+            envoi.photosURLs.forEach(url => {
+                const img = document.createElement('img'); img.src = url;
+                photosRecuesApercu.appendChild(img);
+            });
+        } else {
+            if(photosRecuesContainer) photosRecuesContainer.style.display = 'none';
+        }
     }
 
     document.getElementById('quantite-recue').value = '';
@@ -496,15 +451,20 @@ function selectionnerClient(envoi) {
 function updateModalStatus(envoi) {
     const status = envoi.status || 'En attente';
     const el = document.getElementById('reception-status');
-    el.innerText = status;
-    el.className = 'status-badge ' + (status.includes('Conforme') ? 'status-conforme' : status.includes('Supérieur') ? 'status-superieur' : status.includes('Ecart') ? 'status-ecart' : 'status-attente');
+    const receptionSummary = document.getElementById('reception-summary');
+    
+    if(el) {
+        el.innerText = status;
+        el.className = 'status-badge ' + (status.includes('Conforme') ? 'status-conforme' : status.includes('Supérieur') ? 'status-superieur' : status.includes('Ecart') ? 'status-ecart' : 'status-attente');
+    }
     
     const qte = envoi.quantiteRecue || 0;
     const pds = envoi.poidsRecu || 0;
-    receptionSummary.innerHTML = `Reçu: <strong>${qte} colis</strong> | <strong>${pds} Kg/CBM</strong>`;
+    if(receptionSummary) receptionSummary.innerHTML = `Reçu: <strong>${qte} colis</strong> | <strong>${pds} Kg/CBM</strong>`;
 }
 
 function fermerModal(e) {
+    const modalBackdrop = document.getElementById('modal-backdrop');
     if (e.target === modalBackdrop || e.target.classList.contains('modal-close') || e.target.classList.contains('btn-secondaire')) {
         modalBackdrop.style.display = 'none';
     }
@@ -553,15 +513,15 @@ async function enregistrerReception() {
     try {
         await db.collection('expeditions').doc(currentEnvoi.id).update(updateData);
         alert("Validé !");
-        modalBackdrop.style.display = 'none';
+        document.getElementById('modal-backdrop').style.display = 'none';
         chargerClients();
     } catch(e) { alert(e.message); }
 }
 
+
 // =======================================================
 // 8. COMPTABILITÉ
 // =======================================================
-let currentComptaType = 'maritime';
 function ouvrirSousOngletCompta(type) {
     currentComptaType = type;
     document.querySelectorAll('.sub-nav-link').forEach(btn => {
@@ -632,6 +592,7 @@ async function chargerCompta(typeFiltre) {
 
         items.forEach((item, index) => {
             let thisGroup = item.sortGroup;
+            
             if (currentGroup !== null && thisGroup !== currentGroup && !currentGroup.startsWith('ZZZ')) {
                  let wLabel = typeFiltre.startsWith('aerien') ? 'Kg' : 'CBM';
                  tbody.innerHTML += `<tr class="group-summary-row"><td colspan="4">TOTAL ${currentGroup}</td><td colspan="2">${groupQty} Colis</td><td colspan="4">${groupVol.toFixed(3)} ${wLabel}</td></tr>`;
@@ -651,6 +612,7 @@ async function chargerCompta(typeFiltre) {
             if (item.isDepense) {
                 let m = parseFloat(item.montant) || 0;
                 totalCaisse -= m;
+                
                 let mode = item.moyenPaiement || 'Espèce';
                 if(mode.includes('Chèque')) totauxSortieMode.Cheque += m;
                 else if(mode.includes('OM')) totauxSortieMode.OM += m;
@@ -658,10 +620,11 @@ async function chargerCompta(typeFiltre) {
                 else if(mode.includes('CB')) totauxSortieMode.CB += m;
                 else totauxSortieMode.Espece += m;
 
-                htmlRow = `<tr class="row-month-${monthIndex}"><td>${dateStr}</td><td>-</td><td>${item.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red">${m.toLocaleString('fr-FR')}</td><td>${item.moyenPaiement}</td><td><button class="btn-suppr-small" onclick="supprimerDepense('${item.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
+                htmlRow = `<tr class="row-month-${monthIndex}"><td>${dateStr}</td><td>-</td><td>${item.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red">${formatArgent(m)}</td><td>${item.moyenPaiement}</td><td><button class="btn-suppr-small" onclick="supprimerDepense('${item.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
             } else {
                 let prixDu = parseInt(item.prixEstime.replace(/[^0-9]/g, '')) || 0;
                 let payeTotal = 0;
+                
                 if (item.history && item.history.length > 0) {
                     item.history.forEach(h => {
                         let m = parseFloat(h.montant)||0;
@@ -686,7 +649,7 @@ async function chargerCompta(typeFiltre) {
                 if (diff > 0) totalBonus += diff;
                 else if (diff < 0 && Math.abs(diff) < 500) totalBonus += diff;
 
-                htmlRow = `<tr class="row-month-${monthIndex} interactive-table-row" onclick='voirHistoriquePaiement(${JSON.stringify(item)})'><td>${dateStr}</td><td>${item.reference}</td><td>${item.description||'-'}</td><td>${item.prenom} ${item.nom}</td><td>${prixDu.toLocaleString('fr-FR')}</td><td style="${reste>0?'color:#c0392b':'color:#27ae60'}">${reste.toLocaleString('fr-FR')}</td><td class="text-green">${payeTotal.toLocaleString('fr-FR')}</td><td>-</td><td>${item.moyenPaiement||'-'}</td><td><i class="fas fa-eye"></i></td></tr>`;
+                htmlRow = `<tr class="row-month-${monthIndex} interactive-table-row" onclick='voirHistoriquePaiement(${JSON.stringify(item)})'><td>${dateStr}</td><td>${item.reference}</td><td>${item.description||'-'}</td><td>${item.prenom} ${item.nom}</td><td>${formatArgent(prixDu)}</td><td style="${reste>0?'color:#c0392b':'color:#27ae60'}">${formatArgent(reste)}</td><td class="text-green">${formatArgent(payeTotal)}</td><td>-</td><td>${item.moyenPaiement||'-'}</td><td><i class="fas fa-eye"></i></td></tr>`;
             }
             tbody.innerHTML += htmlRow;
 
@@ -696,29 +659,29 @@ async function chargerCompta(typeFiltre) {
             }
         });
 
-        document.getElementById('total-credit').innerText = totalCredit.toLocaleString('fr-FR') + ' CFA';
+        document.getElementById('total-credit').innerText = formatArgent(totalCredit) + ' CFA';
         const elC = document.getElementById('total-caisse');
-        elC.innerText = totalCaisse.toLocaleString('fr-FR') + ' CFA';
+        elC.innerText = formatArgent(totalCaisse) + ' CFA';
         elC.className = totalCaisse>=0 ? 'text-green' : 'text-red';
-        document.getElementById('total-bonus').innerText = totalBonus.toLocaleString('fr-FR') + ' CFA';
+        document.getElementById('total-bonus').innerText = formatArgent(totalBonus) + ' CFA';
 
-        document.getElementById('pay-espece-in').innerText = totauxMode.Espece.toLocaleString('fr-FR');
-        document.getElementById('pay-espece-out').innerText = totauxSortieMode.Espece.toLocaleString('fr-FR');
-        document.getElementById('pay-cheque-in').innerText = totauxMode.Cheque.toLocaleString('fr-FR');
-        document.getElementById('pay-cheque-out').innerText = totauxSortieMode.Cheque.toLocaleString('fr-FR');
-        document.getElementById('pay-om-in').innerText = totauxMode.OM.toLocaleString('fr-FR');
-        document.getElementById('pay-om-out').innerText = totauxSortieMode.OM.toLocaleString('fr-FR');
-        document.getElementById('pay-wave-in').innerText = totauxMode.Wave.toLocaleString('fr-FR');
-        document.getElementById('pay-wave-out').innerText = totauxSortieMode.Wave.toLocaleString('fr-FR');
-        document.getElementById('pay-cb-in').innerText = totauxMode.CB.toLocaleString('fr-FR');
-        document.getElementById('pay-cb-out').innerText = totauxSortieMode.CB.toLocaleString('fr-FR');
+        document.getElementById('pay-espece-in').innerText = formatArgent(totauxMode.Espece);
+        document.getElementById('pay-espece-out').innerText = formatArgent(totauxSortieMode.Espece);
+        document.getElementById('pay-cheque-in').innerText = formatArgent(totauxMode.Cheque);
+        document.getElementById('pay-cheque-out').innerText = formatArgent(totauxSortieMode.Cheque);
+        document.getElementById('pay-om-in').innerText = formatArgent(totauxMode.OM);
+        document.getElementById('pay-om-out').innerText = formatArgent(totauxSortieMode.OM);
+        document.getElementById('pay-wave-in').innerText = formatArgent(totauxMode.Wave);
+        document.getElementById('pay-wave-out').innerText = formatArgent(totauxSortieMode.Wave);
+        document.getElementById('pay-cb-in').innerText = formatArgent(totauxMode.CB);
+        document.getElementById('pay-cb-out').innerText = formatArgent(totauxSortieMode.CB);
         
         let tIn = Object.values(totauxMode).reduce((a,b)=>a+b,0);
         let tOut = Object.values(totauxSortieMode).reduce((a,b)=>a+b,0);
-        document.getElementById('pay-total-in').innerText = tIn.toLocaleString('fr-FR');
-        document.getElementById('pay-total-out').innerText = tOut.toLocaleString('fr-FR');
+        document.getElementById('pay-total-in').innerText = formatArgent(tIn);
+        document.getElementById('pay-total-out').innerText = formatArgent(tOut);
 
-    } catch (e) { console.error(e); tbody.innerHTML = '<tr><td colspan="10">Erreur.</td></tr>'; }
+    } catch (e) { console.error(e); tbody.innerHTML = '<tr><td colspan="10">Erreur chargement.</td></tr>'; }
 }
 
 // MODALS & HELPERS
@@ -732,7 +695,7 @@ function voirHistoriquePaiement(item) {
     if(item.history && item.history.length>0){
         item.history.forEach(h => {
             let d = new Date(h.date.seconds*1000).toLocaleDateString('fr-FR');
-            tb.innerHTML += `<tr><td>${d}</td><td class="text-green">${parseInt(h.montant).toLocaleString('fr-FR')}</td><td>${h.moyen}</td></tr>`;
+            tb.innerHTML += `<tr><td>${d}</td><td class="text-green">${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td></tr>`;
         });
     } else { tb.innerHTML='<tr><td colspan="3">Aucun historique.</td></tr>'; }
 }
@@ -741,6 +704,7 @@ function fermerModalHistorique(e) { if(e.target===modalHist||e.target.classList.
 const modalDepense = document.getElementById('modal-depense');
 function ouvrirModalDepense() { modalDepense.style.display = 'flex'; }
 function fermerModalDepense(e) { if(e.target===modalDepense||e.target.classList.contains('modal-close')) modalDepense.style.display='none'; }
+
 async function enregistrerDepense() {
     const date = document.getElementById('depense-date').value;
     const type = document.getElementById('depense-type').value;
@@ -759,6 +723,109 @@ async function supprimerDepense(id) {
     if(confirm("Supprimer ?")) { await db.collection('depenses').doc(id).delete(); chargerCompta(currentComptaType); }
 }
 
+// =======================================================
+// 9. GÉNÉRATION PDF (ÉTIQUETTE & FACTURE)
+// =======================================================
+function chargerLogo() {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = '/logo_amt.png'; // Chemin absolu
+        img.onload = () => resolve(img);
+        img.onerror = (e) => {
+            console.warn("Logo introuvable");
+            resolve(null);
+        };
+    });
+}
+
+async function genererEtiquette() {
+    if (!currentEnvoi) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', [100, 150]);
+    const logo = await chargerLogo();
+    if (logo) doc.addImage(logo, 'PNG', 10, 5, 25, 25);
+
+    doc.setFontSize(18); doc.setFont("helvetica", "bold");
+    doc.text("AMT TRANSIT", 40, 15);
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    doc.text("Suivi de Fret Chine - Abidjan", 40, 22);
+    doc.setLineWidth(0.5); doc.line(5, 32, 145, 32);
+
+    doc.setFontSize(12); let y = 45; const gap = 8;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16);
+    doc.text(`CLIENT: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 10, y); y += gap + 2;
+    doc.setFontSize(12); doc.setFont("helvetica", "normal");
+    doc.text(`Réf: ${currentEnvoi.reference}`, 10, y); y += gap;
+    doc.text(`Desc: ${currentEnvoi.description || '-'}`, 10, y); y += gap;
+    doc.text(`Tél: ${currentEnvoi.tel}`, 10, y); y += gap;
+
+    let poidsVol = currentEnvoi.type.startsWith('aerien') ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
+    doc.setFont("helvetica", "bold");
+    doc.text(`ATTENDU: ${currentEnvoi.quantiteEnvoyee} Colis | ${poidsVol}`, 10, y);
+    doc.setDrawColor(0); doc.rect(2, 2, 146, 96);
+    doc.save(`Etiquette_${currentEnvoi.nom}.pdf`);
+}
+
+async function genererFacture() {
+    if (!currentEnvoi) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a5');
+    const logo = await chargerLogo();
+    if (logo) doc.addImage(logo, 'PNG', 10, 10, 30, 30);
+
+    doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.setTextColor(21, 96, 158);
+    doc.text("AMT TRANSIT CARGO", 50, 20);
+    doc.setFontSize(10); doc.setTextColor(0, 0, 0); doc.setFont("helvetica", "normal");
+    doc.text("Agence: Abidjan - Chine", 50, 26);
+    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 50, 32);
+    doc.setDrawColor(200); doc.line(10, 45, 138, 45);
+
+    let y = 55; const gap = 7;
+    doc.setFontSize(11); doc.setFont("helvetica", "bold");
+    doc.text("INFORMATIONS CLIENT", 10, y); y += gap;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nom: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 15, y); y += gap;
+    doc.text(`Téléphone: ${currentEnvoi.tel}`, 15, y); y += gap;
+    doc.text(`Référence: ${currentEnvoi.reference}`, 15, y); y += gap + 3;
+
+    doc.setFont("helvetica", "bold"); doc.text("DÉTAILS DU COLIS", 10, y); y += gap;
+    let poidsVol = currentEnvoi.type.startsWith('aerien') ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Description: ${currentEnvoi.description || '-'}`, 15, y); y += gap;
+    doc.text(`Attendu: ${currentEnvoi.quantiteEnvoyee} Colis | ${poidsVol}`, 15, y); y += gap + 3;
+
+    doc.setFont("helvetica", "bold"); doc.text("ÉTAT RÉCEPTION", 10, y); y += gap;
+    let qteRecue = currentEnvoi.quantiteRecue || 0;
+    let pdsRecu = currentEnvoi.poidsRecu || 0;
+    let unite = currentEnvoi.type.startsWith('aerien') ? 'Kg' : 'CBM';
+    doc.setFont("helvetica", "normal");
+    doc.text(`Statut: ${currentEnvoi.status || 'En attente'}`, 15, y); y += gap;
+    doc.text(`Reçu: ${qteRecue} Colis | ${pdsRecu} ${unite}`, 15, y); y += gap + 3;
+
+    let prixTotal = parseInt((currentEnvoi.prixEstime || "0").replace(/[^0-9]/g, '')) || 0;
+    let dejaPaye = parseInt(currentEnvoi.montantPaye) || 0;
+    let restant = prixTotal - dejaPaye;
+
+    y += 5; doc.setFillColor(240, 240, 240); doc.rect(10, y - 5, 128, 35, 'F');
+    doc.setFont("helvetica", "normal");
+    doc.text(`Prix Total Estimé:`, 15, y);
+    doc.text(`${formatArgent(prixTotal)} CFA`, 100, y, {align: 'right'}); y += gap;
+    doc.text(`Déjà Payé:`, 15, y);
+    doc.text(`${formatArgent(dejaPaye)} CFA`, 100, y, {align: 'right'}); y += gap + 2;
+    doc.setFontSize(12); doc.setFont("helvetica", "bold");
+    if (restant <= 0) {
+        doc.setTextColor(40, 167, 69);
+        doc.text(`SOLDE:`, 15, y); doc.text(`PAYÉ (0 CFA)`, 100, y, {align: 'right'});
+    } else {
+        doc.setTextColor(220, 53, 69);
+        doc.text(`RESTE À PAYER:`, 15, y); doc.text(`${formatArgent(restant)} CFA`, 100, y, {align: 'right'});
+    }
+
+    doc.setTextColor(150); doc.setFontSize(8);
+    doc.text("Merci de votre confiance - AMT Transit Cargo", 74, 190, {align: 'center'});
+    doc.save(`Facture_${currentEnvoi.nom}.pdf`);
+}
+
 function exporterExcel() {
     if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
     let csvContent = "data:text/csv;charset=utf-8,Ref,Date,Client,Desc,Type,Qté,Poids,Prix,Statut\r\n";
@@ -770,12 +837,13 @@ function exporterExcel() {
     link.setAttribute("download", "expeditions.csv");
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
+
 function exporterPDF() {
     if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
     const headers = [["Ref", "Date", "Client", "Desc", "Type", "Qté", "Poids", "Prix", "Statut"]];
-    const body = clientsCharges.map(c => [c.reference, c.date, c.nom, c.description, c.type, c.quantiteEnvoyee, c.poidsEnvoye||c.volumeEnvoye, c.prixEstime, c.status]);
+    const body = clientsCharges.map(c => [c.reference, c.date, c.nom, c.description, c.type, c.quantiteEnvoyee, c.poidsEnvoye||c.volumeEnvoye, formatArgent(c.prixEstime.replace(/\D/g,'')), c.status]);
     doc.autoTable({ head: headers, body: body, styles: { fontSize: 7 } });
     doc.save('expeditions.pdf');
 }
