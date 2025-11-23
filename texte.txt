@@ -8,6 +8,9 @@ const firebaseConfig = {
 };
 
 
-
+chine@gmail.com
+123AmtChine@
+abidjan@gmail.com
+123AmtAbidjan!
 
 <link rel="icon" type="image/png" href="logo_amt.png">
