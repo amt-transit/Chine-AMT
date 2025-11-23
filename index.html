@@ -36,8 +36,7 @@
                 <img src="logo_amt.png" alt="Logo AMT Transit" class="logo">
             </div>
             <div class="header-info">
-                <span id="user-display">Déconnecté</span>
-                <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px;">Déconnexion</button>
+                <span>Agence: <span id="agence-nom">Chine</span></span>
             </div>
         </header>
 
@@ -125,6 +124,16 @@
 
             <section id="Historique" class="page-content">
                 <h2>Historique & Modification (Chine)</h2>
+                
+                <div class="sub-nav-container">
+                    <button class="sub-nav-link active" id="btn-hist-maritime" onclick="ouvrirSousOngletHistorique('maritime')">
+                        <i class="fas fa-ship"></i> Maritime
+                    </button>
+                    <button class="sub-nav-link" id="btn-hist-aerien" onclick="ouvrirSousOngletHistorique('aerien')">
+                        <i class="fas fa-plane"></i> Aérien
+                    </button>
+                </div>
+
                 <div class="card">
                     <div class="form-group">
                         <input type="text" id="search-hist-chine" placeholder="Rechercher par Nom ou Ref...">
@@ -140,8 +149,7 @@
                                     <th>Poids/Vol Env.</th>
                                     <th>Prix Final</th>
                                     <th>Info Modif</th>
-                                    <th>Action</th>
-                                </tr>
+                                    </tr>
                             </thead>
                             <tbody id="tbody-historique-chine"></tbody>
                         </table>
@@ -163,7 +171,7 @@
                     </div>
                     <div class="table-container">
                         <table id="table-expeditions" class="interactive-table">
-                            <thead><tr><th>Ref</th><th>Date</th><th>Client</th><th>Type</th><th>Qté</th><th>Poids/Vol</th><th>Prix Restant</th><th>Statut</th></tr></thead>
+                            <thead><tr><th>Ref</th><th>Date</th><th>Client</th><th>Desc.</th><th>Type</th><th>Qté</th><th>Poids/Vol</th><th>Prix Est.</th><th>Statut</th></tr></thead>
                             <tbody id="liste-clients-tbody"></tbody>
                         </table>
                     </div>
@@ -207,7 +215,9 @@
                 </div>
             </section>
         </main>
-    </div> <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)">
+    </div> 
+
+    <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)">
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModal(event)">&times;</span>
             <div id="details-reception">
@@ -242,7 +252,7 @@
                             <label>Moyen</label>
                             <select id="moyen-paiement">
                                 <option value="Espèce">Espèce</option><option value="Chèque">Chèque</option>
-                                <option value="OM">Orange Money</option><option value="Wave">Wave</option><option value="CB">Carte Bancaire</option>
+                                <option value="OM">OM</option><option value="Wave">Wave</option><option value="CB">CB</option>
                             </select>
                         </div>
                         <button type="button" class="btn-principal" onclick="enregistrerReception()">Valider</button>
@@ -255,15 +265,20 @@
     <div id="modal-modif-chine" class="modal-backdrop" onclick="fermerModalModif(event)">
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModalModif(event)">&times;</span>
-            <h3>Modifier Expédition (Chine)</h3>
-            <p class="info-text">Attention : Toute modification sera enregistrée.</p>
+            <h3>Modification : <span id="modif-client-titre"></span></h3>
+            <p>
+                Ref: <strong><span id="modif-ref-titre"></span></strong><br>
+                Desc: <span id="modif-desc-titre"></span>
+            </p>
+            <hr>
+            <p class="info-text">Attention : Toute modification impactera le prix.</p>
             <form id="form-modif-chine">
                 <div class="form-group"><label>Quantité</label><input type="number" id="modif-qte"></div>
                 <div class="form-group"><label>Poids / Volume</label><input type="number" id="modif-poids" step="0.01"></div>
                 <div class="form-group">
-                    <label>Réduction / Remise (CFA)</label>
+                    <label>Réduction (CFA)</label>
                     <input type="number" id="modif-remise" placeholder="0">
-                    <small>Ce montant sera déduit du prix total.</small>
+                    <small>Déduit du prix total.</small>
                 </div>
                 <div class="form-group"><label>Prix Final Calculé</label><input type="text" id="modif-prix-final" readonly></div>
                 <button type="button" class="btn-principal" onclick="sauvegarderModificationChine()">Enregistrer Modifications</button>
@@ -275,7 +290,7 @@
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModalHistorique(event)">&times;</span>
             <h3>Historique Transactions</h3>
-            <p><strong id="hist-client-nom"></strong></p>
+            <p><strong id="hist-client-nom"></strong> | <span id="hist-ref"></span></p>
             <table class="modern-payment-table"><thead><tr><th>Date</th><th>Montant</th><th>Type</th></tr></thead><tbody id="tbody-historique"></tbody></table>
         </div>
     </div>
@@ -286,7 +301,7 @@
             <form id="form-depense">
                 <div class="form-group"><label>Date</label><input type="date" id="depense-date" required></div>
                 <div class="form-group"><label>Type</label><select id="depense-type"><option value="maritime">Maritime</option><option value="aerien">Aérien</option></select></div>
-                <div class="form-group"><label>Lier au Groupe</label><input type="text" id="depense-groupe" placeholder="EV1"></div>
+                <div class="form-group"><label>Lier au Groupe</label><input type="text" id="depense-groupe" placeholder="ex: EV1"></div>
                 <div class="form-group"><label>Motif</label><input type="text" id="depense-motif" required></div>
                 <div class="form-group"><label>Montant</label><input type="number" id="depense-montant" required></div>
                 <div class="form-group"><label>Moyen</label><select id="depense-moyen"><option value="Espèce">Espèce</option><option value="Chèque">Chèque</option><option value="OM">OM</option><option value="Wave">Wave</option></select></div>
@@ -296,7 +311,8 @@
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
