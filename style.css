@@ -280,3 +280,22 @@ tr.group-summary-row td {
 #user-display { font-weight: bold; color: #15609e; }
 /* Couleur pour l'info de modification */
 .modif-info { font-size: 0.8em; color: #e67e22; font-style: italic; }
+
+/* --- CORRECTION HEADER & DECONNEXION --- */
+.header-info {
+    font-size: 0.9em;
+    color: #555;
+    display: flex;           /* IMPORTANT: Pour aligner le texte et le bouton */
+    align-items: center;     /* Centrage vertical */
+    gap: 15px;               /* Espace entre le nom et le bouton */
+}
+
+/* S'assurer que le bouton est bien visible */
+.header-info button {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: #dc3545; /* Rouge pour bien le voir */
+    color: white;
+}
+
