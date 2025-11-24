@@ -126,10 +126,14 @@ function deconnexion() { auth.signOut().then(() => window.location.reload()); }
 // =======================================================
 function exporterExcel() {
     if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
-    let csvContent = "data:text/csv;charset=utf-8,Ref,Date,Client,Desc,Type,Qté,Poids,Prix,Statut\r\n";
+    // Ajout de "Téléphone" dans l'en-tête
+    let csvContent = "data:text/csv;charset=utf-8,Ref,Date,Client,Téléphone,Desc,Type,Qté,Poids,Prix,Statut\r\n";
+    
     clientsCharges.forEach(c => {
-        csvContent += `"${c.reference}","${c.date}","${c.nom}","${c.description}","${c.type}",${c.quantiteEnvoyee},"${c.poidsEnvoye||c.volumeEnvoye}","${c.prixEstime}","${c.status}"\r\n`;
+        // Ajout de c.tel ici
+        csvContent += `"${c.reference}","${c.date}","${c.nom}","${c.tel || ''}","${c.description}","${c.type}",${c.quantiteEnvoyee},"${c.poidsEnvoye||c.volumeEnvoye}","${c.prixEstime}","${c.status}"\r\n`;
     });
+    
     var link = document.createElement("a"); 
     link.setAttribute("href", encodeURI(csvContent)); 
     link.setAttribute("download", "expeditions.csv"); 
@@ -140,12 +144,23 @@ function exporterPDF() {
     if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
     const { jsPDF } = window.jspdf; 
     const doc = new jsPDF('l', 'mm', 'a4');
-    const headers = [["Ref", "Date", "Client", "Desc", "Type", "Qté", "Poids", "Prix", "Statut"]];
+    
+    // Ajout de "Tél" dans les headers
+    const headers = [["Ref", "Date", "Client", "Tél", "Desc", "Type", "Qté", "Poids", "Prix", "Statut"]];
+    
     const body = clientsCharges.map(c => [
-        c.reference, c.date, c.nom, c.description, c.type, 
-        c.quantiteEnvoyee, c.poidsEnvoye||c.volumeEnvoye, 
-        formatArgent((c.prixEstime||"0").replace(/\D/g,'')), c.status
+        c.reference, 
+        c.date, 
+        c.nom, 
+        c.tel || '', // Ajout du téléphone ici
+        c.description, 
+        c.type, 
+        c.quantiteEnvoyee, 
+        c.poidsEnvoye||c.volumeEnvoye, 
+        formatArgent(c.prixEstime.replace(/\D/g,'')), 
+        c.status
     ]);
+    
     doc.autoTable({ head: headers, body: body, styles: { fontSize: 7 } }); 
     doc.save('expeditions.pdf');
 }
