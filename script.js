@@ -1248,3 +1248,98 @@ async function chargerListeGroupes() {
         if(loadingOpt) loadingOpt.innerText = "Erreur chargement";
     }
 }
+// --- FONCTION D'IMPORTATION CSV ---
+function importerCSV() {
+    const input = document.getElementById('csv-input');
+    const file = input.files[0];
+    const typeEnvoi = document.getElementById('type-envoi').value;
+
+    // 1. Vérifications de base
+    if (!typeEnvoi) {
+        alert("Veuillez d'abord choisir un 'Type d'envoi' (Aérien/Maritime) pour savoir si la valeur est en Kg ou CBM.");
+        return;
+    }
+    if (!file) {
+        alert("Veuillez sélectionner un fichier CSV.");
+        return;
+    }
+
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const text = e.target.result;
+        // On découpe par ligne
+        const rows = text.split("\n");
+        
+        let count = 0;
+
+        // On parcourt chaque ligne
+        rows.forEach((row, index) => {
+            // Nettoyage de la ligne (enlever les espaces inutiles et les retours chariot)
+            const cleanRow = row.trim();
+            if (!cleanRow) return; // Ignorer lignes vides
+
+            // Découpage par POINT-VIRGULE (Standard Excel FR)
+            // Si vos CSV utilisent des virgules, remplacez ';' par ','
+            const cols = cleanRow.split(";");
+
+            // Ignorer l'en-tête (si la première case contient "Expediteur")
+            if (index === 0 && (cols[0].toLowerCase().includes("exp") || cols[0].toLowerCase().includes("nom"))) {
+                return; 
+            }
+
+            // Vérifier qu'on a assez de colonnes (min 8 colonnes)
+            // Format attendu: Expéditeur; Tel Exp; Nom; Prénom; Tel; Desc; Qté; Poids/Vol
+            if (cols.length < 5) return; 
+
+            // Nettoyage des guillemets éventuels ajoutés par Excel
+            const clean = (val) => (val || "").replace(/"/g, "").trim();
+
+            const poidVol = parseFloat(clean(cols[7]).replace(',', '.')) || 0;
+            
+            // Création de l'objet client
+            const nouveauClient = {
+                expediteur: clean(cols[0]) || "AMT TRANSIT",
+                telExpediteur: clean(cols[1]) || "",
+                nom: clean(cols[2]),
+                prenom: clean(cols[3]),
+                tel: clean(cols[4]),
+                description: clean(cols[5]),
+                quantiteEnvoyee: parseInt(clean(cols[6])) || 1,
+                
+                // Gestion Poids vs Volume selon le type sélectionné
+                poidsEnvoye: typeEnvoi.startsWith('aerien') ? poidVol : 0,
+                volumeEnvoye: typeEnvoi.startsWith('aerien') ? 0 : poidVol,
+                
+                // On crée un sous-colis par défaut pour compatibilité
+                detailsColis: [{
+                    desc: clean(cols[5]),
+                    qte: parseInt(clean(cols[6])) || 1,
+                    val: poidVol
+                }],
+                
+                photosFiles: [] // Pas de photos via CSV
+            };
+
+            // Calcul du prix estimé
+            let prixUnitaire = 0;
+            if (typeEnvoi === 'aerien_normal') prixUnitaire = PRIX_AERIEN_NORMAL;
+            else if (typeEnvoi === 'aerien_express') prixUnitaire = PRIX_AERIEN_EXPRESS;
+            else if (typeEnvoi === 'maritime') prixUnitaire = PRIX_MARITIME_CBM;
+
+            nouveauClient.prixEstime = formatArgent(poidVol * prixUnitaire) + ' CFA';
+
+            // Ajout à la liste globale
+            envoiEnCours.push(nouveauClient);
+            count++;
+        });
+
+        // Mise à jour du tableau visuel
+        mettreAJourTableauEnvoiEnCours();
+        alert(`${count} clients importés avec succès !`);
+        input.value = ""; // Vider l'input
+    };
+
+    // Lecture du fichier en tant que texte (Encodage Windows-1252 souvent utilisé par Excel FR, sinon essayer 'UTF-8')
+    reader.readAsText(file, 'ISO-8859-1'); 
+}

@@ -118,6 +118,11 @@
 
                 <div class="card">
                     <h3>3. Liste d'attente (Prêt à envoyer)</h3>
+                    <div style="background: #e8f5e9; padding: 10px; border: 1px dashed #27ae60; margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
+                        <input type="file" id="csv-input" accept=".csv" style="font-size: 0.9em;">
+                        <button onclick="importerCSV()" class="btn-secondaire" style="width: auto; margin:0; background-color: #27ae60;">📂 Importer CSV</button>
+                        <span style="font-size: 0.8em; color: #555;">(Format: Exp; TelExp; Nom; Prénom; Tel; Desc; Qté; Poids)</span>
+                    </div>
                     <div class="table-container">
                         <table id="table-envoi-en-cours">
                             <thead><tr><th>Exp.</th><th>Dest.</th><th>Tél Dest.</th><th>Qté Tot.</th><th>Total Kg/CBM</th><th>Prix</th><th>Act.</th></tr></thead>
