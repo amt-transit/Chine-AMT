@@ -1343,3 +1343,96 @@ function importerCSV() {
     // Lecture du fichier en tant que texte (Encodage Windows-1252 souvent utilisé par Excel FR, sinon essayer 'UTF-8')
     reader.readAsText(file, 'ISO-8859-1'); 
 }
+// --- GÉNÉRATION BON DE LIVRAISON (BL) AVEC PROMPT ---
+async function genererBonLivraison() {
+    // Vérification de sécurité
+    if (!currentEnvoi) return;
+
+    // 1. LE PROMPT : C'est ici qu'on demande le lieu à l'utilisateur
+    // La valeur par défaut est "Agence Abidjan - Treichville"
+    let lieu = prompt("Veuillez saisir le LIEU DE LIVRAISON :", "Agence Abidjan - Treichville");
+    
+    // Si l'utilisateur clique sur "Annuler", on arrête tout
+    if (lieu === null) return; 
+
+    // 2. Initialisation du PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    // On essaie de charger le logo (fonction existante dans votre code)
+    const logo = await chargerLogo();
+    if (logo) doc.addImage(logo, 'PNG', 10, 10, 25, 25);
+    
+    // 3. En-tête du document
+    doc.setFontSize(22);
+    doc.setTextColor(142, 68, 173); // Couleur violette
+    doc.setFont("helvetica", "bold");
+    doc.text("BON DE LIVRAISON", 130, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(0); // Noir
+    doc.setFont("helvetica", "normal");
+    doc.text(`N° BL: BL-${currentEnvoi.reference}`, 130, 28);
+    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 130, 33);
+    
+    // ICI : On affiche le lieu saisi dans le prompt en majuscules
+    doc.setFont("helvetica", "bold");
+    doc.text(`Lieu de livraison : ${lieu.toUpperCase()}`, 130, 40);
+
+    doc.line(10, 45, 200, 45); // Ligne de séparation
+
+    // 4. Informations du Destinataire
+    let y = 55;
+    doc.setFontSize(11);
+    doc.text("DESTINATAIRE:", 10, y);
+    doc.setFont("helvetica", "normal");
+    y += 5; doc.text(`Nom: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 10, y);
+    y += 5; doc.text(`Téléphone: ${currentEnvoi.tel}`, 10, y);
+    y += 5; doc.text(`Réf Colis: ${currentEnvoi.reference}`, 10, y);
+
+    // 5. Tableau des articles (On masque les prix pour un BL)
+    y += 10;
+    const headers = [["DESCRIPTION", "TYPE", "QUANTITÉ", "POIDS / VOL", "ETAT"]];
+    
+    // Détection si c'est Aérien ou Maritime pour l'unité
+    let isAir = (currentEnvoi.type || "").startsWith('aerien');
+    let poidVol = isAir ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
+    
+    const body = [[
+        currentEnvoi.description,
+        (currentEnvoi.type || "").toUpperCase(),
+        currentEnvoi.quantiteEnvoyee,
+        poidVol,
+        currentEnvoi.status || "Non vérifié"
+    ]];
+
+    doc.autoTable({
+        startY: y,
+        head: headers,
+        body: body,
+        theme: 'grid',
+        headStyles: { fillColor: [142, 68, 173] }, // En-tête violet
+        styles: { valign: 'middle', fontSize: 10 }
+    });
+
+    // 6. Zone de Signature (Cadres en bas de page)
+    y = doc.lastAutoTable.finalY + 20;
+    
+    doc.setLineWidth(0.5);
+    // Cadre Livreur
+    doc.rect(10, y, 90, 40); 
+    // Cadre Client
+    doc.rect(110, y, 90, 40); 
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("VISA / SIGNATURE LIVREUR", 15, y + 5);
+    doc.text("VISA / SIGNATURE CLIENT", 115, y + 5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text("Je confirme avoir reçu la marchandise en bon état.", 115, y + 35);
+
+    // 7. Sauvegarde du fichier
+    doc.save(`BL_${currentEnvoi.nom}.pdf`);
+}
