@@ -14,3 +14,1657 @@ abidjan@gmail.com
 123AmtAbidjan!
 
 <link rel="icon" type="image/png" href="logo_amt.png">
+
+Je vais D'abord te montrer mes 3 fichiers ensuite je te dirais les modifications que je souhaite apporter.
+index.html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMT Suivi de Fret</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/logo_amt.png">
+</head>
+<body>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <img src="logo_amt.png" alt="Logo" class="login-logo">
+            <h2>Connexion AMT</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="login-email" placeholder="chine@amt.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn-principal">Se connecter</button>
+                <p id="login-error" class="text-red"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-container" style="display:none;">
+        
+        <header>
+            <div class="logo-container">
+                <img src="logo_amt.png" alt="Logo AMT Transit" class="logo">
+            </div>
+            <div class="header-info">
+                <span>Agence: <span id="agence-nom">Chine</span></span>
+                <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+            </div>
+        </header>
+
+        <nav class="main-nav">
+            <button class="nav-link" id="nav-envoi" onclick="ouvrirPage(event, 'Envoi')">📦 Envoi (Chine)</button>
+            <button class="nav-link" id="nav-historique" onclick="ouvrirPage(event, 'Historique')">📝 Historique & Modif</button>
+            <button class="nav-link" id="nav-reception" onclick="ouvrirPage(event, 'Reception')">📥 Réception (Abidjan)</button>
+            <button class="nav-link" id="nav-compta" onclick="ouvrirPage(event, 'Comptabilite')">💰 Comptabilité</button>
+        </nav>
+
+        <main>
+            <section id="Envoi" class="page-content">
+                <h2>Enregistrer un envoi groupé</h2>
+                <form id="form-envoi-commun" class="card">
+                    <h3>1. Informations communes</h3>
+                    <div class="form-group">
+                        <label>Date d'envoi</label>
+                        <input type="date" id="date-envoi" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Type d'envoi</label>
+                        <select id="type-envoi" required>
+                            <option value="">-- Choisir --</option>
+                            <option value="aerien_normal">Aérien Normal (10 000/Kg)</option>
+                            <option value="aerien_express">Aérien Express (12 000/Kg)</option>
+                            <option value="maritime">Maritime (250 000/CBM)</option>
+                        </select>
+                    </div>
+                    <p class="info-text">Référence groupe auto-générée (ex: EV10).</p>
+                </form>
+
+                <form id="form-ajout-client" class="card">
+                    <h3>2. Ajouter un client</h3>
+                    <div class="form-group">
+                        <label>Expéditeur</label>
+                        <input type="text" id="expediteur-nom" value="AMT TRANSIT CARGO">
+                    </div>
+                    <div class="form-group">
+                        <label>Numéro Expéditeur</label>
+                        <input type="text" id="expediteur-tel" value="+225 0703165050">
+                    </div>
+                    <hr>
+                    <div class="form-group autocomplete-container">
+                        <label>Nom</label>
+                        <input type="text" id="client-nom" required autocomplete="off">
+                        <div id="autocomplete-suggestions" class="autocomplete-items"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Prénom</label>
+                        <input type="text" id="client-prenom" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel" id="client-tel" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="client-desc" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantité (colis)</label>
+                        <input type="number" id="quantite-envoyee" min="0" required>
+                    </div>
+                    <div class="form-group" id="champ-poids">
+                        <label>Poids (Kg)</label>
+                        <input type="number" id="poids-envoye" step="0.01" min="0">
+                    </div>
+                    <div class="form-group" id="champ-volume">
+                        <label>Volume (CBM)</label>
+                        <input type="number" id="volume-envoye" step="0.001" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Photos</label>
+                        <input type="file" id="photos-colis" accept="image/*" multiple>
+                        <div id="apercu-photos"></div>
+                    </div>
+                    <hr>
+                    <h3>Prix estimé : <span id="prix-calcule">0 CFA</span></h3>
+                    <button type="button" id="btn-ajouter-client" class="btn-secondaire">Ajouter à la liste</button>
+                </form>
+
+                <div class="card">
+                    <h3>3. Liste d'attente</h3>
+                    <div class="table-container">
+                        <table id="table-envoi-en-cours">
+                            <thead><tr><th>Nom</th><th>Desc.</th><th>Qté</th><th>Poids/Vol</th><th>Prix</th><th>Action</th></tr></thead>
+                            <tbody id="tbody-envoi-en-cours"></tbody>
+                        </table>
+                    </div>
+                    <hr>
+                    <button type="button" id="btn-valider-envoi-groupe" class="btn-principal">Valider l'envoi</button>
+                </div>
+            </section>
+
+            <section id="Historique" class="page-content">
+                <h2>Historique & Modification (Chine)</h2>
+                
+                <div class="sub-nav-container">
+                    <button class="sub-nav-link active" id="btn-hist-maritime" onclick="ouvrirSousOngletHistorique('maritime')">
+                        <i class="fas fa-ship"></i> Maritime
+                    </button>
+                    <button class="sub-nav-link" id="btn-hist-aerien" onclick="ouvrirSousOngletHistorique('aerien')">
+                        <i class="fas fa-plane"></i> Aérien
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="form-group">
+                        <input type="text" id="search-hist-chine" placeholder="Rechercher par Nom ou Ref...">
+                    </div>
+                    <div class="table-container">
+                        <table class="excel-table">
+                            <thead>
+                                <tr>
+                                    <th>Ref</th>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th>Qté Env.</th>
+                                    <th>Poids/Vol Env.</th>
+                                    <th>Prix Final</th>
+                                    <th>Info Modif</th>
+                                    </tr>
+                            </thead>
+                            <tbody id="tbody-historique-chine"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="Reception" class="page-content">
+                <h2>Réception (Abidjan)</h2>
+                <div class="sub-nav-container">
+                    <button class="sub-nav-link active" id="btn-rec-maritime" onclick="ouvrirSousOngletReception('maritime')"><i class="fas fa-ship"></i> Maritime</button>
+                    <button class="sub-nav-link" id="btn-rec-aerien" onclick="ouvrirSousOngletReception('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+                </div>
+                <div class="card">
+                    <div class="form-group"><input type="text" id="search-input" placeholder="Rechercher..."></div>
+                    <div class="export-buttons">
+                        <button id="btn-export-pdf" class="btn-secondaire">PDF</button>
+                        <button id="btn-export-excel" class="btn-secondaire">Excel</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="table-expeditions" class="interactive-table">
+                            <thead><tr><th>Ref</th><th>Date</th><th>Client</th><th>Desc.</th><th>Type</th><th>Qté</th><th>Poids/Vol</th><th>Prix Est.</th><th>Statut</th></tr></thead>
+                            <tbody id="liste-clients-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="Comptabilite" class="page-content">
+                <div class="sub-nav-container">
+                    <button class="sub-nav-link active" onclick="ouvrirSousOngletCompta('maritime')"><i class="fas fa-ship"></i> Maritime</button>
+                    <button class="sub-nav-link" onclick="ouvrirSousOngletCompta('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+                </div>
+                <div class="card compta-card">
+                    <div class="compta-header"><h2 id="titre-compta">SUIVI FINANCIER</h2></div>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-summary">
+                            <div class="summary-row red-bg"><span>Crédit</span><span id="total-credit">0 CFA</span></div>
+                            <div class="summary-row white-bg"><span>Solde Caisse</span><span id="total-caisse">0 CFA</span></div>
+                            <div class="summary-row blue-light-bg"><span>Bonus</span><span id="total-bonus">0 CFA</span></div>
+                        </div>
+                        <div class="dashboard-payments-modern">
+                            <table class="modern-payment-table">
+                                <thead><tr><th>Type</th><th>Entrée</th><th>Sortie</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Espèce</td><td id="pay-espece-in">0</td><td id="pay-espece-out">0</td></tr>
+                                    <tr><td>Chèque</td><td id="pay-cheque-in">0</td><td id="pay-cheque-out">0</td></tr>
+                                    <tr><td>Orange Money</td><td id="pay-om-in">0</td><td id="pay-om-out">0</td></tr>
+                                    <tr><td>Wave</td><td id="pay-wave-in">0</td><td id="pay-wave-out">0</td></tr>
+                                    <tr><td>CB</td><td id="pay-cb-in">0</td><td id="pay-cb-out">0</td></tr>
+                                    <tr class="modern-total-row"><td>TOTAL</td><td id="pay-total-in">0</td><td id="pay-total-out">0</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="table-container mt-20">
+                        <button class="btn-secondaire btn-small" onclick="ouvrirModalDepense()">+ Dépense</button>
+                        <table id="table-compta-details" class="excel-table">
+                            <thead><tr><th>Date</th><th>Ref</th><th>Desc</th><th>Client</th><th>Dû</th><th>Reste</th><th>Entrée</th><th>Sortie</th><th>Action</th></tr></thead>
+                            <tbody id="tbody-compta"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div> 
+
+    <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModal(event)">&times;</span>
+            <div id="details-reception">
+                <h3>Détails : <span id="client-selectionne"></span></h3>
+                <p>
+                    Expéditeur: <strong><span id="expediteur-affiche"></span></strong><br>
+                    Ref: <strong><span id="ref-attendue"></span></strong><br>
+                    Desc: <span id="desc-attendue"></span><br>
+                    Tél: <span id="tel-attendu"></span><br>
+                    Attendu: <span id="qte-attendue"></span> | <span id="poids-attendu"></span><br>
+                    Prix Initial: <span id="prix-attendu"></span><br>
+                    <strong style="font-size:1.2em; color:#dc3545;">Reste: <span id="prix-restant"></span></strong>
+                </p>
+                <div class="form-group" id="photos-recues-container" style="display:none;"><div id="photos-recues-apercu"></div></div>
+                <hr>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">Étiquette</button>
+                    <button class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">Facture</button>
+                </div>
+                <div id="reception-status-display">
+                    <p id="reception-status" class="status-badge"></p>
+                    <div id="reception-summary"></div>
+                    <div id="reception-differences-display"></div>
+                </div>
+                <div id="form-reception-container">
+                    <hr>
+                    <strong>Ajouter Réception :</strong>
+                    <form id="form-reception">
+                        <div class="form-group"><label>Quantité</label><input type="number" id="quantite-recue" min="0"></div>
+                        <div class="form-group"><label id="label-poids-recu">Poids/Vol</label><input type="number" id="poids-recu" step="0.01"></div>
+                        <div class="form-group"><label>Payé (Tranche)</label><input type="number" id="montant-paye" min="0"></div>
+                        <div class="form-group">
+                            <label>Moyen</label>
+                            <select id="moyen-paiement">
+                                <option value="Espèce">Espèce</option><option value="Chèque">Chèque</option>
+                                <option value="OM">OM</option><option value="Wave">Wave</option><option value="CB">CB</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn-principal" onclick="enregistrerReception()">Valider</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-modif-chine" class="modal-backdrop" onclick="fermerModalModif(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModalModif(event)">&times;</span>
+            <h3>Modification : <span id="modif-client-titre"></span></h3>
+            <p>
+                Ref: <strong><span id="modif-ref-titre"></span></strong><br>
+                Desc: <span id="modif-desc-titre"></span>
+            </p>
+            <hr>
+            <p class="info-text">Attention : Toute modification impactera le prix.</p>
+            <form id="form-modif-chine">
+                <div class="form-group"><label>Quantité</label><input type="number" id="modif-qte"></div>
+                <div class="form-group"><label>Poids / Volume</label><input type="number" id="modif-poids" step="0.01"></div>
+                <div class="form-group">
+                    <label>Réduction (CFA)</label>
+                    <input type="number" id="modif-remise" placeholder="0">
+                    <small>Déduit du prix total.</small>
+                </div>
+                <div class="form-group"><label>Prix Final Calculé</label><input type="text" id="modif-prix-final" readonly></div>
+                <button type="button" class="btn-principal" onclick="sauvegarderModificationChine()">Enregistrer Modifications</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-historique" class="modal-backdrop" onclick="fermerModalHistorique(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModalHistorique(event)">&times;</span>
+            <h3>Historique Transactions</h3>
+            <p><strong id="hist-client-nom"></strong> | <span id="hist-ref"></span></p>
+            <table class="modern-payment-table"><thead><tr><th>Date</th><th>Montant</th><th>Type</th></tr></thead><tbody id="tbody-historique"></tbody></table>
+        </div>
+    </div>
+    <div id="modal-depense" class="modal-backdrop" onclick="fermerModalDepense(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModalDepense(event)">&times;</span>
+            <h3>Ajouter Sortie</h3>
+            <form id="form-depense">
+                <div class="form-group"><label>Date</label><input type="date" id="depense-date" required></div>
+                <div class="form-group"><label>Type</label><select id="depense-type"><option value="maritime">Maritime</option><option value="aerien">Aérien</option></select></div>
+                <div class="form-group"><label>Lier au Groupe</label><input type="text" id="depense-groupe" placeholder="ex: EV1"></div>
+                <div class="form-group"><label>Motif</label><input type="text" id="depense-motif" required></div>
+                <div class="form-group"><label>Montant</label><input type="number" id="depense-montant" required></div>
+                <div class="form-group"><label>Moyen</label><select id="depense-moyen"><option value="Espèce">Espèce</option><option value="Chèque">Chèque</option><option value="OM">OM</option><option value="Wave">Wave</option></select></div>
+                <button type="button" class="btn-principal btn-supprimer" onclick="enregistrerDepense()">Valider Sortie</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+script.js
+// =======================================================
+// 1. CONFIGURATION FIREBASE
+// =======================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyA0_2U_6muRzphWlvKZN-lP6mytzaKIj1A",
+  authDomain: "chine-amt.firebaseapp.com",
+  projectId: "chine-amt",
+  storageBucket: "chine-amt.firebasestorage.app",
+  messagingSenderId: "864644062373",
+  appId: "1:864644062373:web:a3066965408fdd9387c14c"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const storage = firebase.storage();
+const auth = firebase.auth();
+
+// =======================================================
+// 2. VARIABLES GLOBALES
+// =======================================================
+let envoiEnCours = [];
+let clientsCharges = [];
+let allPastClients = [];
+let currentUser = null;
+let currentRole = null;
+
+const PRIX_AERIEN_NORMAL = 10000;
+const PRIX_AERIEN_EXPRESS = 12000;
+const PRIX_MARITIME_CBM = 250000;
+
+let currentReceptionType = 'maritime';
+let currentHistoriqueType = 'maritime';
+let currentComptaType = 'maritime';
+let currentEnvoi = null;
+let currentModifEnvoi = null;
+
+function formatArgent(montant) {
+    if (isNaN(montant)) return "0";
+    return parseInt(montant).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+// =======================================================
+// 3. NAVIGATION ET AUTH
+// =======================================================
+function ouvrirPage(event, nomPage) {
+    const contents = document.getElementsByClassName("page-content");
+    for (let i = 0; i < contents.length; i++) {
+        if(contents[i]) contents[i].style.display = "none";
+    }
+    
+    const links = document.getElementsByClassName("nav-link");
+    for (let i = 0; i < links.length; i++) {
+        if(links[i]) links[i].className = links[i].className.replace(" active", "");
+    }
+    
+    const page = document.getElementById(nomPage);
+    if (page) page.style.display = "block";
+    
+    if (event && event.currentTarget) event.currentTarget.className += " active";
+    
+    // Changement de titre sécurisé
+    const agenceEl = document.getElementById('agence-nom');
+    if (agenceEl) {
+        if (nomPage === 'Envoi') {
+            agenceEl.innerText = 'Chine';
+            loadAllClientsForAutocomplete();
+        } else if (nomPage === 'Historique') {
+            agenceEl.innerText = 'Chine - Historique';
+            ouvrirSousOngletHistorique('maritime');
+        } else if (nomPage === 'Reception') {
+            agenceEl.innerText = 'Abidjan';
+            ouvrirSousOngletReception('maritime');
+        } else if (nomPage === 'Comptabilite') {
+            agenceEl.innerText = 'Abidjan - Compta';
+            ouvrirSousOngletCompta('maritime');
+        }
+    }
+}
+
+const loginForm = document.getElementById('login-form');
+if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-password').value;
+        auth.signInWithEmailAndPassword(email, pass).catch(err => {
+            const errEl = document.getElementById('login-error');
+            if(errEl) errEl.innerText = "Erreur: " + err.message;
+        });
+    });
+}
+
+auth.onAuthStateChanged(user => {
+    const overlay = document.getElementById('login-overlay');
+    const app = document.getElementById('app-container');
+    const userDisplay = document.getElementById('user-display');
+
+    if (user) {
+        currentUser = user;
+        if(overlay) overlay.style.display = 'none';
+        if(app) app.style.display = 'block';
+        
+        if (user.email.includes('chine')) {
+            currentRole = 'chine';
+            if(userDisplay) userDisplay.innerText = "Agence Chine";
+            const nR = document.getElementById('nav-reception'); if(nR) nR.style.display = 'none';
+            const nC = document.getElementById('nav-compta'); if(nC) nC.style.display = 'none';
+            ouvrirPage(null, 'Envoi');
+        } else {
+            currentRole = 'abidjan';
+            if(userDisplay) userDisplay.innerText = "Agence Abidjan";
+            const nR = document.getElementById('nav-reception'); if(nR) nR.style.display = 'inline-block';
+            const nC = document.getElementById('nav-compta'); if(nC) nC.style.display = 'inline-block';
+            ouvrirPage(null, 'Reception');
+        }
+    } else {
+        if(overlay) overlay.style.display = 'flex';
+        if(app) app.style.display = 'none';
+    }
+});
+
+function deconnexion() { auth.signOut().then(() => window.location.reload()); }
+
+// =======================================================
+// FONCTIONS D'EXPORT (À PLACER AVANT LE DOMContentLoaded)
+// =======================================================
+function exporterExcel() {
+    if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
+    // Ajout de "Téléphone" dans l'en-tête
+    let csvContent = "data:text/csv;charset=utf-8,Ref,Date,Client,Téléphone,Desc,Type,Qté,Poids,Prix,Statut\r\n";
+    
+    clientsCharges.forEach(c => {
+        // Ajout de c.tel ici
+        csvContent += `"${c.reference}","${c.date}","${c.nom}","${c.tel || ''}","${c.description}","${c.type}",${c.quantiteEnvoyee},"${c.poidsEnvoye||c.volumeEnvoye}","${c.prixEstime}","${c.status}"\r\n`;
+    });
+    
+    var link = document.createElement("a"); 
+    link.setAttribute("href", encodeURI(csvContent)); 
+    link.setAttribute("download", "expeditions.csv"); 
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function exporterPDF() {
+    if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
+    const { jsPDF } = window.jspdf; 
+    const doc = new jsPDF('l', 'mm', 'a4');
+    
+    // Ajout de "Tél" dans les headers
+    const headers = [["Ref", "Date", "Client", "Tél", "Desc", "Type", "Qté", "Poids", "Prix", "Statut"]];
+    
+    const body = clientsCharges.map(c => [
+        c.reference, 
+        c.date, 
+        c.nom, 
+        c.tel || '', // Ajout du téléphone ici
+        c.description, 
+        c.type, 
+        c.quantiteEnvoyee, 
+        c.poidsEnvoye||c.volumeEnvoye, 
+        formatArgent(c.prixEstime.replace(/\D/g,'')), 
+        c.status
+    ]);
+    
+    doc.autoTable({ head: headers, body: body, styles: { fontSize: 7 } }); 
+    doc.save('expeditions.pdf');
+}
+
+
+// =======================================================
+// 4. INITIALISATION (DOM READY)
+// =======================================================
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const activeLink = document.querySelector('.nav-link.active');
+        if (activeLink) activeLink.click();
+    }, 10);
+    loadAllClientsForAutocomplete();
+
+    // --- PAGE ENVOI ---
+    const typeEnvoiSelect = document.getElementById('type-envoi');
+    const poidsInput = document.getElementById('poids-envoye');
+    const volumeInput = document.getElementById('volume-envoye');
+    const photosInput = document.getElementById('photos-colis');
+    const btnAjouterClient = document.getElementById('btn-ajouter-client');
+    const btnValiderEnvoiGroupe = document.getElementById('btn-valider-envoi-groupe');
+
+    if(typeEnvoiSelect) {
+        typeEnvoiSelect.addEventListener('change', gererChampsEnvoi);
+        if(poidsInput) poidsInput.addEventListener('input', calculerPrixClient);
+        if(volumeInput) volumeInput.addEventListener('input', calculerPrixClient);
+        gererChampsEnvoi();
+    }
+
+    if(photosInput) {
+        photosInput.addEventListener('change', function() {
+            const apercuDiv = document.getElementById('apercu-photos');
+            if(apercuDiv) apercuDiv.innerHTML = '';
+            if (this.files.length > 0) {
+                Array.from(this.files).forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = e => {
+                            const img = document.createElement('img'); img.src = e.target.result;
+                            if(apercuDiv) apercuDiv.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        });
+    }
+
+    if(btnAjouterClient) btnAjouterClient.addEventListener('click', ajouterClientALaListe);
+    if(btnValiderEnvoiGroupe) btnValiderEnvoiGroupe.addEventListener('click', validerEnvoiGroupe);
+
+    // Recherche & Export
+    const searchInput = document.getElementById('search-input');
+    if(searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const rows = document.getElementById('liste-clients-tbody').getElementsByTagName('tr');
+            for(let row of rows) {
+                if(row.cells.length < 2) continue;
+                const txt = row.innerText.toLowerCase();
+                row.style.display = txt.includes(query) ? "" : "none";
+            }
+        });
+    }
+    const btnExpPDF = document.getElementById('btn-export-pdf');
+    const btnExpExcel = document.getElementById('btn-export-excel');
+    if(btnExpPDF) btnExpPDF.addEventListener('click', exporterPDF);
+    if(btnExpExcel) btnExpExcel.addEventListener('click', exporterExcel);
+
+    // Autocomplete
+    const nomInput = document.getElementById('client-nom');
+    if(nomInput) {
+        nomInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const box = document.getElementById('autocomplete-suggestions');
+            if (query.length < 1) { if(box) box.style.display = 'none'; return; }
+            const matches = allPastClients.filter(c => c.nom.toLowerCase().startsWith(query));
+            showSuggestions(matches);
+        });
+        document.addEventListener('click', e => {
+            if(!e.target.closest('.autocomplete-container')) {
+                const box = document.getElementById('autocomplete-suggestions');
+                if(box) box.style.display = 'none';
+            }
+        });
+    }
+
+    // Modifs dynamiques
+    const modifP = document.getElementById('modif-poids');
+    const modifR = document.getElementById('modif-remise');
+    if(modifP) modifP.oninput = calculerPrixModif;
+    if(modifR) modifR.oninput = calculerPrixModif;
+});
+
+// --- FONCTIONS ENVOI ---
+function gererChampsEnvoi() {
+    const type = document.getElementById('type-envoi').value;
+    const p = document.getElementById('champ-poids');
+    const v = document.getElementById('champ-volume');
+    const vi = document.getElementById('volume-envoye');
+    const pi = document.getElementById('poids-envoye');
+    
+    if (type.startsWith('aerien')) {
+        p.style.display='block'; v.style.display='none'; if(vi) vi.value=0;
+    } else if (type==='maritime') {
+        p.style.display='none'; v.style.display='block'; if(pi) pi.value=0;
+    } else {
+        p.style.display='none'; v.style.display='none';
+    }
+    calculerPrixClient();
+}
+
+function calculerPrixClient() {
+    const type = document.getElementById('type-envoi').value;
+    const p = parseFloat(document.getElementById('poids-envoye').value)||0;
+    const v = parseFloat(document.getElementById('volume-envoye').value)||0;
+    let prix = 0;
+    if(type==='aerien_normal') prix = p * PRIX_AERIEN_NORMAL;
+    else if(type==='aerien_express') prix = p * PRIX_AERIEN_EXPRESS;
+    else if(type==='maritime') prix = v * PRIX_MARITIME_CBM;
+    
+    const el = document.getElementById('prix-calcule');
+    if(el) el.innerText = formatArgent(prix) + ' CFA';
+}
+
+function ajouterClientALaListe() {
+    const t = document.getElementById('type-envoi').value;
+    const d = document.getElementById('date-envoi').value;
+    if(!t||!d) { alert("Date et Type requis."); return; }
+    const n = document.getElementById('client-nom').value;
+    if(!n) { alert("Nom requis."); return; }
+    
+    const expN = document.getElementById('expediteur-nom').value || "AMT TRANSIT CARGO";
+    const expT = document.getElementById('expediteur-tel').value || "+225 0703165050";
+
+    const c = {
+        expediteur: expN, telExpediteur: expT,
+        nom: n,
+        prenom: document.getElementById('client-prenom').value,
+        tel: document.getElementById('client-tel').value,
+        description: document.getElementById('client-desc').value,
+        quantiteEnvoyee: document.getElementById('quantite-envoyee').value,
+        poidsEnvoye: parseFloat(document.getElementById('poids-envoye').value)||0,
+        volumeEnvoye: parseFloat(document.getElementById('volume-envoye').value)||0,
+        prixEstime: document.getElementById('prix-calcule').innerText,
+        photosFiles: Array.from(document.getElementById('photos-colis').files)
+    };
+    envoiEnCours.push(c);
+    mettreAJourTableauEnvoiEnCours();
+    document.getElementById('form-ajout-client').reset();
+    
+    // Remettre valeurs par défaut
+    document.getElementById('expediteur-nom').value = "AMT TRANSIT CARGO";
+    document.getElementById('expediteur-tel').value = "+225 0703165050";
+    
+    const ap = document.getElementById('apercu-photos');
+    if(ap) ap.innerHTML='';
+    calculerPrixClient();
+}
+
+function mettreAJourTableauEnvoiEnCours() {
+    const tbody = document.getElementById('tbody-envoi-en-cours');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    envoiEnCours.forEach((c, i) => {
+        let pv = document.getElementById('type-envoi').value.startsWith('aerien') ? c.poidsEnvoye : c.volumeEnvoye;
+        tbody.innerHTML += `<tr><td>${c.expediteur}</td><td>${c.nom}</td><td>${c.quantiteEnvoyee}</td><td>${pv}</td><td>${c.prixEstime}</td><td><button class="btn-action btn-supprimer" onclick="envoiEnCours.splice(${i},1);mettreAJourTableauEnvoiEnCours()">X</button></td></tr>`;
+    });
+}
+
+async function validerEnvoiGroupe() {
+    if(envoiEnCours.length===0) return;
+    const btn = document.getElementById('btn-valider-envoi-groupe');
+    btn.disabled=true; btn.innerText='En cours...';
+    try {
+        const d = document.getElementById('date-envoi').value;
+        const t = document.getElementById('type-envoi').value;
+        const refG = await genererRefGroupe(t);
+        const pref = t.startsWith('aerien') ? 'AIR' : 'MRT';
+
+        for(let i=0; i<envoiEnCours.length; i++) {
+            const c = envoiEnCours[i];
+            const idx = String(i+1).padStart(3,'0');
+            const ref = `${pref}-${idx}-${refG}`;
+            let photosURLs = [];
+            
+            await db.collection('expeditions').add({
+                reference: ref, refGroupe: refG, date: d, type: t,
+                nom: c.nom, prenom: c.prenom, tel: c.tel, description: c.description,
+                expediteur: c.expediteur, telExpediteur: c.telExpediteur,
+                quantiteEnvoyee: parseInt(c.quantiteEnvoyee)||0,
+                poidsEnvoye: c.poidsEnvoye, volumeEnvoye: c.volumeEnvoye,
+                prixEstime: c.prixEstime, remise: 0,
+                creeLe: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'En attente', quantiteRecue: 0, poidsRecu: 0, montantPaye: 0, historiquePaiements: [], photosURLs: photosURLs
+            });
+        }
+        alert('Groupe '+refG+' enregistré !');
+        envoiEnCours = []; mettreAJourTableauEnvoiEnCours();
+        document.getElementById('form-envoi-commun').reset();
+        loadAllClientsForAutocomplete();
+    } catch(e) { alert(e.message); }
+    finally { btn.disabled=false; btn.innerText='Valider'; }
+}
+
+async function genererRefGroupe(t) {
+    const s = await db.collection('expeditions').orderBy('creeLe', 'desc').limit(50).get();
+    let max=0; s.forEach(d=>{ let g=d.data().refGroupe||""; if(g.startsWith('EV')){ let n=parseInt(g.replace('EV','')); if(n>max) max=n; } });
+    return 'EV'+(max+1);
+}
+
+async function loadAllClientsForAutocomplete() {
+    try {
+        const s = await db.collection('expeditions').get();
+        const m = new Map();
+        s.forEach(d => { const da=d.data(); if(da.tel) m.set(da.tel, {nom:da.nom, prenom:da.prenom, tel:da.tel}); });
+        allPastClients = Array.from(m.values());
+    } catch(e) {}
+}
+
+function showSuggestions(matches) {
+    const box = document.getElementById('autocomplete-suggestions');
+    if(box) box.innerHTML = '';
+    if (matches.length === 0) { if(box) box.style.display = 'none'; return; }
+    matches.slice(0, 5).forEach(c => {
+        const div = document.createElement('div');
+        div.innerHTML = `<strong>${c.nom}</strong> ${c.prenom}`;
+        div.onclick = () => {
+            document.getElementById('client-nom').value = c.nom;
+            document.getElementById('client-prenom').value = c.prenom||'';
+            document.getElementById('client-tel').value = c.tel||'';
+            box.style.display = 'none';
+        };
+        box.appendChild(div);
+    });
+    if(box) box.style.display = 'block';
+}
+
+// =======================================================
+// 5. HISTORIQUE (SOUS-ONGLETS)
+// =======================================================
+function ouvrirSousOngletHistorique(type) {
+    currentHistoriqueType = type;
+    const b1 = document.getElementById('btn-hist-maritime');
+    const b2 = document.getElementById('btn-hist-aerien');
+    if(b1&&b2) { 
+        if(type==='maritime'){b1.classList.add('active');b2.classList.remove('active');} 
+        else {b1.classList.remove('active');b2.classList.add('active');} 
+    }
+    chargerHistoriqueChine();
+}
+
+async function chargerHistoriqueChine() {
+    const tb = document.getElementById('tbody-historique-chine');
+    if(!tb) return;
+    tb.innerHTML = '<tr><td colspan="8">Chargement...</td></tr>';
+    
+    const s = document.getElementById('search-hist-chine');
+    if(s) s.oninput = () => { const q = s.value.toLowerCase(); Array.from(tb.rows).forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? "" : "none"); };
+
+    try {
+        const snap = await db.collection('expeditions').limit(200).get();
+        let docs=[]; snap.forEach(d=>docs.push({id:d.id, ...d.data()}));
+        docs.sort((a,b)=>(b.creeLe?b.creeLe.seconds:0)-(a.creeLe?a.creeLe.seconds:0));
+        
+        tb.innerHTML='';
+        docs.forEach(d => {
+            let m = false;
+            if(currentHistoriqueType==='maritime' && d.type==='maritime') m=true;
+            if(currentHistoriqueType==='aerien' && (d.type||"").startsWith('aerien')) m=true;
+            
+            if(m) {
+                const dateStr = d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '-';
+                let pv = (d.type||"").startsWith('aerien') ? d.poidsEnvoye+' Kg' : d.volumeEnvoye+' CBM';
+                let pB = parseInt((d.prixEstime||"0").replace(/\D/g,''))||0;
+                let final = pB - (d.remise||0);
+                let mod = d.dernierModificateur ? `<span class="modif-info">Par ${d.dernierModificateur}</span>` : '-';
+                
+                // SÉCURISATION DES DONNÉES POUR ONCLICK
+                const safeData = encodeURIComponent(JSON.stringify({id:d.id, ...d}));
+                
+                const tr = document.createElement('tr');
+                tr.className = 'interactive-table-row';
+                tr.innerHTML = `<td>${d.reference}</td><td>${dateStr}</td><td>${d.nom}</td><td>${d.quantiteEnvoyee}</td><td>${pv}</td><td>${formatArgent(final)} CFA</td><td>${mod}</td>`;
+                tr.onclick = () => ouvrirModalModifViaData(safeData);
+                tb.appendChild(tr);
+            }
+        });
+    } catch(e) { console.error(e); }
+}
+
+function ouvrirModalModifViaData(encodedData) {
+    const envoi = JSON.parse(decodeURIComponent(encodedData));
+    ouvrirModalModif(envoi);
+}
+
+const modalModif = document.getElementById('modal-modif-chine');
+function ouvrirModalModif(envoi) {
+    currentModifEnvoi = envoi;
+    modalModif.style.display='flex';
+    document.getElementById('modif-client-titre').innerText = envoi.nom;
+    document.getElementById('modif-ref-titre').innerText = envoi.reference;
+    document.getElementById('modif-desc-titre').innerText = envoi.description;
+    
+    document.getElementById('modif-qte').value = envoi.quantiteEnvoyee;
+    document.getElementById('modif-remise').value = envoi.remise||0;
+    const elP = document.getElementById('modif-poids');
+    elP.value = (envoi.type||"").startsWith('aerien') ? envoi.poidsEnvoye : envoi.volumeEnvoye;
+    calculerPrixModif();
+}
+
+function calculerPrixModif() {
+    if(!currentModifEnvoi) return;
+    const v = parseFloat(document.getElementById('modif-poids').value)||0;
+    const r = parseInt(document.getElementById('modif-remise').value)||0;
+    let t = 0;
+    if(currentModifEnvoi.type==='aerien_normal') t=PRIX_AERIEN_NORMAL;
+    else if(currentModifEnvoi.type==='aerien_express') t=PRIX_AERIEN_EXPRESS;
+    else t=PRIX_MARITIME_CBM;
+    document.getElementById('modif-prix-final').value = formatArgent((v*t)-r)+' CFA';
+}
+
+async function sauvegarderModificationChine() {
+    if(!currentModifEnvoi) return;
+    const q = parseInt(document.getElementById('modif-qte').value)||0;
+    const v = parseFloat(document.getElementById('modif-poids').value)||0;
+    const r = parseInt(document.getElementById('modif-remise').value)||0;
+    
+    let up = { quantiteEnvoyee: q, remise: r, dernierModificateur: currentRole==='chine'?'Agence Chine':'Agence Abidjan', dateModification: firebase.firestore.FieldValue.serverTimestamp() };
+    if((currentModifEnvoi.type||"").startsWith('aerien')) up.poidsEnvoye=v; else up.volumeEnvoye=v;
+    
+    let t = 0;
+    if(currentModifEnvoi.type==='aerien_normal') t=PRIX_AERIEN_NORMAL;
+    else if(currentModifEnvoi.type==='aerien_express') t=PRIX_AERIEN_EXPRESS;
+    else t=PRIX_MARITIME_CBM;
+    up.prixEstime = formatArgent(v * t) + ' CFA';
+
+    try {
+        await db.collection('expeditions').doc(currentModifEnvoi.id).update(up);
+        alert('Modifié.'); modalModif.style.display='none'; chargerHistoriqueChine();
+    } catch(e) { alert(e.message); }
+}
+function fermerModalModif(e) { if(e.target===modalModif||e.target.classList.contains('modal-close')) modalModif.style.display='none'; }
+
+// =======================================================
+// 6. RECEPTION
+// =======================================================
+function ouvrirSousOngletReception(type) {
+    currentReceptionType = type;
+    const b1 = document.getElementById('btn-rec-maritime');
+    const b2 = document.getElementById('btn-rec-aerien');
+    if(b1&&b2) { 
+        if(type==='maritime'){b1.classList.add('active');b2.classList.remove('active');} 
+        else {b1.classList.remove('active');b2.classList.add('active');} 
+    }
+    chargerClients();
+}
+
+async function chargerClients() {
+    const tb = document.getElementById('liste-clients-tbody');
+    if(!tb) return;
+    tb.innerHTML='<tr><td colspan="9">Chargement...</td></tr>';
+    try {
+        const snap = await db.collection('expeditions').orderBy('creeLe', 'desc').get();
+        tb.innerHTML=''; clientsCharges=[];
+        snap.forEach(d => {
+            const data = d.data();
+            let match=false;
+            if(currentReceptionType==='maritime' && data.type==='maritime') match=true;
+            if(currentReceptionType==='aerien' && (data.type||"").startsWith('aerien')) match=true;
+            if(match) {
+                clientsCharges.push({id:d.id, ...data});
+                let pv = (data.type||"").startsWith('aerien') ? data.poidsEnvoye : data.volumeEnvoye;
+                let st = data.status || 'En attente';
+                let cl = st.includes('Conforme')?'status-conforme':st.includes('Ecart')?'status-ecart':st.includes('Supérieur')?'status-superieur':'status-attente';
+                let pN = (parseInt((data.prixEstime||"0").replace(/\D/g,''))||0) - (data.remise||0);
+                let dej = parseInt(data.montantPaye)||0;
+                let res = pN - dej;
+
+                // SÉCURISATION DES DONNÉES POUR ONCLICK
+                const safeData = encodeURIComponent(JSON.stringify({id:d.id, ...data}));
+
+                const tr = document.createElement('tr');
+                tr.className='interactive-table-row';
+                tr.innerHTML=`<td>${data.reference}</td><td>${data.date}</td><td>${data.nom}</td><td>${data.description||''}</td><td>${data.type}</td><td>${data.quantiteEnvoyee}</td><td>${pv}</td><td>${formatArgent(res)} CFA</td><td><span class="status-badge ${cl}">${st}</span></td>`;
+                tr.onclick = () => selectionnerClientViaData(safeData);
+                tb.appendChild(tr);
+            }
+        });
+    } catch(e) { console.error(e); }
+}
+
+function selectionnerClientViaData(encodedData) {
+    const envoi = JSON.parse(decodeURIComponent(encodedData));
+    selectionnerClient(envoi);
+}
+
+// Modal Reception Variables
+const modalBackdrop = document.getElementById('modal-backdrop');
+function selectionnerClient(envoi) {
+    currentEnvoi = envoi;
+    modalBackdrop.style.display='flex';
+    
+    const set = (id,v) => { const e = document.getElementById(id); if(e) e.innerText=v; };
+    set('client-selectionne', envoi.nom);
+    set('ref-attendue', envoi.reference);
+    set('desc-attendue', envoi.description);
+    set('tel-attendue', envoi.tel);
+    const tEl = document.getElementById('tel-attendu'); if(tEl) tEl.innerText = envoi.tel;
+    set('qte-attendue', (envoi.quantiteEnvoyee||0)+' colis');
+
+    let isAir = (envoi.type||"").startsWith('aerien');
+    set('poids-attendu', (isAir?envoi.poidsEnvoye:envoi.volumeEnvoye) + (isAir?' Kg':' CBM'));
+
+    let pB = parseInt((envoi.prixEstime||"0").replace(/\D/g,''))||0;
+    let tot = pB - (envoi.remise||0);
+    let dej = parseInt(envoi.montantPaye)||0;
+    let res = tot - dej;
+    
+    set('prix-attendu', formatArgent(tot)+' CFA');
+    const elR = document.getElementById('prix-restant');
+    if(elR) {
+        if(res<=0) { elR.innerText="SOLDÉ"; elR.style.color="green"; document.getElementById('montant-paye').value=0; }
+        else { elR.innerText=formatArgent(res)+' CFA'; elR.style.color="#dc3545"; document.getElementById('montant-paye').value=res; }
+    }
+
+    const phDiv = document.getElementById('photos-recues-apercu');
+    if(phDiv) {
+        phDiv.innerHTML = '';
+        if(envoi.photosURLs && envoi.photosURLs.length > 0) {
+            document.getElementById('photos-recues-container').style.display='block';
+            envoi.photosURLs.forEach(u => { const i=document.createElement('img'); i.src=u; phDiv.appendChild(i); });
+        } else document.getElementById('photos-recues-container').style.display='none';
+    }
+
+    document.getElementById('quantite-recue').value='';
+    document.getElementById('poids-recu').value='';
+    const lb = document.getElementById('label-poids-recu');
+    if(lb) lb.innerText = isAir ? "Poids Reçu (Kg)" : "Vol Reçu (CBM)";
+
+    updateModalStatus(envoi);
+}
+
+function updateModalStatus(envoi) {
+    const st = envoi.status || 'En attente';
+    const el = document.getElementById('reception-status');
+    if(el) {
+        el.innerText = st;
+        el.className = 'status-badge ' + (st.includes('Conforme')?'status-conforme':st.includes('Ecart')?'status-ecart':'status-attente');
+    }
+    const sum = document.getElementById('reception-summary');
+    if(sum) sum.innerHTML = `Reçu: <strong>${envoi.quantiteRecue||0} colis</strong> | <strong>${envoi.poidsRecu||0}</strong>`;
+}
+function fermerModal(e) { if(e.target===modalBackdrop||e.target.classList.contains('modal-close')||e.target.classList.contains('btn-secondaire')) modalBackdrop.style.display='none'; }
+
+async function enregistrerReception() {
+    if(!currentEnvoi) return;
+    const q = parseInt(document.getElementById('quantite-recue').value)||0;
+    const p = parseFloat(document.getElementById('poids-recu').value)||0;
+    const m = parseInt(document.getElementById('montant-paye').value)||0;
+    const via = document.getElementById('moyen-paiement').value;
+    
+    const nQ = (currentEnvoi.quantiteRecue||0)+q;
+    const nP = (currentEnvoi.poidsRecu||0)+p;
+    const nM = (currentEnvoi.montantPaye||0)+m;
+    
+    let st = 'Reçu - Conforme';
+    const diffQ = nQ - currentEnvoi.quantiteEnvoyee;
+    const diffP = nP - ((currentEnvoi.type||"").startsWith('aerien')?currentEnvoi.poidsEnvoye:currentEnvoi.volumeEnvoye);
+    
+    if(diffQ < 0) st = 'Reçu - Ecart';
+    else if(diffQ > 0) st = 'Reçu - Supérieur';
+    else { if(Math.abs(diffP) > 0.1) st = (diffP>0?'Reçu - Supérieur':'Reçu - Ecart'); else st = 'Reçu - Conforme'; }
+    
+    let agent = currentUser ? (currentRole==='abidjan'?"AGENCE ABIDJAN":currentUser.email) : "Inconnu";
+    let up = { quantiteRecue:nQ, poidsRecu:nP, montantPaye:nM, status:st, moyenPaiement:via, datePaiement: firebase.firestore.FieldValue.serverTimestamp() };
+    if(m>0) up.historiquePaiements = firebase.firestore.FieldValue.arrayUnion({ date: firebase.firestore.Timestamp.now(), montant:m, moyen:via, agent:agent });
+    
+    await db.collection('expeditions').doc(currentEnvoi.id).update(up);
+    alert('Validé'); modalBackdrop.style.display='none'; chargerClients();
+}
+
+// =======================================================
+// 7. COMPTA
+// =======================================================
+function ouvrirSousOngletCompta(type) {
+    currentComptaType = type;
+    const b1 = document.querySelector('#Comptabilite .sub-nav-link:first-child');
+    const b2 = document.querySelector('#Comptabilite .sub-nav-link:last-child');
+    if(b1&&b2) { if(type==='maritime'){b1.classList.add('active');b2.classList.remove('active');} else {b1.classList.remove('active');b2.classList.add('active');} }
+    chargerCompta(type);
+}
+
+async function chargerCompta(type) {
+    const tb = document.getElementById('tbody-compta'); if(!tb) return;
+    tb.innerHTML='<tr><td colspan="10">Chargement...</td></tr>';
+    try {
+        const snapE = await db.collection('expeditions').get();
+        const snapS = await db.collection('depenses').orderBy('date','desc').get();
+        let items = [];
+        snapE.forEach(d => {
+            const data = d.data();
+            let match=false;
+            if(type==='maritime' && data.type==='maritime') match=true;
+            if(type==='aerien' && (data.type||"").startsWith('aerien')) match=true;
+            if(match) {
+                let dRef = data.datePaiement ? data.datePaiement.toDate() : new Date(data.date);
+                let grp = data.refGroupe || "ZZZ";
+                if(grp==="ZZZ" && data.reference) { let pts=data.reference.split('-'); if(pts.length>0 && pts[pts.length-1].startsWith('EV')) grp=pts[pts.length-1]; }
+                items.push({ ...data, id:d.id, isDep:false, sortDate:dRef, grp:grp, sortRef:data.reference||"ZZZ", hist:data.historiquePaiements||[] });
+            }
+        });
+        snapS.forEach(d => {
+            const data = d.data();
+            if(data.type===type) {
+                let g = (data.refGroupe && data.refGroupe.trim()) ? data.refGroupe.toUpperCase() : "ZZZ_GEN";
+                items.push({ ...data, id:d.id, isDep:true, sortDate:new Date(data.date), grp:g, sortRef:"DEPENSE" });
+            }
+        });
+        items.sort((a,b) => {
+            if(a.grp.startsWith('EV') && b.grp.startsWith('EV')) return parseInt(a.grp.replace('EV','')) - parseInt(b.grp.replace('EV',''));
+            return a.grp.localeCompare(b.grp);
+        });
+        
+        let cred=0, caisse=0, bonus=0;
+        let modes={Esp:0,Chq:0,OM:0,Wav:0,CB:0}, outM={Esp:0,Chq:0,OM:0,Wav:0,CB:0};
+        let curGrp=null, grpDu=0, grpReste=0, grpEntree=0, grpSortie=0;
+        tb.innerHTML='';
+        
+        items.forEach((it, idx) => {
+            if(curGrp!==null && it.grp!==curGrp && !curGrp.startsWith('ZZZ')) {
+                tb.innerHTML += `<tr class="group-summary-row"><td colspan="4">TOTAL ${curGrp}</td><td>${formatArgent(grpDu)}</td><td>${formatArgent(grpReste)}</td><td>${formatArgent(grpEntree)}</td><td>${formatArgent(grpSortie)}</td><td></td></tr>`;
+                grpDu=0; grpReste=0; grpEntree=0; grpSortie=0;
+            }
+            curGrp = it.grp;
+            
+            let dS = it.sortDate.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+            let rowClass = `row-month-${it.sortDate.getMonth()}`;
+            
+            if(it.isDep) {
+                let m = parseFloat(it.montant)||0;
+                caisse -= m; grpSortie += m;
+                let v = it.moyenPaiement || 'Espèce';
+                if(v.includes('Chèque')) outM.Chq+=m; else if(v.includes('OM')) outM.OM+=m; else if(v.includes('Wave')) outM.Wav+=m; else if(v.includes('CB')) outM.CB+=m; else outM.Esp+=m;
+                tb.innerHTML += `<tr class="${rowClass}"><td>${dS}</td><td>-</td><td>${it.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red">${formatArgent(m)}</td><td><button class="btn-suppr-small" onclick="supprimerDepense('${it.id}')">X</button></td></tr>`;
+            } else {
+                let pB = parseInt((it.prixEstime||"0").replace(/\D/g,''))||0;
+                let du = pB - (it.remise||0);
+                let paye = 0;
+                if(it.hist.length>0) it.hist.forEach(h => {
+                    let v=parseFloat(h.montant); paye+=v;
+                    let t=h.moyen||'Espèce';
+                    if(t.includes('Chèque')) modes.Chq+=v; else if(t.includes('OM')) modes.OM+=v; else if(t.includes('Wave')) modes.Wav+=v; else if(t.includes('CB')) modes.CB+=v; else modes.Esp+=v;
+                });
+                else { paye = it.montantPaye||0; modes.Esp+=paye; }
+                
+                let r = du - paye;
+                caisse += paye;
+                if(r>0) cred+=r;
+                let diff = paye - du;
+                if(diff>0) bonus+=diff; else if(diff<0 && Math.abs(diff)<500) bonus+=diff;
+                
+                grpDu+=du; grpReste+=(r>0?r:0); grpEntree+=paye;
+
+                // SÉCURISATION DATA POUR ONCLICK
+                const safeData = encodeURIComponent(JSON.stringify({id:it.id, nom:it.nom, reference:it.reference, history:it.hist}));
+
+                tb.innerHTML += `<tr class="${rowClass} interactive-table-row" onclick='voirHistoriquePaiementViaData("${safeData}")'><td>${dS}</td><td>${it.reference}</td><td>${it.description}</td><td>${it.nom}</td><td>${formatArgent(du)}</td><td style="color:${r>0?'red':'green'}">${formatArgent(r)}</td><td class="text-green">${formatArgent(paye)}</td><td>-</td><td><i class="fas fa-eye"></i></td></tr>`;
+            }
+        });
+        
+        if(curGrp && !curGrp.startsWith('ZZZ')) tb.innerHTML += `<tr class="group-summary-row"><td colspan="4">TOTAL ${curGrp}</td><td>${formatArgent(grpDu)}</td><td>${formatArgent(grpReste)}</td><td>${formatArgent(grpEntree)}</td><td>${formatArgent(grpSortie)}</td><td></td></tr>`;
+
+        document.getElementById('total-credit').innerText = formatArgent(cred)+' CFA';
+        document.getElementById('total-caisse').innerText = formatArgent(caisse)+' CFA';
+        document.getElementById('total-bonus').innerText = formatArgent(bonus)+' CFA';
+        
+        document.getElementById('pay-espece-in').innerText = formatArgent(modes.Esp); document.getElementById('pay-espece-out').innerText = formatArgent(outM.Esp);
+        document.getElementById('pay-cheque-in').innerText = formatArgent(modes.Chq); document.getElementById('pay-cheque-out').innerText = formatArgent(outM.Chq);
+        document.getElementById('pay-om-in').innerText = formatArgent(modes.OM); document.getElementById('pay-om-out').innerText = formatArgent(outM.OM);
+        document.getElementById('pay-wave-in').innerText = formatArgent(modes.Wav); document.getElementById('pay-wave-out').innerText = formatArgent(outM.Wav);
+        document.getElementById('pay-cb-in').innerText = formatArgent(modes.CB); document.getElementById('pay-cb-out').innerText = formatArgent(outM.CB);
+        
+        let tIn = Object.values(modes).reduce((a,b)=>a+b,0); let tOut = Object.values(outM).reduce((a,b)=>a+b,0);
+        document.getElementById('pay-total-in').innerText = formatArgent(tIn); document.getElementById('pay-total-out').innerText = formatArgent(tOut);
+    } catch(e) { console.error(e); }
+}
+
+function voirHistoriquePaiementViaData(encoded) {
+    const item = JSON.parse(decodeURIComponent(encoded));
+    voirHistoriquePaiement(item);
+}
+
+// MODALS UTILITAIRES
+const modalHist = document.getElementById('modal-historique');
+function voirHistoriquePaiement(item) {
+    if(item.isDepense) return;
+    modalHist.style.display='flex';
+    document.getElementById('hist-client-nom').innerText = item.nom;
+    document.getElementById('hist-ref').innerText = item.reference;
+    const tb = document.getElementById('tbody-historique'); tb.innerHTML = '';
+    if(item.history && item.history.length>0){
+        item.history.forEach(h => {
+            let d = new Date(h.date.seconds*1000).toLocaleDateString('fr-FR');
+            let agent = h.agent || '-';
+            tb.innerHTML += `<tr><td>${d}</td><td class="text-green">${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td></tr>`;
+        });
+    } else { tb.innerHTML='<tr><td colspan="3">Aucun historique.</td></tr>'; }
+}
+function fermerModalHistorique(e) { if(e.target===modalHist||e.target.classList.contains('modal-close')||e.target.classList.contains('btn-secondaire')) modalHist.style.display='none'; }
+
+const modalDepense = document.getElementById('modal-depense');
+function ouvrirModalDepense() { modalDepense.style.display = 'flex'; }
+function fermerModalDepense(e) { if(e.target===modalDepense||e.target.classList.contains('modal-close')) modalDepense.style.display='none'; }
+async function enregistrerDepense() {
+    const date = document.getElementById('depense-date').value;
+    const type = document.getElementById('depense-type').value;
+    const motif = document.getElementById('depense-motif').value;
+    const grp = document.getElementById('depense-groupe').value.toUpperCase().trim();
+    const montant = parseFloat(document.getElementById('depense-montant').value)||0;
+    const moyen = document.getElementById('depense-moyen').value;
+    if(!date || !motif || montant<=0) { alert("Erreur saisie."); return; }
+    try {
+        await db.collection('depenses').add({ date, type, refGroupe: grp, motif, montant, moyenPaiement: moyen, creeLe: firebase.firestore.FieldValue.serverTimestamp() });
+        alert("Enregistré."); modalDepense.style.display='none'; document.getElementById('form-depense').reset();
+        if(document.getElementById('Comptabilite').style.display==='block') chargerCompta(currentComptaType);
+    } catch(e){ alert(e.message); }
+}
+async function supprimerDepense(id) {
+    if(confirm("Supprimer ?")) { await db.collection('depenses').doc(id).delete(); chargerCompta(currentComptaType); }
+}
+
+// CHARGEURS LOGO & PDF
+function chargerLogo() {
+    return new Promise((resolve) => {
+        const img = new Image(); img.src = '/logo_amt.png';
+        img.onload = () => resolve(img); img.onerror = () => resolve(null);
+    });
+}
+// --- NOUVELLE ETIQUETTE (STYLE STICKER) ---
+async function genererEtiquette() {
+    if (!currentEnvoi) return;
+    const { jsPDF } = window.jspdf;
+    // Format étiquette (A6 paysage environ 105x148mm, adapté ici en 100x65mm pour le sticker)
+    const doc = new jsPDF('l', 'mm', [100, 65]); 
+    const logo = await chargerLogo();
+    
+    // Cadre Orange Double
+    doc.setDrawColor(255, 165, 0); // Orange
+    doc.setLineWidth(1.5);
+    doc.rect(2, 2, 96, 61); // Cadre extérieur
+    doc.setLineWidth(0.5);
+    doc.rect(4, 4, 92, 57); // Cadre intérieur fin
+
+    // En-tête
+    if (logo) doc.addImage(logo, 'PNG', 6, 6, 13, 13);
+    
+    doc.setTextColor(255, 140, 0); // Orange Texte
+    doc.setFontSize(16); 
+    doc.setFont("helvetica", "bold");
+    doc.text("amt TRANSIT CARGO", 22, 12);
+    
+    doc.setTextColor(0); // Noir
+    doc.setFontSize(9);
+    doc.text("+225 89 84 46 57", 22, 17);
+    
+    // Lettre N (ou Ref courte)
+    doc.setFontSize(20); 
+    doc.text("N", 85, 15); 
+
+    // Lignes de séparation et infos
+    doc.setDrawColor(0); 
+    doc.setLineWidth(0.1);
+    
+    let y = 24; const x = 8;
+    const lineW = 85; // Largeur des lignes de pointillé simulées
+    
+    // EXPEDITEUR
+    doc.setFontSize(8); doc.setFont("helvetica", "bold");
+    doc.text("EXPEDITEUR", x, y); y+=4;
+    doc.setFont("helvetica", "normal");
+    doc.text(`NOM ET PRENOM: ${currentEnvoi.expediteur || 'AMT TRANSIT CARGO'}`, x, y);
+    doc.line(x, y+1, x+lineW, y+1); y+=5; // Ligne de soulignement
+    
+    doc.text(`NUMERO: ${currentEnvoi.telExpediteur || '+225 0703165050'}`, x, y);
+    doc.line(x, y+1, x+lineW, y+1); y+=6;
+
+    // DESTINATAIRE
+    doc.setFont("helvetica", "bold");
+    doc.text("DESTINATAIRE", x, y); y+=4;
+    doc.setFont("helvetica", "normal");
+    doc.text(`NOM ET PRENOM: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, x, y);
+    doc.line(x, y+1, x+lineW, y+1); y+=5;
+    
+    doc.text(`NUMERO: ${currentEnvoi.tel}`, x, y);
+    doc.line(x, y+1, x+lineW, y+1); y+=5;
+
+    // KILOS / COLIS
+    let pv = (currentEnvoi.type||"").startsWith('aerien') ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
+    doc.text(`KILOS: ${pv}  |  COLIS: ${currentEnvoi.quantiteEnvoyee}`, x, y);
+    doc.line(x, y+1, x+lineW, y+1); y+=5;
+    
+    // Footer (Numéros Chine/CI)
+    doc.setFontSize(7); doc.setFont("helvetica", "bold");
+    // Centré en bas
+    doc.text("+8619515284352      +2250703165050", 50, 58, {align: 'center'});
+
+    doc.save(`Etiquette_${currentEnvoi.nom}.pdf`);
+}
+// --- NOUVELLE FACTURE (AVEC HISTORIQUE DÉTAILLÉ) ---
+async function genererFacture() {
+    if (!currentEnvoi) return;
+    const { jsPDF } = window.jspdf; 
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const logo = await chargerLogo();
+    
+    // En-tête
+    if (logo) doc.addImage(logo, 'PNG', 10, 10, 30, 30);
+    doc.setFontSize(18); doc.setTextColor(21, 96, 158); doc.setFont("helvetica", "bold");
+    doc.text("AMT TRANSIT CARGO", 50, 20);
+    doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica", "normal");
+    doc.text("Agence: Abidjan - Chine", 50, 26);
+    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 50, 32);
+    doc.line(10, 42, 200, 42); // Ligne de séparation
+
+    let y = 50;
+    
+    // Infos Client
+    doc.setFontSize(11); doc.setFont("helvetica", "bold"); 
+    doc.text("INFORMATIONS CLIENT", 10, y); y+=6;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nom: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 10, y); y+=5;
+    doc.text(`Tél: ${currentEnvoi.tel}`, 10, y); y+=5;
+    doc.text(`Réf: ${currentEnvoi.reference}`, 10, y); y+=10;
+
+    // TABLEAU 1 : SERVICES (Le colis)
+    const headers1 = [["SERVICES", "DESCRIPTION", "QUANTITE", "PRIX UNITAIRE", "PRIX TOTAL"]];
+    
+    let pBrut = parseInt((currentEnvoi.prixEstime||"0").replace(/\D/g,''))||0;
+    let pNet = pBrut - (currentEnvoi.remise||0);
+    let vol = (currentEnvoi.type||"").startsWith('aerien') ? currentEnvoi.poidsEnvoye : currentEnvoi.volumeEnvoye;
+    // Calcul PU fictif pour affichage
+    let pu = vol > 0 ? (pNet / vol).toFixed(0) : 0;
+
+    const data1 = [[ 
+        (currentEnvoi.type||"").toUpperCase(), 
+        currentEnvoi.description || '-', 
+        `${currentEnvoi.quantiteEnvoyee} Colis / ${vol}`, 
+        formatArgent(pu), 
+        formatArgent(pNet) 
+    ]];
+
+    doc.autoTable({ 
+        startY: y, 
+        head: headers1, 
+        body: data1, 
+        theme: 'grid', 
+        headStyles: { fillColor: [21, 96, 158] },
+        styles: { valign: 'middle' }
+    });
+
+    y = doc.lastAutoTable.finalY + 10;
+
+    // TABLEAU 2 : HISTORIQUE PAIEMENTS (AJOUTÉ ICI)
+    doc.setFontSize(11); doc.setFont("helvetica", "bold");
+    doc.text("HISTORIQUE DES PAIEMENTS", 10, y);
+    y += 5;
+
+    const headers2 = [["DATE", "PRIX TOTAL", "MNT. PAYE", "RESTANT", "AGENT"]];
+    let histRows = [];
+    let cumul = 0;
+    
+    // Si historique existe
+    if(currentEnvoi.historiquePaiements && currentEnvoi.historiquePaiements.length > 0) {
+        // Tri par date
+        let sorted = currentEnvoi.historiquePaiements.sort((a,b) => a.date.seconds - b.date.seconds);
+        
+        sorted.forEach(h => {
+            let m = parseInt(h.montant)||0;
+            cumul += m;
+            let resteALinstantT = pNet - cumul;
+            let dateStr = new Date(h.date.seconds*1000).toLocaleString('fr-FR');
+            let agent = h.agent || "-";
+            
+            histRows.push([
+                dateStr,
+                formatArgent(pNet), // Le prix total ne change pas
+                `${formatArgent(m)} (${h.moyen})`, // Montant payé cette fois-ci + moyen
+                formatArgent(resteALinstantT), // Reste après ce paiement
+                agent
+            ]);
+        });
+    } else {
+        // Cas anciens dossiers sans historique détaillé
+        let deja = parseInt(currentEnvoi.montantPaye)||0;
+        if(deja > 0) {
+            histRows.push(["-", formatArgent(pNet), formatArgent(deja), formatArgent(pNet - deja), "Ancien Système"]);
+        } else {
+             histRows.push(["-", formatArgent(pNet), "0", formatArgent(pNet), "-"]);
+        }
+    }
+
+    doc.autoTable({
+        startY: y,
+        head: headers2,
+        body: histRows,
+        theme: 'striped', // Style rayé pour différencier
+        headStyles: { fillColor: [50, 50, 50] }, // Gris foncé pour distinguer
+        styles: { fontSize: 9 }
+    });
+    
+    // TOTAUX FINAUX
+    y = doc.lastAutoTable.finalY + 10;
+    let dejaPayeTotal = parseInt(currentEnvoi.montantPaye)||0;
+    let resteFinal = pNet - dejaPayeTotal;
+
+    // Petit tableau récapitulatif à droite
+    doc.autoTable({
+        startY: y,
+        body: [
+            ["NET À PAYER", formatArgent(pNet) + " CFA"],
+            ["TOTAL PAYÉ", formatArgent(dejaPayeTotal) + " CFA"],
+            ["RESTE DÛ", formatArgent(resteFinal) + " CFA"]
+        ],
+        theme: 'plain',
+        styles: { fontSize: 10, fontStyle: 'bold', halign: 'right', cellPadding: 2 },
+        columnStyles: { 0: { halign: 'left', cellWidth: 40, fillColor: [240, 240, 240] } },
+        margin: { left: 130 } // Aligné à droite
+    });
+
+    // Footer
+    y = doc.lastAutoTable.finalY + 20;
+    doc.setTextColor(150); doc.setFontSize(8); doc.setFont("helvetica", "normal");
+    doc.text("Merci de votre confiance - AMT Transit Cargo", 105, y, {align: 'center'});
+    doc.text("RC: 929 865 103 | Siège: Abidjan", 105, y+4, {align: 'center'});
+
+    doc.save(`Facture_${currentEnvoi.nom}.pdf`);
+}
+style.css
+/* =================================== */
+/* STYLES DE BASE & TYPOGRAPHIE        */
+/* =================================== */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+    color: #333;
+    line-height: 1.3; /* Lignes de texte plus serrées */
+    font-size: 12px;  /* Texte plus petit (style Excel) */
+}
+main {
+    padding: 5px; /* Marges externes minimales */
+    max-width: 100%; /* Utilise tout l'écran */
+    margin: 0 auto;
+}
+h1, h2, h3 { color: #1a1a1a; }
+h2 {
+    font-size: 1.3em;
+    margin-top: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 3px;
+    margin-bottom: 8px;
+}
+h3 {
+    font-size: 1.1em;
+    color: #15609e;
+    margin-bottom: 5px;
+    margin-top: 0;
+}
+.card {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px; /* Moins d'espace dans les cartes */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    margin-bottom: 8px;
+}
+
+/* =================================== */
+/* HEADER & NAV                        */
+/* =================================== */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    padding: 2px 15px;
+    border-bottom: 1px solid #ccc;
+    height: 40px; /* Header plus fin */
+}
+.logo { height: 30px; }
+.header-info { font-size: 0.9em; color: #555; }
+
+.main-nav {
+    display: flex;
+    background-color: #15609e;
+    padding: 0 5px;
+    height: 35px; /* Barre nav plus fine */
+    align-items: flex-end;
+}
+.nav-link {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 8px 15px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #e0e0e0;
+    border-bottom: 3px solid transparent;
+}
+.nav-link:hover { background-color: #1e7fc9; color: #fff; }
+.nav-link.active {
+    background-color: #fff;
+    color: #15609e;
+    border-bottom: 3px solid #f0a500;
+    padding-bottom: 8px;
+}
+.page-content { display: none; animation: fadeIn 0.2s; }
+@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+.info-text { font-size: 0.9em; color: #666; font-style: italic; margin-bottom: 5px; margin-top: -5px;}
+
+/* =================================== */
+/* FORMULAIRES (ULTRA COMPACTS)        */
+/* =================================== */
+.form-group {
+    margin-bottom: 5px; /* Très peu d'espace entre les champs */
+}
+.form-group label {
+    display: block;
+    margin-bottom: 1px;
+    font-weight: 700;
+    color: #444;
+    font-size: 0.95em;
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 2px 5px; /* Padding interne minimal */
+    border: 1px solid #999;
+    border-radius: 2px;
+    box-sizing: border-box;
+    font-size: 1em;
+    height: 26px; /* Champ très fin */
+}
+.form-group input:focus, .form-group select:focus {
+    outline: none; border-color: #15609e;
+}
+
+/* =================================== */
+/* BOUTONS                             */
+/* =================================== */
+.export-buttons { display: flex; gap: 5px; margin-bottom: 5px; }
+.export-buttons button { width: auto; padding: 4px 8px; font-size: 0.9em; }
+
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-size: 1em;
+    font-weight: bold;
+    transition: all 0.1s ease;
+}
+.btn-principal { background-color: #15609e; color: white; width: 100%; margin-top: 5px; }
+.btn-principal:hover { background-color: #125a96; }
+.btn-secondaire { background-color: #6c757d; color: white; width: 100%; margin-top: 5px; }
+.btn-secondaire:hover { background-color: #5a6268; }
+.btn-small { width: auto; padding: 4px 8px; font-size: 0.9em; }
+.btn-suppr-small { background: #dc3545; color: white; padding: 1px 5px; font-size: 10px; border-radius: 2px; height: 20px; line-height: 18px;}
+
+hr { border: none; border-top: 1px solid #ddd; margin: 10px 0; }
+#prix-calcule, .prix-final { font-size: 1.1em; font-weight: 700; color: #28a745; }
+
+/* =================================== */
+/* TABLEAUX (STYLE EXCEL)              */
+/* =================================== */
+.table-container { overflow-x: auto; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+    font-size: 1em; /* Hérite du 12px du body */
+    background-color: #fff;
+}
+/* En-têtes et Cellules très serrés */
+th, td {
+    padding: 3px 5px; /* L'espace vital minimum */
+    text-align: left;
+    border: 1px solid #ccc; /* Bordures plus visibles comme Excel */
+    white-space: nowrap; /* Empêche le texte de passer à la ligne */
+}
+th {
+    background-color: #e6e6e6;
+    color: #000;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+tbody tr:nth-child(even) { background-color: #f9f9f9; }
+tbody tr:hover { background-color: #e3f2fd; }
+
+/* Actions */
+.btn-action { display: inline-block; padding: 1px 6px; font-size: 0.85em; margin: 0 1px; border-radius: 2px; }
+.btn-afficher { background-color: #28a745; color: white; }
+.btn-supprimer { background-color: #dc3545; color: white; }
+
+/* Tableau Compta Spécifique */
+.excel-table th { background-color: #4472c4; color: white; border: 1px solid #fff; }
+.excel-table td { text-align: center; }
+.excel-table td:nth-child(6) { color: #c0392b; font-weight: bold; } /* Reste */
+.excel-table td:nth-child(7) { color: #27ae60; font-weight: bold; } /* Entrée */
+.excel-table td:nth-child(8) { color: #c0392b; font-weight: bold; } /* Sortie */
+
+/* LIGNE TOTAL GROUPE (CORRIGÉE) */
+tr.group-summary-row {
+    background-color: #747272 !important; /* Gris sombre */
+}
+tr.group-summary-row td {
+    color: rgb(0, 255, 255) !important; /* Vert Florissant (Cyan) */
+    font-weight: bold;
+    border: 1px solid #555;
+    text-align: center;
+    font-size: 1.1em; /* Un peu plus gros */
+}
+
+/* =================================== */
+/* BADGES & DASHBOARD                  */
+/* =================================== */
+.status-badge { padding: 2px 6px; border-radius: 3px; font-size: 0.85em; font-weight: bold; color: #fff; display: inline-block; }
+.status-attente { background-color: #6c757d; }
+.status-conforme { background-color: #28a745; }
+.status-ecart { background-color: #dc3545; }
+.status-superieur { background-color: #15609e; }
+
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; margin-bottom: 10px; }
+.summary-row {
+    display: flex; justify-content: space-between; padding: 5px 10px;
+    border: 1px solid #999; margin-bottom: 3px; font-weight: bold; font-size: 1.1em;
+}
+.red-bg { background: #f8d7da; color: #721c24; }
+.white-bg { background: #fff; }
+.blue-light-bg { background: #e3f2fd; color: #15609e; }
+.text-green { color: #28a745; } .text-red { color: #c0392b; } .text-blue { color: #15609e; }
+
+/* Tableau Paiements Widget */
+.dashboard-payments-modern { border: 1px solid #999; }
+.modern-payment-table th { background-color: #333; color: #fff; padding: 4px 8px; }
+.modern-payment-table td { padding: 4px 8px; border-bottom: 1px solid #ccc; }
+.modern-total-row { background-color: #eee; font-weight: bold; }
+
+/* =================================== */
+/* MODAL & PHOTOS                      */
+/* =================================== */
+.modal-backdrop { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+.modal-content { background: #fff; border-radius: 4px; padding: 15px; width: 98%; max-width: 500px; max-height: 98vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+.modal-close { position: absolute; top: 5px; right: 10px; font-size: 20px; cursor: pointer; }
+
+#apercu-photos, #photos-recues-apercu { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+#apercu-photos img, #photos-recues-apercu img { width: 40px; height: 40px; object-fit: cover; border: 1px solid #ccc; cursor: pointer; }
+
+/* COULEURS MOIS */
+.row-month-0 { background-color: #e1f5fe; } .row-month-1 { background-color: #f3e5f5; } .row-month-2 { background-color: #e8f5e9; }
+.row-month-3 { background-color: #fff3e0; } .row-month-4 { background-color: #fce4ec; } .row-month-5 { background-color: #fffde7; }
+.row-month-6 { background-color: #e0f2f1; } .row-month-7 { background-color: #ffebee; } .row-month-8 { background-color: #ede7f6; }
+.row-month-9 { background-color: #e0f7fa; } .row-month-10 { background-color: #f1f8e9; } .row-month-11 { background-color: #eceff1; }
+
+/* AUTOCOMPLETE */
+.autocomplete-container { position: relative; }
+.autocomplete-items { display: none; position: absolute; border: 1px solid #999; background: #fff; z-index: 100; top: 100%; left: 0; right: 0; max-height: 150px; overflow-y: auto; }
+.autocomplete-items div { padding: 5px; cursor: pointer; border-bottom: 1px solid #eee; }
+.autocomplete-items div:hover { background: #e9e9e9; }
+
+@media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } header { flex-direction: column; height: auto; } }
+/* ======================================================= */
+/* MISE EN PAGE ESTHÉTIQUE (GRILLE) POUR PC/TABLETTE       */
+/* ======================================================= */
+
+@media (min-width: 768px) {
+    /* Cible uniquement les formulaires dans l'onglet Envoi */
+    #form-envoi-commun, 
+    #form-ajout-client {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Crée 2 colonnes égales */
+        gap: 15px 25px; /* Espace vertical (15px) et horizontal (25px) */
+        align-items: end; /* Aligne les champs vers le bas */
+    }
+
+    /* Éléments qui doivent rester sur toute la largeur (titres, boutons, etc.) */
+    #form-envoi-commun h3,
+    #form-ajout-client h3,
+    #form-envoi-commun p,
+    #form-ajout-client p,
+    #form-ajout-client hr,
+    #form-ajout-client button {
+        grid-column: 1 / -1; /* Prend toute la largeur de la grille */
+    }
+
+    /* Cas particulier : Le champ Description et Photos sont souvent longs */
+    /* On peut choisir de les mettre en pleine largeur si on veut */
+    /* Exemple pour les photos : */
+    #form-ajout-client .form-group:has(input[type="file"]) {
+        grid-column: 1 / -1;
+    }
+}
+/* =================================== */
+/* LOGIN & MODIFS                      */
+/* =================================== */
+#login-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #15609e 0%, #2c3e50 100%);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.login-box {
+    background: white; padding: 40px; border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; width: 300px;
+}
+.login-logo { width: 80px; margin-bottom: 20px; }
+#user-display { font-weight: bold; color: #15609e; }
+/* Couleur pour l'info de modification */
+.modif-info { font-size: 0.8em; color: #e67e22; font-style: italic; }
+
+/* --- CORRECTION HEADER & DECONNEXION --- */
+.header-info {
+    font-size: 0.9em;
+    color: #555;
+    display: flex;           /* IMPORTANT: Pour aligner le texte et le bouton */
+    align-items: center;     /* Centrage vertical */
+    gap: 15px;               /* Espace entre le nom et le bouton */
+}
+
+/* S'assurer que le bouton est bien visible */
+.header-info button {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: #dc3545; /* Rouge pour bien le voir */
+    color: white;
+}
+
+Dans envoi à la liste d'attente le libéllé doit contenir Nom Expéditeur, Nom destinataire, Numéro Destinataire, Quantité, Poids/ Volume, Prix et Action (contient Supprimer et modifier).
+
+Tu peux abréger les noms.
+
+Dans Historique & Modif donne moi la possibilité de télécharger en pdf ou execl.
+Pdf et excel doivent afficher la référence, la date, le nom et prénom du destinataire, téléphone du destinataire, description, le type, quantité, poids ou volume, statut
+
+Je dois pouvoir télécharger par goupe d'envoi
+
+Dans Historique & Modif, Réception (Abidjan) et Comptabilité Ajoute total CBM ou volume
+
+Donne moi juste les lignes de codes que je dois modifier ou ajouter.
+
+  
