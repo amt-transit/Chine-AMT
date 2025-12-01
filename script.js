@@ -114,6 +114,11 @@ function ouvrirPage(event, nomPage) {
             ouvrirSousOngletCompta('maritime');
         }
     }
+    if (nomPage === 'Envoi') {
+        agenceEl.innerText = 'Chine';
+        loadAllClientsForAutocomplete();
+        chargerListeGroupes(); // <--- AJOUTER CETTE LIGNE
+    }
 }
 
 // =======================================================
@@ -134,6 +139,47 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // --- NOUVELLE FONCTION : Charger les groupes existants dans le select ---
+async function chargerListeGroupes() {
+    const select = document.getElementById('choix-groupe-ref');
+    if(!select) return;
+
+    // On garde l'option "Nouveau" et on vide le reste
+    select.innerHTML = '<option value="NEW">➕ Créer un nouveau groupe (Auto)</option>';
+
+    try {
+        // On cherche les 100 dernières expéditions pour trouver les groupes récents
+        const snap = await db.collection('expeditions')
+            .orderBy('creeLe', 'desc')
+            .limit(100)
+            .get();
+
+        const groupes = new Set();
+        snap.forEach(doc => {
+            const data = doc.data();
+            if (data.refGroupe && data.refGroupe.startsWith('EV')) {
+                groupes.add(data.refGroupe);
+            }
+        });
+
+        // Convertir en tableau et trier (EV10 avant EV9)
+        const groupesTries = Array.from(groupes).sort((a, b) => {
+            const numA = parseInt(a.replace('EV', '')) || 0;
+            const numB = parseInt(b.replace('EV', '')) || 0;
+            return numB - numA; // Décroissant
+        });
+
+        groupesTries.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.innerText = `Compléter le groupe ${g}`;
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        console.error("Erreur chargement groupes", e);
+    }
+}
 
     // Recherche & Export
     const sIn = document.getElementById('search-input');
@@ -350,24 +396,95 @@ function editerEnvoi(i) {
     envoiEnCours.splice(i, 1);
     mettreAJourTableauEnvoiEnCours();
 }
-async function validerEnvoiGroupe(){
-    if(envoiEnCours.length===0) return;
-    const btn = document.getElementById('btn-valider-envoi-groupe'); btn.disabled=true; btn.innerText='En cours...';
+async function validerEnvoiGroupe() {
+    if (envoiEnCours.length === 0) return;
+    
+    const btn = document.getElementById('btn-valider-envoi-groupe');
+    btn.disabled = true;
+    btn.innerText = 'En cours...';
+
     try {
-        const d=document.getElementById('date-envoi').value; const t=document.getElementById('type-envoi').value;
-        const refG=await genererRefGroupe(t); const pref=t.startsWith('aerien')?'AIR':'MRT';
-        for(let i=0; i<envoiEnCours.length; i++){
-            const c=envoiEnCours[i]; const idx=String(i+1).padStart(3,'0');
-            await db.collection('expeditions').add({
-                reference:`${pref}-${idx}-${refG}`, refGroupe:refG, date:d, type:t,
-                nom:c.nom, prenom:c.prenom, tel:c.tel, description:c.description, expediteur:c.expediteur, telExpediteur:c.telExpediteur,
-                quantiteEnvoyee:parseInt(c.quantiteEnvoyee)||0, poidsEnvoye:c.poidsEnvoye, volumeEnvoye:c.volumeEnvoye,
-                prixEstime:c.prixEstime, remise:0, creeLe:firebase.firestore.FieldValue.serverTimestamp(),
-                status:'En attente', quantiteRecue:0, poidsRecu:0, montantPaye:0, historiquePaiements:[], photosURLs:[]
+        const d = document.getElementById('date-envoi').value;
+        const t = document.getElementById('type-envoi').value;
+        const choixGroupe = document.getElementById('choix-groupe-ref').value; // Récupère le choix (NEW ou EV3)
+        
+        let refG = "";
+        let startIdx = 1; // Numéro de départ pour les colis (001 par défaut)
+
+        if (choixGroupe === "NEW") {
+            // Cas 1 : Nouveau groupe (Logique habituelle)
+            refG = await genererRefGroupe(t);
+        } else {
+            // Cas 2 : Groupe existant
+            refG = choixGroupe;
+            
+            // IMPORTANT : On doit trouver le dernier numéro utilisé dans ce groupe pour ne pas créer de doublons
+            // On compte combien d'éléments existent déjà dans ce groupe
+            const existingSnap = await db.collection('expeditions')
+                                       .where('refGroupe', '==', refG)
+                                       .get();
+            startIdx = existingSnap.size + 1; // Si y'a 5 colis, on commence au 6
+        }
+
+        const pref = t.startsWith('aerien') ? 'AIR' : 'MRT';
+
+        // Création du batch (optionnel mais plus sûr) ou boucle classique
+        const batch = db.batch(); // Utilisons un batch pour la robustesse (limite 500 ops)
+
+        for (let i = 0; i < envoiEnCours.length; i++) {
+            const c = envoiEnCours[i];
+            
+            // Calcul du numéro : startIdx + i
+            // Ex: si startIdx est 6, le premier sera 006, le suivant 007...
+            const currentNum = startIdx + i;
+            const idx = String(currentNum).padStart(3, '0');
+            
+            const newRef = doc = db.collection('expeditions').doc(); // ID auto généré par firestore
+
+            batch.set(newRef, {
+                reference: `${pref}-${idx}-${refG}`, // Ex: MRT-006-EV3
+                refGroupe: refG,
+                date: d,
+                type: t,
+                nom: c.nom,
+                prenom: c.prenom,
+                tel: c.tel,
+                description: c.description,
+                detailsColis: c.detailsColis || [], // Support sous-colis
+                expediteur: c.expediteur,
+                telExpediteur: c.telExpediteur,
+                quantiteEnvoyee: parseInt(c.quantiteEnvoyee) || 0,
+                poidsEnvoye: c.poidsEnvoye,
+                volumeEnvoye: c.volumeEnvoye,
+                prixEstime: c.prixEstime,
+                remise: 0,
+                creeLe: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'En attente',
+                quantiteRecue: 0,
+                poidsRecu: 0,
+                montantPaye: 0,
+                historiquePaiements: [],
+                photosURLs: []
             });
         }
-        alert(`Groupe ${refG} ok!`); envoiEnCours=[]; mettreAJourTableauEnvoiEnCours(); document.getElementById('form-envoi-commun').reset();
-    } catch(e){alert(e.message);} finally{btn.disabled=false; btn.innerText='Valider l\'envoi';}
+
+        await batch.commit(); // Validation en un coup
+
+        alert(`Groupe ${refG} mis à jour avec succès !`);
+        envoiEnCours = [];
+        mettreAJourTableauEnvoiEnCours();
+        document.getElementById('form-envoi-commun').reset();
+        
+        // Recharger la liste des groupes pour mettre à jour l'ordre
+        chargerListeGroupes();
+
+    } catch (e) {
+        alert("Erreur : " + e.message);
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Valider l\'envoi Global';
+    }
 }
 async function genererRefGroupe(t){
     const s=await db.collection('expeditions').orderBy('creeLe','desc').limit(50).get(); let max=0;
@@ -1077,4 +1194,57 @@ function exporterHistoriquePDF() {
         footStyles: { fillColor: [50, 50, 50], textColor: [0, 255, 255], fontStyle: 'bold' }
     });
     doc.save('Historique_Envois.pdf');
+}
+// --- NOUVELLE FONCTION : Charger les groupes existants dans le select ---
+async function chargerListeGroupes() {
+    const select = document.getElementById('choix-groupe-ref');
+    
+    // Si l'élément n'existe pas encore (page pas chargée), on arrête pour éviter les erreurs
+    if(!select) return;
+
+    // On réinitialise la liste
+    select.innerHTML = '<option value="NEW">➕ Créer un nouveau groupe (Auto)</option>';
+    
+    // Optionnel : Ajouter un texte de chargement temporaire
+    const loadingOpt = document.createElement('option');
+    loadingOpt.innerText = "Chargement des groupes...";
+    select.appendChild(loadingOpt);
+
+    try {
+        // On cherche les 100 dernières expéditions pour trouver les groupes récents
+        const snap = await db.collection('expeditions')
+            .orderBy('creeLe', 'desc')
+            .limit(100)
+            .get();
+
+        const groupes = new Set();
+        snap.forEach(doc => {
+            const data = doc.data();
+            // On ne garde que les groupes qui commencent par EV
+            if (data.refGroupe && data.refGroupe.startsWith('EV')) {
+                groupes.add(data.refGroupe);
+            }
+        });
+
+        // Convertir en tableau et trier (pour avoir EV10, EV9, EV8...)
+        const groupesTries = Array.from(groupes).sort((a, b) => {
+            const numA = parseInt(a.replace('EV', '')) || 0;
+            const numB = parseInt(b.replace('EV', '')) || 0;
+            return numB - numA; // Décroissant
+        });
+
+        // On retire le message de chargement
+        if(loadingOpt) select.removeChild(loadingOpt);
+
+        // On ajoute les options au menu déroulant
+        groupesTries.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.innerText = `Compléter le groupe ${g}`;
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        console.error("Erreur chargement groupes", e);
+        if(loadingOpt) loadingOpt.innerText = "Erreur chargement";
+    }
 }
