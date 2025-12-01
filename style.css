@@ -292,3 +292,48 @@ tr.group-summary-row td {
     #form-envoi-commun h3, #form-ajout-client h3, #form-envoi-commun p, #form-ajout-client p, #form-ajout-client hr, #form-ajout-client button, #form-ajout-client h4, .sub-colis-input-group, #table-sub-colis, .totaux-display { grid-column: 1 / -1; }
     #form-ajout-client .form-group:has(input[type="file"]) { grid-column: 1 / -1; }
 }
+/* =================================== */
+/* CONDENSATION PAGE ENVOI (Patch)     */
+/* =================================== */
+
+/* 1. Réduire l'espace entre les colonnes et les lignes (Grille) */
+@media (min-width: 768px) {
+    #form-envoi-commun, #form-ajout-client {
+        /* Avant c'était gap: 15px 25px; */
+        gap: 4px 10px !important; 
+        align-items: end;
+    }
+}
+
+/* 2. Réduire l'espace sous chaque champ */
+#Envoi .form-group {
+    margin-bottom: 2px !important;
+}
+
+/* 3. Coller le Label à son Input */
+#Envoi label {
+    margin-bottom: 0px !important;
+    font-size: 0.85em !important; /* Un peu plus petit pour gagner de la place */
+}
+
+/* 4. Réduire les séparateurs et titres */
+#Envoi hr {
+    margin: 5px 0 !important;
+}
+#Envoi h3 {
+    margin-top: 5px !important;
+    margin-bottom: 5px !important;
+    font-size: 1.05em !important;
+}
+
+/* 5. Compacter la zone grise des sous-colis */
+.sub-colis-input-group {
+    padding: 4px 8px !important;
+    margin-bottom: 5px !important;
+}
+
+/* 6. Ajuster la hauteur des inputs pour être plus fins */
+#Envoi input, #Envoi select {
+    height: 24px !important; /* Avant 26px */
+    font-size: 0.95em !important;
+}
