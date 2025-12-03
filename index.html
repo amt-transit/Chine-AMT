@@ -250,6 +250,10 @@
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModalModif(event)">&times;</span>
             <h3>Modifier l'Expédition</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <button type="button" class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">🖨️ Étiquette</button>
+                <button type="button" class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">📄 Facture</button>
+            </div>
             <p class="info-text">Vous pouvez modifier les informations du client et du colis.</p>
             
             <form id="form-modif-chine">

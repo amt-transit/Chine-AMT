@@ -649,6 +649,7 @@ const modalModif = document.getElementById('modal-modif-chine');
 function ouvrirModalModifViaData(enc) { ouvrirModalModif(JSON.parse(decodeURIComponent(enc))); }
 function ouvrirModalModif(envoi) {
     currentModifEnvoi = envoi;
+    currentEnvoi = envoi; // On lie la variable pour que les fonctions PDF marchent !
     if(modalModif) {
         modalModif.style.display = 'flex';
         
