@@ -63,22 +63,55 @@ auth.onAuthStateChanged(user => {
     const overlay = document.getElementById('login-overlay');
     const app = document.getElementById('app-container');
     const disp = document.getElementById('user-display');
+    
     if(user) {
         currentUser = user;
         if(overlay) overlay.style.display='none';
         if(app) app.style.display='block';
+
+        // 1. CAS AGENCE CHINE
         if(user.email.includes('chine')) {
-            currentRole='chine'; if(disp)disp.innerText="Agence Chine";
+            currentRole='chine'; 
+            if(disp) disp.innerText="Agence Chine";
+            // On cache les onglets d'Abidjan
             document.getElementById('nav-reception').style.display='none';
             document.getElementById('nav-compta').style.display='none';
             ouvrirPage(null, 'Envoi');
-        } else {
-            currentRole='abidjan'; if(disp)disp.innerText="Agence Abidjan";
+        } 
+        // 2. CAS COMPTE SPECTATEUR (Nouveau)
+        else if (user.email.includes('audit')) { // Si l'email contient "audit"
+            currentRole = 'spectateur';
+            if(disp) disp.innerText = "Auditeur (Lecture Seule)";
+            
+            // On cache TOUT sauf la compta
+            document.getElementById('nav-envoi').style.display = 'none';
+            document.getElementById('nav-historique').style.display = 'none';
+            document.getElementById('nav-reception').style.display = 'none';
+            
+            // On s'assure que le bouton "Ajout Dépense" est caché
+            const btnAjout = document.getElementById('btn-ajout-depense');
+            if(btnAjout) btnAjout.style.display = 'none';
+
+            ouvrirPage(null, 'Comptabilite');
+        }
+        // 3. CAS ADMIN ABIDJAN (Par défaut)
+        else {
+            currentRole='abidjan'; 
+            if(disp) disp.innerText="Agence Abidjan";
+            // On affiche tout
             document.getElementById('nav-reception').style.display='inline-block';
             document.getElementById('nav-compta').style.display='inline-block';
+            
+            // On s'assure que le bouton Ajout Dépense est visible
+            const btnAjout = document.getElementById('btn-ajout-depense');
+            if(btnAjout) btnAjout.style.display = 'inline-block';
+
             ouvrirPage(null, 'Reception');
         }
-    } else { if(overlay) overlay.style.display='flex'; if(app) app.style.display='none'; }
+    } else { 
+        if(overlay) overlay.style.display='flex'; 
+        if(app) app.style.display='none'; 
+    }
 });
 
 function deconnexion() {
@@ -928,10 +961,15 @@ async function chargerCompta(type) {
             let rowClass = `row-month-${it.sortDate.getMonth()}`;
 
             if (it.isDep) {
+                // C'est une dépense
                 let m = parseFloat(it.montant) || 0; caisse -= m; grpSortie += m;
                 let v = it.moyenPaiement || 'Espèce';
                 if (v.includes('Chèque')) outM.Chq += m; else if (v.includes('OM')) outM.OM += m; else if (v.includes('Wave')) outM.Wav += m; else if (v.includes('CB')) outM.CB += m; else outM.Esp += m;
-                tbody.innerHTML += `<tr class="${rowClass}"><td>${dS}</td><td>-</td><td>${it.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red">${formatArgent(m)}</td><td><button class="btn-suppr-small" onclick="supprimerDepense('${it.id}')">X</button></td></tr>`;
+                
+                // --- MODIFICATION ICI : On vérifie le rôle pour le bouton supprimer ---
+                const btnSuppr = (currentRole === 'spectateur') ? '' : `<button class="btn-suppr-small" onclick="supprimerDepense('${it.id}')">X</button>`;
+                
+                tbody.innerHTML += `<tr class="${rowClass}"><td>${dS}</td><td>-</td><td>${it.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red">${formatArgent(m)}</td><td>${btnSuppr}</td></tr>`;
             } else {
                 // CUMUL GRAND TOTAL
                 GT_Q += parseInt(it.quantiteEnvoyee)||0;
