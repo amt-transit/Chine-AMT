@@ -337,3 +337,26 @@ tr.group-summary-row td {
     height: 24px !important; /* Avant 26px */
     font-size: 0.95em !important;
 }
+/* =================================== */
+/* COULEURS TABLEAU COMPTA (Entrée/Sortie) */
+/* =================================== */
+
+/* La 2ème colonne (Entrée) en VERT */
+.modern-payment-table td:nth-child(2) {
+    color: #28a745; /* Vert standard */
+    font-weight: bold; /* On met en gras pour bien voir */
+}
+
+/* La 3ème colonne (Sortie) en ROUGE */
+.modern-payment-table td:nth-child(3) {
+    color: #ff1900; /* Rouge brique (plus lisible) */
+    font-weight: bold;
+}
+
+/* Optionnel : Si vous voulez aussi colorer la ligne TOTAL en bas */
+.modern-total-row td:nth-child(2) {
+    color: #28a745;
+}
+.modern-total-row td:nth-child(3) {
+    color: #ff1900;
+}
