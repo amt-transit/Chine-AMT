@@ -25,6 +25,7 @@ let allPastClients = [];
 let historiqueCharges = [];
 let currentUser = null;
 let currentRole = null;
+let currentIdPaiementOpen = null;
 
 // Données chargées pour filtres
 let allHistoriqueData = [];
@@ -1027,18 +1028,93 @@ function voirHistoriquePaiementViaData(enc) {
 }
 
 const modalHist = document.getElementById('modal-historique');
+// --- REMPLACEZ LA FONCTION voirHistoriquePaiement PAR CELLE-CI ---
 function voirHistoriquePaiement(item) {
     if (item.isDepense) return;
+    
+    // 1. On stocke l'ID du document en cours pour pouvoir le modifier plus tard
+    currentIdPaiementOpen = item.id;
+    
     modalHist.style.display = 'flex';
     document.getElementById('hist-client-nom').innerText = item.nom;
-    document.getElementById('hist-ref').innerText = item.reference;
-    const tb = document.getElementById('tbody-historique'); tb.innerHTML = '';
+    
+    // Si vous avez ajouté l'option de ref dans l'étape précédente :
+    const refEl = document.getElementById('hist-ref');
+    if(refEl) refEl.innerText = item.reference;
+
+    const tb = document.getElementById('tbody-historique'); 
+    tb.innerHTML = '';
+
     if (item.history && item.history.length > 0) {
-        item.history.forEach(h => {
+        // On boucle avec (h, index) pour savoir quel numéro de ligne supprimer
+        item.history.forEach((h, index) => {
             let d = new Date(h.date.seconds * 1000).toLocaleDateString('fr-FR');
-            tb.innerHTML += `<tr><td>${d}</td><td class="text-green">${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td></tr>`;
+            
+            // Sécurité : Pas de bouton supprimer pour les spectateurs/auditeurs
+            let btnSuppr = '';
+            if (currentRole !== 'spectateur') {
+                btnSuppr = `<button class="btn-suppr-small" onclick="supprimerPaiement(${index})" style="background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer;">X</button>`;
+            }
+
+            tb.innerHTML += `
+                <tr>
+                    <td>${d}</td>
+                    <td class="text-green">${formatArgent(parseInt(h.montant))} CFA</td>
+                    <td>${h.moyen}</td>
+                    <td>${h.agent || '-'}</td>
+                    <td>${btnSuppr}</td>
+                </tr>`;
         });
-    } else tb.innerHTML = '<tr><td colspan="3">Aucun</td></tr>';
+    } else {
+        tb.innerHTML = '<tr><td colspan="5" style="text-align:center">Aucun historique de paiement.</td></tr>';
+    }
+}
+
+// --- AJOUTEZ CETTE NOUVELLE FONCTION ---
+async function supprimerPaiement(index) {
+    if (!currentIdPaiementOpen) return;
+    if (!confirm("⚠️ Êtes-vous sûr de vouloir ANNULER ce paiement ?\nLe montant sera déduit du total payé.")) return;
+
+    try {
+        // 1. Récupérer le document actuel dans la base de données
+        const docRef = db.collection('expeditions').doc(currentIdPaiementOpen);
+        const docSnap = await docRef.get();
+        
+        if (!docSnap.exists) { alert("Erreur: Document introuvable"); return; }
+        
+        const data = docSnap.data();
+        let historique = data.historiquePaiements || [];
+
+        // 2. Vérifier que l'index existe
+        if (index < 0 || index >= historique.length) return;
+
+        // 3. Récupérer le montant à annuler
+        const montantAAnnuler = parseInt(historique[index].montant) || 0;
+
+        // 4. Retirer la ligne du tableau
+        historique.splice(index, 1);
+
+        // 5. Recalculer le nouveau montant total payé
+        const nouveauMontantPaye = (parseInt(data.montantPaye) || 0) - montantAAnnuler;
+
+        // 6. Mise à jour dans Firebase
+        await docRef.update({
+            historiquePaiements: historique,
+            montantPaye: nouveauMontantPaye
+            // On ne change pas le statut automatiquement ici par précaution, 
+            // mais vous pourriez recalculer si c'est "Soldé" ou "Reste à payer" si vous vouliez.
+        });
+
+        alert("Paiement annulé avec succès.");
+        
+        // 7. Fermer le modal et rafraîchir le tableau principal
+        modalHist.style.display = 'none';
+        chargerCompta(currentComptaType); // Rafraîchit la page derrière
+
+    } catch (e) {
+        console.error(e);
+        alert("Erreur lors de l'annulation : " + e.message);
+    }
 }
 function fermerModalHistorique(e) { if (e.target === modalHist || e.target.classList.contains('modal-close') || e.target.classList.contains('btn-secondaire')) modalHist.style.display = 'none'; }
 
