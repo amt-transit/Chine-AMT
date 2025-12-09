@@ -360,3 +360,13 @@ tr.group-summary-row td {
 .modern-total-row td:nth-child(3) {
     color: #ff1900;
 }
+/* =================================== */
+/* STYLE DES LIGNES SOUS-TOTAL         */
+/* =================================== */
+
+.subtotal-row {
+    background-color: #7596b6 !important; /* Fond Bleu foncé (changez ce code pour une autre couleur) */
+    color: #ffffff !important;           /* Texte Blanc */
+    font-weight: bold !important;        /* Texte en Gras */
+    font-size: 1.1em;                    /* Texte un peu plus gros */
+}
