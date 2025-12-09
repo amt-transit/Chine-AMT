@@ -1578,10 +1578,9 @@ async function chargerGroupesDansModif(groupeActuel) {
     select.innerHTML = '<option value="">Chargement...</option>';
 
     try {
-        // On récupère les groupes existants
         const snap = await db.collection('expeditions')
             .orderBy('creeLe', 'desc')
-            .limit(200) // On cherche un peu plus large pour être sûr
+            .limit(200)
             .get();
 
         const groupes = new Set();
@@ -1591,28 +1590,81 @@ async function chargerGroupesDansModif(groupeActuel) {
                 groupes.add(d.refGroupe);
             }
         });
-
-        // On s'assure que le groupe actuel du colis est bien dans la liste, même s'il est vieux
         if (groupeActuel) groupes.add(groupeActuel);
 
-        // Tri décroissant (EV10, EV9...)
         const sorted = Array.from(groupes).sort((a, b) => {
             return parseInt(b.replace('EV', '')||0) - parseInt(a.replace('EV', '')||0);
         });
 
-        select.innerHTML = ''; // Vider
+        select.innerHTML = ''; 
+
+        // --- AJOUT DE L'OPTION DE CRÉATION EN PREMIER ---
+        const optNew = document.createElement('option');
+        optNew.value = "NEW_CUSTOM";
+        optNew.innerText = "➕ Créer un nouveau groupe...";
+        optNew.style.fontWeight = "bold";
+        optNew.style.color = "#27ae60";
+        select.appendChild(optNew);
+        // -----------------------------------------------
         
-        // Remplissage
         sorted.forEach(g => {
             const opt = document.createElement('option');
             opt.value = g;
             opt.innerText = g;
-            if (g === groupeActuel) opt.selected = true; // Pré-sélectionner le groupe actuel
+            if (g === groupeActuel) opt.selected = true;
             select.appendChild(opt);
         });
 
     } catch (e) {
         console.error(e);
-        select.innerHTML = `<option value="${groupeActuel}">${groupeActuel}</option>`;
+    }
+}
+// --- FONCTION SUPPRIMER UN COLIS (HISTORIQUE) ---
+async function supprimerCeColis() {
+    if (!currentModifEnvoi) return;
+
+    // 1. Confirmation de sécurité
+    const confirmation = confirm(`ATTENTION !\n\nVous êtes sur le point de supprimer définitivement le colis :\n${currentModifEnvoi.reference}\n\nCette action est IRRÉVERSIBLE. Voulez-vous continuer ?`);
+    
+    if (!confirmation) return;
+
+    try {
+        // 2. Suppression dans Firestore
+        await db.collection('expeditions').doc(currentModifEnvoi.id).delete();
+
+        alert("Colis supprimé avec succès.");
+        
+        // 3. Fermer le modal et rafraîchir
+        if (modalModif) modalModif.style.display = 'none';
+        if (typeof chargerHistoriqueChine === "function") chargerHistoriqueChine();
+
+    } catch (e) {
+        alert("Erreur lors de la suppression : " + e.message);
+    }
+}
+// --- FONCTION DÉCLENCHÉE QUAND ON CHOISIT "CRÉER NOUVEAU GROUPE" ---
+function verifierCreationGroupe(selectElement) {
+    // Si l'utilisateur choisit l'option "Créer..."
+    if (selectElement.value === "NEW_CUSTOM") {
+        
+        // On demande le nom
+        const nomNouveau = prompt("Entrez le nom du nouveau groupe (ex: EV12) :", "EV");
+
+        if (nomNouveau && nomNouveau.trim() !== "") {
+            const nomFinal = nomNouveau.toUpperCase().trim();
+
+            // On crée cette option dynamiquement et on la sélectionne
+            const opt = document.createElement('option');
+            opt.value = nomFinal;
+            opt.innerText = nomFinal;
+            opt.selected = true;
+            
+            // On l'ajoute juste après l'option "Créer"
+            selectElement.add(opt, selectElement.options[1]);
+        } else {
+            // Si l'utilisateur annule, on remet le groupe d'origine (le dernier de la liste ou vide)
+            // Pour simplifier, on remet la sélection sur rien ou le groupe précédent si possible
+            selectElement.value = currentModifEnvoi.refGroupe; 
+        }
     }
 }
