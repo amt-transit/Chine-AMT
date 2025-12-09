@@ -658,6 +658,7 @@ function ouvrirModalModif(envoi) {
         document.getElementById('modif-nom').value = envoi.nom || '';
         document.getElementById('modif-prenom').value = envoi.prenom || '';
         document.getElementById('modif-tel').value = envoi.tel || '';
+        chargerGroupesDansModif(envoi.refGroupe);
         
         document.getElementById('modif-qte').value = envoi.quantiteEnvoyee;
         document.getElementById('modif-remise').value = envoi.remise || 0;
@@ -682,7 +683,6 @@ function calculerPrixModif() {
 async function sauvegarderModificationChine() {
     if(!currentModifEnvoi) return;
     
-    // Récupération des nouvelles valeurs
     const nom = document.getElementById('modif-nom').value;
     const prenom = document.getElementById('modif-prenom').value;
     const tel = document.getElementById('modif-tel').value;
@@ -690,16 +690,17 @@ async function sauvegarderModificationChine() {
     const v = parseFloat(document.getElementById('modif-poids').value) || 0;
     const r = parseInt(document.getElementById('modif-remise').value) || 0;
     
+    // NOUVEAU : Récupération du nouveau groupe
+    const nouveauGroupe = document.getElementById('modif-groupe-select').value;
+
     let up = { 
-        nom: nom,       // Mise à jour du nom
-        prenom: prenom, // Mise à jour du prénom
-        tel: tel,       // Mise à jour du téléphone
-        quantiteEnvoyee: q, 
-        remise: r, 
+        nom: nom, prenom: prenom, tel: tel, 
+        quantiteEnvoyee: q, remise: r,
         dernierModificateur: currentRole === 'chine' ? 'Agence Chine' : 'Agence Abidjan', 
         dateModification: firebase.firestore.FieldValue.serverTimestamp() 
     };
 
+    // Gestion Poids/Vol et Prix
     if((currentModifEnvoi.type || "").startsWith('aerien')) up.poidsEnvoye = v; 
     else up.volumeEnvoye = v;
     
@@ -707,14 +708,32 @@ async function sauvegarderModificationChine() {
     if(currentModifEnvoi.type === 'aerien_normal') t = PRIX_AERIEN_NORMAL;
     else if(currentModifEnvoi.type === 'aerien_express') t = PRIX_AERIEN_EXPRESS;
     else t = PRIX_MARITIME_CBM;
-    
-    up.prixEstime = formatArgent(v * t) + ' CFA';
+    up.prixEstime = formatArgent((v * t) - r) + ' CFA';
+
+    // --- LOGIQUE DE CHANGEMENT DE GROUPE ---
+    if (nouveauGroupe && nouveauGroupe !== currentModifEnvoi.refGroupe) {
+        // 1. On change le groupe
+        up.refGroupe = nouveauGroupe;
+        
+        // 2. On essaie de mettre à jour la Référence visuelle aussi (ex: MRT-012-EV3 -> MRT-012-EV4)
+        // On vérifie si la référence finit bien par le vieux groupe
+        if (currentModifEnvoi.reference && currentModifEnvoi.reference.endsWith(currentModifEnvoi.refGroupe)) {
+            // On remplace la fin de la chaine
+            const ancienneFin = currentModifEnvoi.refGroupe;
+            const nouvelleRef = currentModifEnvoi.reference.replace(ancienneFin, nouveauGroupe);
+            up.reference = nouvelleRef;
+        }
+    }
+    // ---------------------------------------
 
     try {
         await db.collection('expeditions').doc(currentModifEnvoi.id).update(up);
         alert('Modifié avec succès.');
         modalModif.style.display = 'none';
-        chargerHistoriqueChine();
+        
+        // On rafraîchit la liste qui est derrière
+        if (typeof chargerHistoriqueChine === "function") chargerHistoriqueChine();
+        
     } catch(e) { 
         alert(e.message); 
     }
@@ -1550,4 +1569,50 @@ async function genererBonLivraison() {
 
     // 7. Sauvegarde du fichier
     doc.save(`BL_${currentEnvoi.nom}.pdf`);
+}
+// --- FONCTION POUR REMPLIR LE SELECT DANS LE MODAL MODIF ---
+async function chargerGroupesDansModif(groupeActuel) {
+    const select = document.getElementById('modif-groupe-select');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Chargement...</option>';
+
+    try {
+        // On récupère les groupes existants
+        const snap = await db.collection('expeditions')
+            .orderBy('creeLe', 'desc')
+            .limit(200) // On cherche un peu plus large pour être sûr
+            .get();
+
+        const groupes = new Set();
+        snap.forEach(doc => {
+            const d = doc.data();
+            if (d.refGroupe && d.refGroupe.startsWith('EV')) {
+                groupes.add(d.refGroupe);
+            }
+        });
+
+        // On s'assure que le groupe actuel du colis est bien dans la liste, même s'il est vieux
+        if (groupeActuel) groupes.add(groupeActuel);
+
+        // Tri décroissant (EV10, EV9...)
+        const sorted = Array.from(groupes).sort((a, b) => {
+            return parseInt(b.replace('EV', '')||0) - parseInt(a.replace('EV', '')||0);
+        });
+
+        select.innerHTML = ''; // Vider
+        
+        // Remplissage
+        sorted.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.innerText = g;
+            if (g === groupeActuel) opt.selected = true; // Pré-sélectionner le groupe actuel
+            select.appendChild(opt);
+        });
+
+    } catch (e) {
+        console.error(e);
+        select.innerHTML = `<option value="${groupeActuel}">${groupeActuel}</option>`;
+    }
 }
