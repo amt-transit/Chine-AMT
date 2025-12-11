@@ -1668,3 +1668,78 @@ function verifierCreationGroupe(selectElement) {
         }
     }
 }
+// --- OUTIL POUR CORRIGER/RENOMMER UN GROUPE ---
+async function outilCorrectionGroupe() {
+    // 1. Demander le groupe à corriger (celui qu'on veut faire disparaître)
+    const groupeCible = prompt("Quel est le groupe à corriger/supprimer ? (ex: EV10)");
+    if (!groupeCible) return;
+    const cible = groupeCible.toUpperCase().trim();
+
+    // 2. Demander le nouveau nom (celui qu'on veut garder)
+    const groupeDestination = prompt(`Vers quel groupe voulez-vous déplacer les colis de ${cible} ?\n(Entrez 'EV4' pour fusionner, ou un nouveau nom).\n\nATTENTION : Si c'était des tests et que vous voulez TOUT supprimer, tapez 'DELETE'.`);
+    if (!groupeDestination) return;
+    const dest = groupeDestination.toUpperCase().trim();
+
+    // Cas spécial : Suppression totale
+    if (dest === 'DELETE') {
+        if(!confirm(`Êtes-vous SÛR de vouloir supprimer DÉFINITIVEMENT tous les colis du groupe ${cible} ?`)) return;
+        // ... Logique de suppression (voir plus bas)
+        await supprimerTousLesColisDuGroupe(cible);
+        return;
+    }
+
+    // Cas normal : Renommage / Fusion
+    try {
+        const snap = await db.collection('expeditions').where('refGroupe', '==', cible).get();
+        
+        if (snap.empty) {
+            alert(`Aucun colis trouvé dans le groupe ${cible}.`);
+            return;
+        }
+
+        const batch = db.batch();
+        let count = 0;
+
+        snap.forEach(doc => {
+            const data = doc.data();
+            const refDoc = db.collection('expeditions').doc(doc.id);
+            
+            let updateData = { refGroupe: dest };
+
+            // On essaie aussi de corriger la référence visuelle (ex: MRT-01-EV10 -> MRT-01-EV4)
+            if (data.reference && data.reference.endsWith(cible)) {
+                updateData.reference = data.reference.replace(cible, dest);
+            }
+
+            batch.update(refDoc, updateData);
+            count++;
+        });
+
+        await batch.commit();
+        alert(`${count} colis ont été déplacés de ${cible} vers ${dest}.\nLe groupe ${cible} n'existe plus.`);
+        
+        // On recharge la liste pour voir le résultat
+        chargerListeGroupes();
+
+    } catch (e) {
+        alert("Erreur : " + e.message);
+    }
+}
+
+// Sous-fonction pour la suppression totale (Cas 'DELETE')
+async function supprimerTousLesColisDuGroupe(groupe) {
+    try {
+        const snap = await db.collection('expeditions').where('refGroupe', '==', groupe).get();
+        if (snap.empty) { alert("Rien à supprimer."); return; }
+
+        const batch = db.batch();
+        snap.forEach(doc => {
+            batch.delete(db.collection('expeditions').doc(doc.id));
+        });
+        await batch.commit();
+        alert(`Groupe ${groupe} et ses colis supprimés.`);
+        chargerListeGroupes();
+    } catch(e) {
+        alert("Erreur : " + e.message);
+    }
+}
