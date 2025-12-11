@@ -576,11 +576,24 @@ function updateHistoriqueView(searchQuery) {
         return true;
     });
     
-    // Tri par Groupe puis Ref
-    filtered.sort((a,b) => {
-        const gA = a.refGroupe||"", gB = b.refGroupe||"";
-        if(gA!==gB) return parseInt(gA.replace('EV','')) - parseInt(gB.replace('EV',''));
-        return (a.reference||"").localeCompare(b.reference||"");
+    // DANS updateHistoriqueView (script.js)
+
+    // Tri par Groupe DÉCROISSANT (EV10 avant EV9), puis par Référence
+    filtered.sort((a, b) => {
+        const gA = a.refGroupe || "";
+        const gB = b.refGroupe || "";
+        
+        // On extrait les numéros (ex: "EV10" devient 10)
+        const numA = parseInt(gA.replace('EV', '')) || 0;
+        const numB = parseInt(gB.replace('EV', '')) || 0;
+
+        // Si les numéros sont différents, on trie du plus grand au plus petit (B - A)
+        if (numA !== numB) {
+            return numB - numA; 
+        }
+        
+        // Si c'est le même groupe, on trie par référence alphabétique
+        return (a.reference || "").localeCompare(b.reference || "");
     });
 
     historiqueCharges = []; // Reset pour export
