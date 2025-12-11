@@ -781,10 +781,17 @@ async function chargerClients() {
             if(match) allReceptionData.push({id:d.id, ...data});
         });
         
-        // Tri Groupe
-        allReceptionData.sort((a,b) => {
-            const gA = a.refGroupe||"", gB = b.refGroupe||"";
-            if(gA.startsWith('EV') && gB.startsWith('EV')) return parseInt(gA.replace('EV','')) - parseInt(gB.replace('EV',''));
+        // Tri Groupe DÉCROISSANT
+        allReceptionData.sort((a, b) => {
+            const gA = a.refGroupe || "";
+            const gB = b.refGroupe || "";
+
+            const numA = parseInt(gA.replace('EV', '')) || 0;
+            const numB = parseInt(gB.replace('EV', '')) || 0;
+
+            // Du plus grand au plus petit
+            if (numA !== numB) return numB - numA;
+
             return gA.localeCompare(gB);
         });
 
