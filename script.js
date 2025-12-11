@@ -978,7 +978,16 @@ async function chargerCompta(type) {
             }
         });
         items.sort((a, b) => {
-            if (a.grp.startsWith('EV') && b.grp.startsWith('EV')) return parseInt(a.grp.replace('EV', '')) - parseInt(b.grp.replace('EV', ''));
+            // Si les deux éléments appartiennent à des groupes "EV"
+            if (a.grp.startsWith('EV') && b.grp.startsWith('EV')) {
+                // On extrait les numéros
+                const numA = parseInt(a.grp.replace('EV', '')) || 0;
+                const numB = parseInt(b.grp.replace('EV', '')) || 0;
+                
+                // Tri DÉCROISSANT (Le plus grand numéro en premier : EV4 avant EV3)
+                return numB - numA;
+            }
+            // Sinon tri alphabétique standard
             return a.grp.localeCompare(b.grp);
         });
 
