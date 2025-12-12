@@ -124,7 +124,7 @@
                     <div style="background: #e8f5e9; padding: 10px; border: 1px dashed #27ae60; margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
                         <input type="file" id="csv-input" accept=".csv" style="font-size: 0.9em;">
                         <button onclick="importerCSV()" class="btn-secondaire" style="width: auto; margin:0; background-color: #27ae60;">📂 Importer CSV</button>
-                        <span style="font-size: 0.8em; color: #555;">(Format: Exp; TelExp; Nom; Prénom; Tel; Desc; Qté; Poids)</span>
+                        <span style="font-size: 0.8em; color: #555;">(Format: Date; Exp; TelExp; Nom; Prénom; Tel; Desc; Qté; Poids)</span>
                     </div>
                     <div class="table-container">
                         <table id="table-envoi-en-cours">
@@ -248,7 +248,7 @@
         </main>
     </div>
 
-    <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)"><div class="modal-content"><span class="modal-close" onclick="fermerModal(event)">&times;</span><div id="details-reception"><h3>Détails : <span id="client-selectionne"></span></h3><p>Expéditeur: <strong><span id="expediteur-affiche"></span></strong><br>Ref: <strong><span id="ref-attendue"></span></strong><br>Desc: <span id="desc-attendue"></span><br>Tél: <span id="tel-attendu"></span><br>Attendu: <span id="qte-attendue"></span> | <span id="poids-attendu"></span><br>Reste à recevoir: <strong><span id="qte-restant"></span></strong> | <strong><span id="poids-restant"></span></strong><br>Prix Initial: <span id="prix-attendu"></span><br><strong style="font-size:1.2em; color:#dc3545;">Reste: <span id="prix-restant"></span></strong></p><div class="form-group" id="photos-recues-container" style="display:none;"><div id="photos-recues-apercu"></div></div><hr><div style="display: flex; gap: 10px; margin-bottom: 15px;"><button class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">Étiquette</button><button class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">Facture</button><button class="btn-secondaire" onclick="genererBonLivraison()" style="background-color: #8e44ad; color: white;">📄 BL</button></div><div id="reception-status-display"><p id="reception-status" class="status-badge"></p><div id="reception-summary"></div></div><div id="form-reception-container"><hr><strong>Ajouter Paiement/Réception:</strong><form id="form-reception"><div class="form-group"><label>Quantité</label><input type="number" id="quantite-recue" min="0"></div><div class="form-group"><label id="label-poids-recu">Poids/Vol</label><input type="number" id="poids-recu" step="0.01"></div><div class="form-group"><label>Montant</label><input type="number" id="montant-paye" min="0"></div><div class="form-group"><label>Moyen</label><select id="moyen-paiement"><option value="Espèce">Espèce</option><option value="Chèque">Chèque</option><option value="OM">OM</option><option value="Wave">Wave</option><option value="CB">CB</option></select></div><button type="button" class="btn-principal" onclick="enregistrerReception()">Valider</button></form></div></div></div></div>
+    <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)"><div class="modal-content"><span class="modal-close" onclick="fermerModal(event)">&times;</span><div id="details-reception"><h3>Détails : <span id="client-selectionne"></span><button class="btn-secondaire btn-small" onclick="ouvrirModalModifReception()" style="background-color: #7f8c8d; float: right;">✏️ Corriger Erreur</button></h3><p>Expéditeur: <strong><span id="expediteur-affiche"></span></strong><br>Ref: <strong><span id="ref-attendue"></span></strong><br>Desc: <span id="desc-attendue"></span><br>Tél: <span id="tel-attendu"></span><br>Attendu: <span id="qte-attendue"></span> | <span id="poids-attendu"></span><br>Reste à recevoir: <strong><span id="qte-restant"></span></strong> | <strong><span id="poids-restant"></span></strong><br>Prix Initial: <span id="prix-attendu"></span><br><strong style="font-size:1.2em; color:#dc3545;">Reste: <span id="prix-restant"></span></strong></p><div class="form-group" id="photos-recues-container" style="display:none;"><div id="photos-recues-apercu"></div></div><hr><div style="display: flex; gap: 10px; margin-bottom: 15px;"><button class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">Étiquette</button><button class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">Facture</button><button class="btn-secondaire" onclick="genererBonLivraison()" style="background-color: #8e44ad; color: white;">📄 BL</button></div><div id="reception-status-display"><p id="reception-status" class="status-badge"></p><div id="reception-summary"></div></div><div id="form-reception-container"><hr><strong>Ajouter Paiement/Réception:</strong><form id="form-reception"><div class="form-group"><label>Quantité</label><input type="number" id="quantite-recue" min="0"></div><div class="form-group"><label id="label-poids-recu">Poids/Vol</label><input type="number" id="poids-recu" step="0.01"></div><div class="form-group"><label>Montant</label><input type="number" id="montant-paye" min="0"></div><div class="form-group"><label>Moyen</label><select id="moyen-paiement"><option value="Espèce">Espèce</option><option value="Chèque">Chèque</option><option value="OM">OM</option><option value="Wave">Wave</option><option value="CB">CB</option></select></div><button type="button" class="btn-principal" onclick="enregistrerReception()">Valider</button></form></div></div></div></div>
     <div id="modal-modif-chine" class="modal-backdrop" onclick="fermerModalModif(event)">
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModalModif(event)">&times;</span>
@@ -328,6 +328,30 @@
         </div>
     </div>
     <div id="modal-depense" class="modal-backdrop" onclick="fermerModalDepense(event)"><div class="modal-content"><span class="modal-close" onclick="fermerModalDepense(event)">&times;</span><h3>Sortie</h3><form id="form-depense"><div class="form-group"><label>Date</label><input type="date" id="depense-date"></div><div class="form-group"><label>Type</label><select id="depense-type"><option value="maritime">Mer</option><option value="aerien">Air</option></select></div><div class="form-group"><label>Groupe</label><input type="text" id="depense-groupe" placeholder="EV1"></div><div class="form-group"><label>Motif</label><input type="text" id="depense-motif"></div><div class="form-group"><label>Montant</label><input type="number" id="depense-montant"></div><div class="form-group"><label>Moyen</label><select id="depense-moyen"><option value="Espèce">Espèce</option><option value="Wave">Wave</option></select></div><button type="button" class="btn-principal btn-supprimer" onclick="enregistrerDepense()">Valider</button></form></div></div>
+    <div id="modal-modif-reception" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="modal-close" onclick="fermerModalModifReception()">&times;</span>
+            <h3>Corriger la Réception</h3>
+            <p class="info-text" style="color: #c0392b;">Utilisez ceci uniquement pour corriger une erreur de saisie.</p>
+            
+            <form id="form-modif-reception">
+                <div class="form-group">
+                    <label>Quantité Reçue (Totale)</label>
+                    <input type="number" id="modif-rec-qte">
+                </div>
+                <div class="form-group">
+                    <label>Poids / Vol Reçu (Total)</label>
+                    <input type="number" id="modif-rec-poids" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Montant Payé (Total)</label>
+                    <input type="number" id="modif-rec-paye">
+                </div>
+                
+                <button type="button" class="btn-principal" onclick="sauvegarderCorrectionReception()">Enregistrer la correction</button>
+            </form>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>

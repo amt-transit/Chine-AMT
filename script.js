@@ -470,6 +470,7 @@ async function validerEnvoiGroupe() {
             
             // Calcul du numéro : startIdx + i
             // Ex: si startIdx est 6, le premier sera 006, le suivant 007...
+            const dateFinale = c.dateImportee ? c.dateImportee : d;
             const currentNum = startIdx + i;
             const idx = String(currentNum).padStart(3, '0');
             
@@ -478,7 +479,7 @@ async function validerEnvoiGroupe() {
             batch.set(newRef, {
                 reference: `${pref}-${idx}-${refG}`, // Ex: MRT-006-EV3
                 refGroupe: refG,
-                date: d,
+                date: dateFinale,
                 type: t,
                 nom: c.nom,
                 prenom: c.prenom,
@@ -1411,80 +1412,75 @@ async function chargerListeGroupes() {
         if(loadingOpt) loadingOpt.innerText = "Erreur chargement";
     }
 }
-// --- FONCTION D'IMPORTATION CSV ---
+// --- FONCTION D'IMPORTATION CSV (AVEC DATE EN COLONNE 1) ---
 function importerCSV() {
     const input = document.getElementById('csv-input');
     const file = input.files[0];
     const typeEnvoi = document.getElementById('type-envoi').value;
 
-    // 1. Vérifications de base
-    if (!typeEnvoi) {
-        alert("Veuillez d'abord choisir un 'Type d'envoi' (Aérien/Maritime) pour savoir si la valeur est en Kg ou CBM.");
-        return;
-    }
-    if (!file) {
-        alert("Veuillez sélectionner un fichier CSV.");
-        return;
-    }
+    if (!typeEnvoi) { alert("Veuillez d'abord choisir un 'Type d'envoi'."); return; }
+    if (!file) { alert("Veuillez sélectionner un fichier CSV."); return; }
 
     const reader = new FileReader();
     
     reader.onload = function(e) {
         const text = e.target.result;
-        // On découpe par ligne
         const rows = text.split("\n");
-        
         let count = 0;
 
-        // On parcourt chaque ligne
         rows.forEach((row, index) => {
-            // Nettoyage de la ligne (enlever les espaces inutiles et les retours chariot)
             const cleanRow = row.trim();
-            if (!cleanRow) return; // Ignorer lignes vides
+            if (!cleanRow) return;
 
-            // Découpage par POINT-VIRGULE (Standard Excel FR)
-            // Si vos CSV utilisent des virgules, remplacez ';' par ','
+            // Découpage par POINT-VIRGULE
             const cols = cleanRow.split(";");
 
-            // Ignorer l'en-tête (si la première case contient "Expediteur")
-            if (index === 0 && (cols[0].toLowerCase().includes("exp") || cols[0].toLowerCase().includes("nom"))) {
+            // Ignorer l'en-tête (si "Date" ou "Exp" est trouvé au début)
+            if (index === 0 && (cols[0].toLowerCase().includes("date") || cols[1]?.toLowerCase().includes("exp"))) {
                 return; 
             }
 
-            // Vérifier qu'on a assez de colonnes (min 8 colonnes)
-            // Format attendu: Expéditeur; Tel Exp; Nom; Prénom; Tel; Desc; Qté; Poids/Vol
-            if (cols.length < 5) return; 
+            // Vérifier qu'on a assez de colonnes (9 colonnes maintenant)
+            if (cols.length < 6) return; 
 
-            // Nettoyage des guillemets éventuels ajoutés par Excel
             const clean = (val) => (val || "").replace(/"/g, "").trim();
 
-            const poidVol = parseFloat(clean(cols[7]).replace(',', '.')) || 0;
+            // 1. GESTION DE LA DATE (Colonne 0)
+            let rawDate = clean(cols[0]); 
+            // Si la date est vide, on laisse vide (le système prendra la date globale)
+            // Si la date est au format JJ/MM/AAAA (Excel FR), on la convertit en AAAA-MM-JJ
+            if (rawDate.includes('/')) {
+                const parts = rawDate.split('/');
+                if (parts.length === 3) rawDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            // 2. GESTION POIDS / VOLUME (Colonne 8)
+            const poidVol = parseFloat(clean(cols[8]).replace(',', '.')) || 0;
             
             // Création de l'objet client
             const nouveauClient = {
-                expediteur: clean(cols[0]) || "AMT TRANSIT",
-                telExpediteur: clean(cols[1]) || "",
-                nom: clean(cols[2]),
-                prenom: clean(cols[3]),
-                tel: clean(cols[4]),
-                description: clean(cols[5]),
-                quantiteEnvoyee: parseInt(clean(cols[6])) || 1,
+                dateImportee: rawDate, // On stocke la date spécifique ici
                 
-                // Gestion Poids vs Volume selon le type sélectionné
+                expediteur: clean(cols[1]) || "AMT TRANSIT",
+                telExpediteur: clean(cols[2]) || "",
+                nom: clean(cols[3]),
+                prenom: clean(cols[4]),
+                tel: clean(cols[5]),
+                description: clean(cols[6]),
+                quantiteEnvoyee: parseInt(clean(cols[7])) || 1,
+                
                 poidsEnvoye: typeEnvoi.startsWith('aerien') ? poidVol : 0,
                 volumeEnvoye: typeEnvoi.startsWith('aerien') ? 0 : poidVol,
                 
-                // On crée un sous-colis par défaut pour compatibilité
                 detailsColis: [{
-                    desc: clean(cols[5]),
-                    qte: parseInt(clean(cols[6])) || 1,
+                    desc: clean(cols[6]),
+                    qte: parseInt(clean(cols[7])) || 1,
                     val: poidVol
                 }],
-                
-                photosFiles: [] // Pas de photos via CSV
+                photosFiles: []
             };
 
-            // Calcul du prix estimé
+            // Calcul Prix
             let prixUnitaire = 0;
             if (typeEnvoi === 'aerien_normal') prixUnitaire = PRIX_AERIEN_NORMAL;
             else if (typeEnvoi === 'aerien_express') prixUnitaire = PRIX_AERIEN_EXPRESS;
@@ -1492,18 +1488,15 @@ function importerCSV() {
 
             nouveauClient.prixEstime = formatArgent(poidVol * prixUnitaire) + ' CFA';
 
-            // Ajout à la liste globale
             envoiEnCours.push(nouveauClient);
             count++;
         });
 
-        // Mise à jour du tableau visuel
         mettreAJourTableauEnvoiEnCours();
-        alert(`${count} clients importés avec succès !`);
-        input.value = ""; // Vider l'input
+        alert(`${count} clients importés !`);
+        input.value = ""; 
     };
 
-    // Lecture du fichier en tant que texte (Encodage Windows-1252 souvent utilisé par Excel FR, sinon essayer 'UTF-8')
     reader.readAsText(file, 'ISO-8859-1'); 
 }
 // --- GÉNÉRATION BON DE LIVRAISON (BL) AVEC PROMPT ---
@@ -1769,6 +1762,73 @@ async function supprimerTousLesColisDuGroupe(groupe) {
         alert(`Groupe ${groupe} et ses colis supprimés.`);
         chargerListeGroupes();
     } catch(e) {
+        alert("Erreur : " + e.message);
+    }
+}
+// --- GESTION CORRECTION RÉCEPTION (ABIDJAN) ---
+
+const modalModifRec = document.getElementById('modal-modif-reception');
+
+function ouvrirModalModifReception() {
+    if (!currentEnvoi) return;
+    
+    // 1. Afficher le modal
+    if(modalModifRec) modalModifRec.style.display = 'flex';
+
+    // 2. Remplir avec les valeurs actuelles (celles qui sont fausses)
+    document.getElementById('modif-rec-qte').value = currentEnvoi.quantiteRecue || 0;
+    document.getElementById('modif-rec-poids').value = currentEnvoi.poidsRecu || 0;
+    document.getElementById('modif-rec-paye').value = currentEnvoi.montantPaye || 0;
+}
+
+function fermerModalModifReception() {
+    if(modalModifRec) modalModifRec.style.display = 'none';
+}
+
+async function sauvegarderCorrectionReception() {
+    if (!currentEnvoi) return;
+
+    // 1. Récupérer les nouvelles valeurs corrigées
+    const nQ = parseInt(document.getElementById('modif-rec-qte').value) || 0;
+    const nP = parseFloat(document.getElementById('modif-rec-poids').value) || 0;
+    const nM = parseInt(document.getElementById('modif-rec-paye').value) || 0;
+
+    // 2. Recalculer le Statut (Conforme, Ecart, etc.)
+    let st = 'Reçu - Conforme';
+    const diffQ = nQ - currentEnvoi.quantiteEnvoyee;
+    
+    // Détection Poids vs Volume
+    let isAir = (currentEnvoi.type || "").startsWith('aerien');
+    let attenduPV = isAir ? currentEnvoi.poidsEnvoye : currentEnvoi.volumeEnvoye;
+    const diffP = nP - attenduPV;
+
+    if (diffQ < 0) st = 'Reçu - Ecart'; // Manque des colis
+    else if (diffQ > 0) st = 'Reçu - Supérieur'; // Trop de colis
+    else { 
+        // Si colis OK, on vérifie le poids à 0.1 près
+        if (Math.abs(diffP) > 0.1) st = (diffP > 0 ? 'Reçu - Supérieur' : 'Reçu - Ecart'); 
+        else st = 'Reçu - Conforme'; 
+    }
+
+    // 3. Mise à jour Firebase
+    try {
+        await db.collection('expeditions').doc(currentEnvoi.id).update({
+            quantiteRecue: nQ,
+            poidsRecu: nP,
+            montantPaye: nM,
+            status: st
+        });
+
+        alert("Correction effectuée !");
+        fermerModalModifReception();
+        
+        // Fermer aussi le grand modal de détails pour forcer le rafraichissement
+        document.getElementById('modal-backdrop').style.display = 'none';
+        
+        // Rafraîchir la liste
+        chargerClients();
+
+    } catch (e) {
         alert("Erreur : " + e.message);
     }
 }
