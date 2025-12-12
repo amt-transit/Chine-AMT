@@ -1412,7 +1412,7 @@ async function chargerListeGroupes() {
         if(loadingOpt) loadingOpt.innerText = "Erreur chargement";
     }
 }
-// --- FONCTION D'IMPORTATION CSV (AVEC DATE EN COLONNE 1) ---
+// --- FONCTION D'IMPORTATION CSV (SÉPARATEUR VIRGULE) ---
 function importerCSV() {
     const input = document.getElementById('csv-input');
     const file = input.files[0];
@@ -1432,34 +1432,35 @@ function importerCSV() {
             const cleanRow = row.trim();
             if (!cleanRow) return;
 
-            // Découpage par POINT-VIRGULE
-            const cols = cleanRow.split(";");
+            // --- CHANGEMENT ICI : DÉCOUPAGE PAR VIRGULE ---
+            // Attention : Si votre description contient une virgule (ex: "Chaussures, Sacs"), 
+            // cela créera un décalage. Évitez les virgules DANS les textes.
+            const cols = cleanRow.split(","); 
+            // ----------------------------------------------
 
-            // Ignorer l'en-tête (si "Date" ou "Exp" est trouvé au début)
+            // Ignorer l'en-tête
             if (index === 0 && (cols[0].toLowerCase().includes("date") || cols[1]?.toLowerCase().includes("exp"))) {
                 return; 
             }
 
-            // Vérifier qu'on a assez de colonnes (9 colonnes maintenant)
             if (cols.length < 6) return; 
 
-            const clean = (val) => (val || "").replace(/"/g, "").trim();
+            // Fonction de nettoyage (enlève les guillemets qu'Excel ajoute parfois)
+            const clean = (val) => (val || "").replace(/^"|"$/g, "").trim();
 
-            // 1. GESTION DE LA DATE (Colonne 0)
+            // 1. DATE
             let rawDate = clean(cols[0]); 
-            // Si la date est vide, on laisse vide (le système prendra la date globale)
-            // Si la date est au format JJ/MM/AAAA (Excel FR), on la convertit en AAAA-MM-JJ
             if (rawDate.includes('/')) {
                 const parts = rawDate.split('/');
                 if (parts.length === 3) rawDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
 
-            // 2. GESTION POIDS / VOLUME (Colonne 8)
+            // 2. POIDS / VOLUME (Utilisez le POINT pour les décimales : 10.5)
+            // On garde le replace(',', '.') au cas où, mais avec un split virgule c'est risqué
             const poidVol = parseFloat(clean(cols[8]).replace(',', '.')) || 0;
             
-            // Création de l'objet client
             const nouveauClient = {
-                dateImportee: rawDate, // On stocke la date spécifique ici
+                dateImportee: rawDate,
                 
                 expediteur: clean(cols[1]) || "AMT TRANSIT",
                 telExpediteur: clean(cols[2]) || "",
@@ -1480,7 +1481,6 @@ function importerCSV() {
                 photosFiles: []
             };
 
-            // Calcul Prix
             let prixUnitaire = 0;
             if (typeEnvoi === 'aerien_normal') prixUnitaire = PRIX_AERIEN_NORMAL;
             else if (typeEnvoi === 'aerien_express') prixUnitaire = PRIX_AERIEN_EXPRESS;
