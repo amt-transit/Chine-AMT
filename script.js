@@ -42,6 +42,7 @@ let currentHistoriqueType = 'maritime';
 let currentComptaType = 'maritime';
 let currentEnvoi = null;
 let currentModifEnvoi = null;
+let selectedReceptionIds = new Set(); // Pour stocker les ID cochés
 
 function formatArgent(montant) {
     if (isNaN(montant)) return "0";
@@ -216,8 +217,13 @@ async function chargerListeGroupes() {
 }
 
     // Recherche & Export
-    const sIn = document.getElementById('search-input');
-    if(sIn) sIn.addEventListener('input', ()=>updateReceptionView(sIn.value));
+    const sIn = document.getElementById('search-reception');
+    if(sIn) {
+        sIn.addEventListener('input', () => {
+            // On appelle la mise à jour avec la valeur saisie
+            updateReceptionView(sIn.value);
+        });
+    }
     const sHi = document.getElementById('search-hist-chine');
     if(sHi) sHi.addEventListener('input', ()=>updateHistoriqueView(sHi.value));
 
@@ -766,9 +772,12 @@ function ouvrirSousOngletReception(type) {
 
 async function chargerClients() {
     const tb = document.getElementById('liste-clients-tbody'); if(!tb) return;
-    tb.innerHTML='<tr><td colspan="9">Chargement...</td></tr>';
+    tb.innerHTML='<tr><td colspan="10">Chargement...</td></tr>';
     
-    const sIn = document.getElementById('search-input');
+    // CORRECTION ICI : Remplacer 'search-input' par 'search-reception'
+    const sIn = document.getElementById('search-reception');
+    
+    // On rattache l'événement ici aussi par sécurité (optionnel si fait au début)
     if(sIn) sIn.oninput=()=>{ updateReceptionView(sIn.value); };
 
     try {
@@ -834,7 +843,20 @@ function updateReceptionView(searchQuery) {
 
         let cl = (d.status||"").includes('Conforme')?'status-conforme':(d.status||"").includes('Ecart')?'status-ecart':'status-attente';
         const safe = encodeURIComponent(JSON.stringify({id:d.id, ...d}));
-        tb.innerHTML += `<tr class="interactive-table-row" onclick='selectionnerClientViaData("${safe}")'><td>${d.reference}</td><td>${new Date(d.date).toLocaleDateString()}</td><td>${d.nom} ${d.prenom}</td><td>${d.description}</td><td>${d.type}</td><td>${d.quantiteEnvoyee}</td><td>${pv}</td><td>${formatArgent(res)} CFA</td><td><span class="status-badge ${cl}">${d.status||'-'}</span></td></tr>`;
+        let checkbox = `<input type="checkbox" class="rec-check" value="${d.id}" onchange="gererSelectionReception('${d.id}')" onclick="event.stopPropagation()">`;
+        
+        tb.innerHTML += `
+        <tr class="interactive-table-row" onclick='selectionnerClientViaData("${safe}")'>
+            <td>${checkbox}</td> <td>${d.reference}</td>
+            <td>${new Date(d.date).toLocaleDateString()}</td>
+            <td>${d.nom} ${d.prenom}</td>
+            <td>${d.description}</td>
+            <td>${d.type}</td>
+            <td>${d.quantiteEnvoyee}</td>
+            <td>${pv}</td>
+            <td style="font-weight:bold; color:${res>0?'#c0392b':'#27ae60'}">${formatArgent(res)} CFA</td>
+            <td><span class="status-badge ${cl}">${d.status||'-'}</span></td>
+        </tr>`;
         
         if(idx === filtered.length-1) {
              let u = isAir?'Kg':'CBM';
@@ -1828,6 +1850,126 @@ async function sauvegarderCorrectionReception() {
         // Rafraîchir la liste
         chargerClients();
 
+    } catch (e) {
+        alert("Erreur : " + e.message);
+    }
+}
+// --- LOGIQUE PAIEMENT GROUPÉ (RÉCEPTION) ---
+
+// 1. Gérer une coche individuelle
+function gererSelectionReception(id) {
+    if (selectedReceptionIds.has(id)) {
+        selectedReceptionIds.delete(id);
+    } else {
+        selectedReceptionIds.add(id);
+    }
+    updateBoutonGroupe();
+}
+
+// 2. Gérer "Tout Cocher"
+function toggleToutSelectionner(checkboxMaitre) {
+    const checks = document.querySelectorAll('.rec-check');
+    selectedReceptionIds.clear();
+    
+    checks.forEach(c => {
+        c.checked = checkboxMaitre.checked;
+        if (c.checked) selectedReceptionIds.add(c.value);
+    });
+    updateBoutonGroupe();
+}
+
+// 3. Mettre à jour le bouton vert
+function updateBoutonGroupe() {
+    const btn = document.getElementById('btn-group-pay');
+    const count = document.getElementById('count-sel');
+    
+    if (selectedReceptionIds.size > 0) {
+        btn.style.display = 'block';
+        count.innerText = selectedReceptionIds.size;
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+// 4. Ouvrir le Modal
+const modalGroup = document.getElementById('modal-paiement-groupe');
+function fermerModalPaiementGroupe() { if(modalGroup) modalGroup.style.display='none'; }
+
+function ouvrirModalPaiementGroupe() {
+    if (selectedReceptionIds.size === 0) return;
+    
+    // Calcul du total restant dû pour la sélection
+    let totalDette = 0;
+    
+    selectedReceptionIds.forEach(id => {
+        // On retrouve les données dans la liste chargée
+        const item = allReceptionData.find(d => d.id === id);
+        if (item) {
+            let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0;
+            let net = pB - (item.remise||0);
+            let deja = parseInt(item.montantPaye)||0;
+            let reste = net - deja;
+            if (reste > 0) totalDette += reste;
+        }
+    });
+
+    document.getElementById('group-count').innerText = selectedReceptionIds.size;
+    document.getElementById('group-total').innerText = formatArgent(totalDette) + " CFA";
+    
+    if(modalGroup) modalGroup.style.display = 'flex';
+}
+
+// 5. VALIDATION FINALE (Batch Update)
+async function validerPaiementGroupe() {
+    if (!confirm("Confirmez-vous le paiement TOTAL pour ces colis ?")) return;
+    
+    const moyen = document.getElementById('group-moyen').value;
+    const batch = db.batch();
+    const agent = currentUser ? (currentRole === 'abidjan' ? "AGENCE ABIDJAN" : currentUser.email) : "Inconnu";
+    let count = 0;
+
+    selectedReceptionIds.forEach(id => {
+        const item = allReceptionData.find(d => d.id === id);
+        if (item) {
+            let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0;
+            let net = pB - (item.remise||0);
+            let deja = parseInt(item.montantPaye)||0;
+            let reste = net - deja;
+
+            // On ne met à jour que ceux qui doivent de l'argent
+            if (reste > 0) {
+                const ref = db.collection('expeditions').doc(id);
+                
+                // Préparation update
+                let updates = {
+                    montantPaye: net, // On solde tout
+                    quantiteRecue: item.quantiteEnvoyee, // On suppose qu'on réceptionne tout si on paie tout (Optionnel, à voir selon votre process)
+                    // Si vous voulez juste payer sans valider la réception physique, retirez la ligne quantiteRecue
+                    datePaiement: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Ajout historique
+                updates.historiquePaiements = firebase.firestore.FieldValue.arrayUnion({
+                    date: firebase.firestore.Timestamp.now(),
+                    montant: reste,
+                    moyen: moyen,
+                    agent: agent
+                });
+
+                batch.update(ref, updates);
+                count++;
+            }
+        }
+    });
+
+    try {
+        await batch.commit();
+        alert(`${count} colis ont été soldés avec succès !`);
+        fermerModalPaiementGroupe();
+        selectedReceptionIds.clear();
+        document.getElementById('check-all-rec').checked = false;
+        updateBoutonGroupe();
+        chargerClients(); // Rafraichir
     } catch (e) {
         alert("Erreur : " + e.message);
     }

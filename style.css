@@ -370,3 +370,41 @@ tr.group-summary-row td {
     font-weight: bold !important;        /* Texte en Gras */
     font-size: 1.1em;                    /* Texte un peu plus gros */
 }
+/* =================================== */
+/* FIGER LES ENTÊTES & SCROLL TABLEAU  */
+/* =================================== */
+
+/* 1. On limite la hauteur du tableau pour forcer le scroll à l'intérieur */
+.table-container {
+    max-height: 65vh; /* Le tableau prendra max 65% de la hauteur de l'écran */
+    overflow-y: auto; /* Active la barre de défilement verticale */
+    border-bottom: 2px solid #ccc;
+    position: relative;
+}
+
+/* 2. On fige la ligne des titres (th) en haut du tableau */
+table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100; /* S'assure qu'il reste au-dessus des données */
+    
+    /* Important : Il faut une couleur de fond opaque sinon on voit le texte passer dessous */
+    background-color: #e6e6e6; 
+    color: #000;
+    
+    /* Une petite ombre pour l'effet de profondeur */
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.2);
+    border-top: none;
+}
+
+/* Cas spécifique pour le tableau Compta (qui a des entêtes bleus) */
+.excel-table thead th {
+    background-color: #4472c4 !important;
+    color: white !important;
+}
+
+/* Cas spécifique pour le tableau Paiement (Gris foncé) */
+.modern-payment-table thead th {
+    background-color: #333 !important;
+    color: white !important;
+}

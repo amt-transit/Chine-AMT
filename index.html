@@ -181,13 +181,32 @@
                     
                     <div id="filter-container-rec" class="filter-box"></div>
 
-                    <div class="export-buttons">
-                        <button id="btn-export-pdf" class="btn-secondaire">PDF</button>
-                        <button id="btn-export-excel" class="btn-secondaire">Excel</button>
+                    <div class="export-buttons" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <button id="btn-export-pdf" class="btn-secondaire">PDF</button>
+                            <button id="btn-export-excel" class="btn-secondaire">Excel</button>
+                        </div>
+                        
+                        <button id="btn-group-pay" onclick="ouvrirModalPaiementGroupe()" class="btn-principal" style="display: none; background-color: #27ae60; width: auto;">
+                            💰 Solder la sélection (<span id="count-sel">0</span>)
+                        </button>
                     </div>
                     <div class="table-container">
                         <table id="table-expeditions" class="interactive-table">
-                            <thead><tr><th>Ref</th><th>Date</th><th>Client</th><th>Desc.</th><th>Type</th><th>Qté</th><th>Kg/CBM</th><th>Reste</th><th>Statut</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th style="width: 30px;"><input type="checkbox" id="check-all-rec" onchange="toggleToutSelectionner(this)"></th>  
+                                    <th>Ref</th>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th>Desc.</th>
+                                    <th>Type</th>
+                                    <th>Qté</th>
+                                    <th>Kg/CBM</th>
+                                    <th>Reste</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
                             <tbody id="liste-clients-tbody"></tbody>
                             <tfoot>
                                 <tr class="group-summary-row">
@@ -349,6 +368,31 @@
                 </div>
                 
                 <button type="button" class="btn-principal" onclick="sauvegarderCorrectionReception()">Enregistrer la correction</button>
+            </form>
+        </div>
+    </div>
+    <div id="modal-paiement-groupe" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="modal-close" onclick="fermerModalPaiementGroupe()">&times;</span>
+            <h3>Règlement Groupé</h3>
+            <p>Vous avez sélectionné <strong><span id="group-count">0</span></strong> colis.</p>
+            <div style="background: #e8f5e9; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                Total Restant à Payer : <strong id="group-total" style="color: #27ae60; font-size: 1.2em;">0 CFA</strong>
+            </div>
+            
+            <form id="form-paiement-groupe">
+                <div class="form-group">
+                    <label>Moyen de Paiement</label>
+                    <select id="group-moyen">
+                        <option value="Espèce">Espèce</option>
+                        <option value="Wave">Wave</option>
+                        <option value="OM">OM</option>
+                        <option value="Chèque">Chèque</option>
+                        <option value="CB">CB</option>
+                    </select>
+                </div>
+                <p class="info-text">Cette action va solder (payer entièrement) tous les colis sélectionnés.</p>
+                <button type="button" class="btn-principal" onclick="validerPaiementGroupe()">Valider le paiement total</button>
             </form>
         </div>
     </div>
