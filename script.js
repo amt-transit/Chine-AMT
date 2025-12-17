@@ -33,8 +33,8 @@ let allReceptionData = [];
 let selectedGroupsHistorique = [];
 let selectedGroupsReception = [];
 
-const PRIX_AERIEN_NORMAL = 10000;
-const PRIX_AERIEN_EXPRESS = 12000;
+const PRIX_AERIEN_NORMAL = 11000;
+const PRIX_AERIEN_EXPRESS = 14000;
 const PRIX_MARITIME_CBM = 250000;
 
 let currentReceptionType = 'maritime';
@@ -527,10 +527,34 @@ async function validerEnvoiGroupe() {
         btn.innerText = 'Valider l\'envoi Global';
     }
 }
+// --- FONCTION CORRIGÉE POUR GÉNÉRER LE PROCHAIN GROUPE (EV...) ---
 async function genererRefGroupe(t){
-    const s=await db.collection('expeditions').orderBy('creeLe','desc').limit(50).get(); let max=0;
-    s.forEach(d=>{ let g=d.data().refGroupe||""; if(g.startsWith('EV')){let n=parseInt(g.replace('EV','')); if(n>max)max=n;} });
-    return 'EV'+(max+1);
+    // 1. On augmente la limite de recherche (50 -> 500) pour être sûr de voir les anciens groupes
+    const s = await db.collection('expeditions')
+                      .orderBy('creeLe', 'desc')
+                      .limit(500) 
+                      .get();
+    
+    let max = 0;
+    
+    s.forEach(d => {
+        // On récupère le groupe et on le nettoie (majuscules, sans espaces)
+        let g = d.data().refGroupe || "";
+        g = g.toUpperCase().trim();
+        
+        if(g.startsWith('EV')){
+            // On extrait le chiffre après "EV"
+            let n = parseInt(g.replace('EV', ''));
+            
+            // Si c'est bien un nombre et qu'il est plus grand que le max actuel, on le garde
+            if(!isNaN(n) && n > max) {
+                max = n;
+            }
+        }
+    });
+    
+    // Si le max trouvé est 6, on retourne EV7
+    return 'EV' + (max + 1);
 }
 async function loadAllClientsForAutocomplete(){
     try{ const s=await db.collection('expeditions').get(); const m=new Map(); s.forEach(d=>{const da=d.data(); if(da.tel) m.set(da.tel,da);}); allPastClients=Array.from(m.values()); }catch(e){}
