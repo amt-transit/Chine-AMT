@@ -857,7 +857,7 @@ function updateReceptionView(searchQuery) {
         // Rupture
         if(curGrp!==null && d.refGroupe!==curGrp) {
             let u = currentReceptionType.startsWith('aerien')?'Kg':'CBM';
-            tb.innerHTML += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)}</td><td></td></tr>`;
+            tb.innerHTML += `<tr class="subtotal-row"><td colspan="6">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)}</td><td></td></tr>`;
             gQ=0; gV=0; gP=0;
         }
         curGrp = d.refGroupe;
