@@ -1067,9 +1067,23 @@ async function chargerCompta(type) {
 
         items.forEach((it, idx) => {
             if (curGrp !== null && it.grp !== curGrp && !curGrp.startsWith('ZZZ')) {
-                tbody.innerHTML += `<tr class="group-summary-row"><td colspan="4">TOTAL ${curGrp}</td><td>${formatArgent(grpDu)}</td><td>${formatArgent(grpReste)}</td><td>${formatArgent(grpEntree)}</td><td>${formatArgent(grpSortie)}</td><td></td></tr>`;
-                grpDu = 0; grpReste = 0; grpEntree = 0; grpSortie = 0;
-            }
+            // --- CALCUL DU BÉNÉFICE ---
+            let benef = grpEntree - grpSortie;
+            let colorBenef = benef >= 0 ? '#76ff03' : '#ff5252'; // Vert fluo si positif, Rouge clair si négatif
+            // --------------------------
+
+            tbody.innerHTML += `
+            <tr class="group-summary-row">
+                <td colspan="4">TOTAL ${curGrp}</td>
+                <td>${formatArgent(grpDu)}</td>
+                <td>${formatArgent(grpReste)}</td>
+                <td>${formatArgent(grpEntree)}</td>
+                <td>${formatArgent(grpSortie)}</td>
+                <td style="color:${colorBenef}; font-weight:bold;">${formatArgent(benef)}</td> </tr>`;
+            
+            // Remise à zéro des compteurs
+            grpDu = 0; grpReste = 0; grpEntree = 0; grpSortie = 0;
+        }
             curGrp = it.grp;
 
             let dS = it.sortDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
@@ -1108,7 +1122,21 @@ async function chargerCompta(type) {
                 tbody.innerHTML += `<tr class="${rowClass} interactive-table-row" onclick='voirHistoriquePaiementViaData("${encodeURIComponent(JSON.stringify({ id: it.id, nom: it.nom, reference: it.reference, history: it.hist }))}")'><td>${dS}</td><td>${it.reference}</td><td>${it.description}</td><td>${it.nom} ${it.prenom}</td><td>${formatArgent(du)}</td><td style="color:${r > 0 ? 'red' : 'green'}">${formatArgent(r)}</td><td class="text-green">${formatArgent(paye)}</td><td>-</td><td><i class="fas fa-eye"></i></td></tr>`;
             }
         });
-        if (curGrp && !curGrp.startsWith('ZZZ')) tbody.innerHTML += `<tr class="group-summary-row"><td colspan="4">TOTAL ${curGrp}</td><td>${formatArgent(grpDu)}</td><td>${formatArgent(grpReste)}</td><td>${formatArgent(grpEntree)}</td><td>${formatArgent(grpSortie)}</td><td></td></tr>`;
+        if (curGrp && !curGrp.startsWith('ZZZ')) {
+            // --- CALCUL DU BÉNÉFICE (DERNIER GROUPE) ---
+            let benef = grpEntree - grpSortie;
+            let colorBenef = benef >= 0 ? '#76ff03' : '#ff5252';
+            // -------------------------------------------
+
+            tbody.innerHTML += `
+            <tr class="group-summary-row">
+                <td colspan="4">TOTAL ${curGrp}</td>
+                <td>${formatArgent(grpDu)}</td>
+                <td>${formatArgent(grpReste)}</td>
+                <td>${formatArgent(grpEntree)}</td>
+                <td>${formatArgent(grpSortie)}</td>
+                <td style="color:${colorBenef}; font-weight:bold;">${formatArgent(benef)}</td> </tr>`;
+        }
 
         // GRAND TOTAL FOOTER
         let u = type==='aerien'?'Kg':'CBM';
