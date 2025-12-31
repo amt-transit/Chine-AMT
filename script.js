@@ -1260,7 +1260,16 @@ async function supprimerPaiement(index) {
 function fermerModalHistorique(e) { if (e.target === modalHist || e.target.classList.contains('modal-close') || e.target.classList.contains('btn-secondaire')) modalHist.style.display = 'none'; }
 
 const modalDepense = document.getElementById('modal-depense');
-function ouvrirModalDepense() { modalDepense.style.display = 'flex'; }
+function ouvrirModalDepense() { 
+    // 1. On pré-remplit le select avec le type de l'onglet actif (maritime ou aerien)
+    const selectType = document.getElementById('depense-type');
+    if (selectType && currentComptaType) {
+        selectType.value = currentComptaType;
+    }
+
+    // 2. On affiche le modal
+    if(modalDepense) modalDepense.style.display = 'flex'; 
+}
 function fermerModalDepense(e) { if (e.target === modalDepense || e.target.classList.contains('modal-close')) modalDepense.style.display = 'none'; }
 async function enregistrerDepense() {
     const d = document.getElementById('depense-date').value; const mt = document.getElementById('depense-motif').value;
