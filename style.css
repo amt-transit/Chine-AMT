@@ -196,7 +196,7 @@ button {
     cursor: pointer;
     border: none;
     border-radius: 6px;
-    padding: 1px 10px; /* Boutons plus faciles à cliquer */
+    padding: 5px 10px; /* Boutons plus faciles à cliquer */
     font-size: 10px;
     font-weight: 600;
     transition: all 0.2s ease;
