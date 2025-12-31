@@ -1,58 +1,66 @@
 /* =================================== */
-/* STYLES DE BASE & TYPOGRAPHIE        */
+/* 1. BASE & TYPOGRAPHIE MODERNE       */
 /* =================================== */
+* {
+    box-sizing: border-box; /* Indispensable pour un dimensionnement précis */
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; /* Police moderne */
     margin: 0;
     padding: 0;
     background-color: #f0f2f5;
     color: #333;
-    line-height: 1.3;
-    font-size: 12px;
+    line-height: 1.5; /* Meilleure lisibilité */
+    font-size: 14px;  /* Taille standard actuelle (au lieu de 12px) */
+    -webkit-font-smoothing: antialiased;
 }
+
 main {
-    padding: 5px;
+    padding: 6px;
     max-width: 100%;
     margin: 0 auto;
 }
-h1, h2, h3, h4 { color: #1a1a1a; }
+
+h1, h2, h3, h4 { color: #1a1a1a; margin-top: 0; }
 h2 {
-    font-size: 1.3em;
-    margin-top: 0;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 3px;
-    margin-bottom: 8px;
+    font-size: 1.4em;
+    border-bottom: 2px solid #ddd; /* Trait un peu plus visible */
+    padding-bottom: 8px;
+    margin-bottom: 15px;
 }
 h3 {
-    font-size: 1.1em;
+    font-size: 1.2em;
     color: #15609e;
-    margin-bottom: 5px;
-    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-top: 15px;
 }
+
 .card {
     background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px; /* Angles plus arrondis */
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Ombre douce */
+    margin-bottom: 15px;
 }
 
 /* =================================== */
-/* HEADER & NAV                        */
+/* 2. HEADER & NAVIGATION (MOBILE APP) */
 /* =================================== */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: #fff;
-    padding: 2px 15px;
+    padding: 5px 15px;
     border-bottom: 1px solid #ccc;
-    height: 40px;
+    height: 50px;
 }
-.logo { height: 30px; }
+.logo { height: 35px; }
+
 .header-info {
-    font-size: 0.9em;
+    font-size: 0.95em;
     color: #555;
     display: flex;
     align-items: center;
@@ -60,81 +68,119 @@ header {
 }
 .header-info button {
     display: inline-block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
     background-color: #dc3545;
     color: white;
 }
 
+/* Menu de navigation défilant (Style App Mobile) */
 .main-nav {
     display: flex;
     background-color: #15609e;
-    padding: 0 5px;
-    height: 35px;
-    align-items: flex-end;
+    padding: 0 10px;
+    height: 55px; /* Hauteur confortable pour le tactile */
+    align-items: center;
+    overflow-x: auto; /* Scroll horizontal sur mobile */
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
 }
+
+/* Masquer la barre de défilement (esthétique) */
+.main-nav::-webkit-scrollbar { display: none; }
+
 .nav-link {
-    background-color: transparent;
+    background-color: rgba(255, 255, 255, 0.15);
     border: none;
-    outline: none;
+    border-radius: 20px; /* Forme "pilule" moderne */
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
     cursor: pointer;
-    padding: 8px 15px;
-    font-size: 1em;
-    font-weight: bold;
-    color: #e0e0e0;
-    border-bottom: 3px solid transparent;
+    flex-shrink: 0; /* Empêche le bouton de s'écraser */
+    transition: all 0.2s ease;
 }
-.nav-link:hover { background-color: #1e7fc9; color: #fff; }
+
+.nav-link:hover { background-color: rgba(255, 255, 255, 0.25); }
+
 .nav-link.active {
     background-color: #fff;
     color: #15609e;
-    border-bottom: 3px solid #f0a500;
-    padding-bottom: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    border-bottom: none; /* On retire l'ancien style de soulignement */
 }
-.page-content { display: none; animation: fadeIn 0.2s; }
-@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
-.info-text { font-size: 0.9em; color: #666; font-style: italic; margin-bottom: 5px; margin-top: -5px;}
+
+/* Sous-navigation (Onglets internes) */
+.sub-nav-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.sub-nav-link {
+    background: transparent;
+    border: 1px solid #15609e;
+    color: #15609e;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.sub-nav-link.active {
+    background: #15609e;
+    color: white;
+}
+
+.page-content { display: none; animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from {opacity:0; transform: translateY(5px);} to {opacity:1; transform: translateY(0);} }
+.info-text { font-size: 0.9em; color: #666; font-style: italic; margin-bottom: 10px; margin-top: -5px;}
 
 /* =================================== */
-/* FORMULAIRES                         */
+/* 3. FORMULAIRES & INPUTS MODERNES    */
 /* =================================== */
-.form-group { margin-bottom: 5px; }
+.form-group { margin-bottom: 12px; }
+
 .form-group label {
     display: block;
-    margin-bottom: 1px;
-    font-weight: 700;
+    margin-bottom: 4px;
+    font-weight: 600;
     color: #444;
     font-size: 0.95em;
 }
+
+/* Inputs plus grands et plus jolis */
 .form-group input, .form-group select {
     width: 100%;
-    padding: 2px 5px;
-    border: 1px solid #999;
-    border-radius: 2px;
-    box-sizing: border-box;
-    font-size: 1em;
-    height: 26px;
-}
-.form-group input:focus, .form-group select:focus {
-    outline: none; border-color: #15609e;
+    padding: 8px 12px; /* Espace intérieur confortable */
+    border: 1px solid #ced4da;
+    border-radius: 6px; /* Angles arrondis */
+    font-size: 14px;
+    height: auto; /* Hauteur automatique selon le contenu */
+    background-color: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-/* STYLE SPÉCIFIQUE : SAISIE DÉTAIL COLIS (Ajouté) */
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #15609e;
+    box-shadow: 0 0 0 3px rgba(21, 96, 158, 0.15); /* Halo bleu au focus */
+}
+
+/* Zone spécifique : Détail Colis */
 .sub-colis-input-group {
     background-color: #f8f9fa;
-    padding: 10px;
+    padding: 15px;
     border: 1px dashed #ccc;
-    border-radius: 4px;
-    margin-bottom: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
 }
 
-/* TOTAUX (Ajouté) */
+/* Totaux */
 .totaux-display {
     font-weight: bold;
-    margin-top: 5px;
-    padding: 8px;
+    margin-top: 10px;
+    padding: 10px 15px;
     background-color: #e8f5e9; /* Vert clair */
-    border-radius: 3px;
+    border-radius: 6px;
     color: #2e7d32;
     display: flex;
     justify-content: space-between;
@@ -142,269 +188,209 @@ header {
 }
 
 /* =================================== */
-/* BOUTONS                             */
+/* 4. BOUTONS MODERNES                 */
 /* =================================== */
-.export-buttons { display: flex; gap: 5px; margin-bottom: 5px; }
-.export-buttons button { width: auto; padding: 4px 8px; font-size: 0.9em; }
+.export-buttons { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 
 button {
     cursor: pointer;
     border: none;
-    border-radius: 3px;
-    padding: 6px 12px;
-    font-size: 1em;
-    font-weight: bold;
-    transition: all 0.1s ease;
+    border-radius: 6px;
+    padding: 1px 10px; /* Boutons plus faciles à cliquer */
+    font-size: 10px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
 }
+
+button:active { transform: translateY(1px); }
+
 .btn-principal { background-color: #15609e; color: white; width: 100%; margin-top: 5px; }
 .btn-principal:hover { background-color: #125a96; }
+
 .btn-secondaire { background-color: #6c757d; color: white; width: 100%; margin-top: 5px; }
 .btn-secondaire:hover { background-color: #5a6268; }
-.btn-small { width: auto; padding: 4px 8px; font-size: 0.9em; }
-.btn-suppr-small { background: #dc3545; color: white; padding: 1px 5px; font-size: 10px; border-radius: 2px; height: 20px; line-height: 18px;}
 
-hr { border: none; border-top: 1px solid #ddd; margin: 10px 0; }
-#prix-calcule, .prix-final { font-size: 1.1em; font-weight: 700; color: #28a745; }
+.btn-small { width: auto; padding: 6px 12px; font-size: 0.9em; }
+
+.btn-suppr-small { 
+    background: #dc3545; color: white; 
+    padding: 4px 8px; 
+    font-size: 11px; 
+    border-radius: 4px; 
+    height: auto; 
+    line-height: normal;
+}
+
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 15px 0; }
+#prix-calcule, .prix-final { font-size: 1.2em; font-weight: 700; color: #28a745; }
 
 /* =================================== */
-/* TABLEAUX                            */
+/* 5. TABLEAUX & STICKY HEADER         */
 /* =================================== */
-.table-container { overflow-x: auto; }
+.table-container { 
+    max-height: 65vh; /* Hauteur max pour le scroll */
+    overflow-y: auto; 
+    overflow-x: auto;
+    border-bottom: 1px solid #ccc;
+    position: relative;
+    border-radius: 4px;
+}
+
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate; /* Nécessaire pour le sticky header propre */
+    border-spacing: 0;
     margin-top: 5px;
-    font-size: 1em;
+    font-size: 0.95em;
     background-color: #fff;
 }
+
 th, td {
-    padding: 3px 5px;
+    padding: 1px 3px; /* Plus aéré */
     text-align: left;
-    border: 1px solid #ccc;
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #eee;
     white-space: nowrap;
 }
-th {
+
+/* En-têtes figés (Sticky) */
+table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100;
     background-color: #e6e6e6;
     color: #000;
     font-weight: bold;
     text-transform: uppercase;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
+    border-top: none;
 }
-tbody tr:nth-child(even) { background-color: #f9f9f9; }
+
+/* Styles spécifiques tableaux */
+tbody tr:nth-child(even) { background-color: #f8f9fa; }
 tbody tr:hover { background-color: #e3f2fd; }
 
-/* TABLEAU SOUS-COLIS (DESCRIPTION LARGE) */
-#table-sub-colis {
-    width: 100%;
-    margin-top: 5px;
-    table-layout: fixed; /* Important pour forcer les largeurs */
-}
-#table-sub-colis th:nth-child(1) { width: 50%; } /* Description large */
-#table-sub-colis th:nth-child(2) { width: 15%; } /* Qté */
-#table-sub-colis th:nth-child(3) { width: 20%; } /* Poids */
-#table-sub-colis th:nth-child(4) { width: 15%; } /* Action */
-#table-sub-colis td {
-    word-wrap: break-word;
-    white-space: normal; /* Permet le retour à la ligne pour la desc */
-}
+/* Tableau Sous-Colis */
+#table-sub-colis { width: 100%; table-layout: fixed; }
+#table-sub-colis th:nth-child(1) { width: 45%; }
+#table-sub-colis th:nth-child(2) { width: 15%; }
+#table-sub-colis th:nth-child(3) { width: 25%; }
+#table-sub-colis th:nth-child(4) { width: 15%; }
+#table-sub-colis td { word-wrap: break-word; white-space: normal; }
 
-/* Actions */
-.btn-action { display: inline-block; padding: 1px 6px; font-size: 0.85em; margin: 0 1px; border-radius: 2px; }
-.btn-afficher { background-color: #28a745; color: white; }
-.btn-supprimer { background-color: #dc3545; color: white; }
+/* Actions tableau */
+.btn-action { display: inline-block; padding: 4px 8px; font-size: 0.9em; margin: 0 2px; border-radius: 4px; }
 
-/* Tableau Compta */
-.excel-table th { background-color: #4472c4; color: white; border: 1px solid #fff; }
+/* Tableau Compta (Couleurs spécifiques) */
+.excel-table thead th { background-color: #4472c4 !important; color: white !important; }
 .excel-table td { text-align: center; }
-.excel-table td:nth-child(6) { color: #c0392b; font-weight: bold; }
-.excel-table td:nth-child(7) { color: #27ae60; font-weight: bold; }
-.excel-table td:nth-child(8) { color: #c0392b; font-weight: bold; }
+.excel-table td:nth-child(6) { color: #c0392b; font-weight: bold; } /* Reste */
+.excel-table td:nth-child(7) { color: #27ae60; font-weight: bold; } /* Entrée */
+.excel-table td:nth-child(8) { color: #c0392b; font-weight: bold; } /* Sortie */
 
-/* LIGNE TOTAL GROUPE */
+/* Lignes de résumé (Totals) */
 tr.group-summary-row { background-color: #444 !important; }
 tr.group-summary-row td {
-    color: rgb(0, 255, 255) !important;
+    color: cyan !important;
     font-weight: bold;
-    border: 1px solid #555;
     text-align: center;
     font-size: 1.1em;
 }
 
+/* Sous-totaux */
+.subtotal-row {
+    background-color: #7596b6 !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+    font-size: 1.1em;
+}
+
+/* Tableau Paiement Modern (Compta) */
+.modern-payment-table td:nth-child(2) { color: #28a745; font-weight: bold; } /* Entrée Vert */
+.modern-payment-table td:nth-child(3) { color: #c0392b; font-weight: bold; } /* Sortie Rouge */
+.modern-payment-table thead th { background-color: #333 !important; color: white !important; }
+
 /* =================================== */
-/* AUTRES ELEMENTS                     */
+/* 6. RESPONSIVE GRID (LAYOUT)         */
 /* =================================== */
-.status-badge { padding: 2px 6px; border-radius: 3px; font-size: 0.85em; font-weight: bold; color: #fff; display: inline-block; }
+
+/* Mobile First : Par défaut tout est en colonne */
+#form-envoi-commun, #form-ajout-client {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Tablette et Desktop (> 768px) */
+@media (min-width: 768px) {
+    #form-envoi-commun, #form-ajout-client {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 2 colonnes égales */
+        gap: 20px 30px; /* Espace vertical / horizontal */
+        align-items: end;
+    }
+
+    /* Éléments qui prennent toute la largeur */
+    #form-envoi-commun h3, 
+    #form-ajout-client h3, 
+    #form-ajout-client hr,
+    #form-ajout-client h4,
+    #form-ajout-client p,
+    .sub-colis-input-group, 
+    #table-sub-colis, 
+    .totaux-display,
+    .form-group:has(input[type="file"]),
+    #btn-ajouter-client { 
+        grid-column: 1 / -1; 
+    }
+}
+
+/* =================================== */
+/* 7. AUTRES ELEMENTS & MODALS         */
+/* =================================== */
+.status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; color: #fff; display: inline-block; }
 .status-attente { background-color: #6c757d; }
 .status-conforme { background-color: #28a745; }
 .status-ecart { background-color: #dc3545; }
 .status-superieur { background-color: #15609e; }
 
-.dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; margin-bottom: 10px; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; }
 .summary-row {
-    display: flex; justify-content: space-between; padding: 5px 10px;
-    border: 1px solid #999; margin-bottom: 3px; font-weight: bold; font-size: 1.1em;
+    display: flex; justify-content: space-between; padding: 10px 15px;
+    border: 1px solid #ddd; border-radius: 6px; margin-bottom: 5px; font-weight: bold; font-size: 1.1em;
 }
 .red-bg { background: #f8d7da; color: #721c24; }
 .white-bg { background: #fff; }
 .blue-light-bg { background: #e3f2fd; color: #15609e; }
-.text-green { color: #28a745; } .text-red { color: #c0392b; } .text-blue { color: #15609e; }
-
-/* Tableau Paiements */
-.dashboard-payments-modern { border: 1px solid #999; }
-.modern-payment-table th { background-color: #333; color: #fff; padding: 4px 8px; }
-.modern-payment-table td { padding: 4px 8px; border-bottom: 1px solid #ccc; }
-.modern-total-row { background-color: #eee; font-weight: bold; }
+.text-green { color: #28a745; } .text-red { color: #c0392b; }
 
 /* Modals */
-.modal-backdrop { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-.modal-content { background: #fff; border-radius: 4px; padding: 15px; width: 98%; max-width: 500px; max-height: 98vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-.modal-close { position: absolute; top: 5px; right: 10px; font-size: 20px; cursor: pointer; }
-#apercu-photos, #photos-recues-apercu { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-#apercu-photos img, #photos-recues-apercu img { width: 40px; height: 40px; object-fit: cover; border: 1px solid #ccc; cursor: pointer; }
+.modal-backdrop { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.modal-content { background: #fff; border-radius: 8px; padding: 20px; width: 95%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.modal-close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+.modal-close:hover { color: #333; }
+#apercu-photos img, #photos-recues-apercu img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
 
 /* Login */
 #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #15609e 0%, #2c3e50 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; width: 300px; }
+.login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); text-align: center; width: 90%; max-width: 350px; }
 .login-logo { width: 80px; margin-bottom: 20px; }
-#user-display { font-weight: bold; color: #15609e; }
-.modif-info { font-size: 0.8em; color: #e67e22; font-style: italic; }
 
-/* Filtres */
-.filter-box { background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-.filter-title { font-weight: bold; margin-right: 10px; color: #15609e; }
+/* Filtres & Autocomplete */
+.filter-box { background: #f8f9fa; padding: 10px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.filter-title { font-weight: bold; color: #15609e; margin-right: 5px; }
 .filter-option { display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 0.9em; }
 
-/* Couleurs Mois */
+.autocomplete-container { position: relative; }
+.autocomplete-items { display: none; position: absolute; border: 1px solid #ccc; background: #fff; z-index: 100; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; border-radius: 0 0 6px 6px; box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
+.autocomplete-items div { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+.autocomplete-items div:hover { background: #f0f2f5; }
+
+/* Couleurs Mois (Lignes tableaux) */
 .row-month-0 { background-color: #e1f5fe; } .row-month-1 { background-color: #f3e5f5; } .row-month-2 { background-color: #e8f5e9; }
 .row-month-3 { background-color: #fff3e0; } .row-month-4 { background-color: #fce4ec; } .row-month-5 { background-color: #fffde7; }
 .row-month-6 { background-color: #e0f2f1; } .row-month-7 { background-color: #ffebee; } .row-month-8 { background-color: #ede7f6; }
 .row-month-9 { background-color: #e0f7fa; } .row-month-10 { background-color: #f1f8e9; } .row-month-11 { background-color: #eceff1; }
-
-/* Autocomplete */
-.autocomplete-container { position: relative; }
-.autocomplete-items { display: none; position: absolute; border: 1px solid #999; background: #fff; z-index: 100; top: 100%; left: 0; right: 0; max-height: 150px; overflow-y: auto; }
-.autocomplete-items div { padding: 5px; cursor: pointer; border-bottom: 1px solid #eee; }
-.autocomplete-items div:hover { background: #e9e9e9; }
-
-/* Responsive */
-@media (min-width: 768px) {
-    #form-envoi-commun, #form-ajout-client { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 25px; align-items: end; }
-    #form-envoi-commun h3, #form-ajout-client h3, #form-envoi-commun p, #form-ajout-client p, #form-ajout-client hr, #form-ajout-client button, #form-ajout-client h4, .sub-colis-input-group, #table-sub-colis, .totaux-display { grid-column: 1 / -1; }
-    #form-ajout-client .form-group:has(input[type="file"]) { grid-column: 1 / -1; }
-}
-/* =================================== */
-/* CONDENSATION PAGE ENVOI (Patch)     */
-/* =================================== */
-
-/* 1. Réduire l'espace entre les colonnes et les lignes (Grille) */
-@media (min-width: 768px) {
-    #form-envoi-commun, #form-ajout-client {
-        /* Avant c'était gap: 15px 25px; */
-        gap: 4px 10px !important; 
-        align-items: end;
-    }
-}
-
-/* 2. Réduire l'espace sous chaque champ */
-#Envoi .form-group {
-    margin-bottom: 2px !important;
-}
-
-/* 3. Coller le Label à son Input */
-#Envoi label {
-    margin-bottom: 0px !important;
-    font-size: 0.85em !important; /* Un peu plus petit pour gagner de la place */
-}
-
-/* 4. Réduire les séparateurs et titres */
-#Envoi hr {
-    margin: 5px 0 !important;
-}
-#Envoi h3 {
-    margin-top: 5px !important;
-    margin-bottom: 5px !important;
-    font-size: 1.05em !important;
-}
-
-/* 5. Compacter la zone grise des sous-colis */
-.sub-colis-input-group {
-    padding: 4px 8px !important;
-    margin-bottom: 5px !important;
-}
-
-/* 6. Ajuster la hauteur des inputs pour être plus fins */
-#Envoi input, #Envoi select {
-    height: 24px !important; /* Avant 26px */
-    font-size: 0.95em !important;
-}
-/* =================================== */
-/* COULEURS TABLEAU COMPTA (Entrée/Sortie) */
-/* =================================== */
-
-/* La 2ème colonne (Entrée) en VERT */
-.modern-payment-table td:nth-child(2) {
-    color: #28a745; /* Vert standard */
-    font-weight: bold; /* On met en gras pour bien voir */
-}
-
-/* La 3ème colonne (Sortie) en ROUGE */
-.modern-payment-table td:nth-child(3) {
-    color: #ff1900; /* Rouge brique (plus lisible) */
-    font-weight: bold;
-}
-
-/* Optionnel : Si vous voulez aussi colorer la ligne TOTAL en bas */
-.modern-total-row td:nth-child(2) {
-    color: #28a745;
-}
-.modern-total-row td:nth-child(3) {
-    color: #ff1900;
-}
-/* =================================== */
-/* STYLE DES LIGNES SOUS-TOTAL         */
-/* =================================== */
-
-.subtotal-row {
-    background-color: #7596b6 !important; /* Fond Bleu foncé (changez ce code pour une autre couleur) */
-    color: #ffffff !important;           /* Texte Blanc */
-    font-weight: bold !important;        /* Texte en Gras */
-    font-size: 1.1em;                    /* Texte un peu plus gros */
-}
-/* =================================== */
-/* FIGER LES ENTÊTES & SCROLL TABLEAU  */
-/* =================================== */
-
-/* 1. On limite la hauteur du tableau pour forcer le scroll à l'intérieur */
-.table-container {
-    max-height: 65vh; /* Le tableau prendra max 65% de la hauteur de l'écran */
-    overflow-y: auto; /* Active la barre de défilement verticale */
-    border-bottom: 2px solid #ccc;
-    position: relative;
-}
-
-/* 2. On fige la ligne des titres (th) en haut du tableau */
-table thead th {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 100; /* S'assure qu'il reste au-dessus des données */
-    
-    /* Important : Il faut une couleur de fond opaque sinon on voit le texte passer dessous */
-    background-color: #e6e6e6; 
-    color: #000;
-    
-    /* Une petite ombre pour l'effet de profondeur */
-    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.2);
-    border-top: none;
-}
-
-/* Cas spécifique pour le tableau Compta (qui a des entêtes bleus) */
-.excel-table thead th {
-    background-color: #4472c4 !important;
-    color: white !important;
-}
-
-/* Cas spécifique pour le tableau Paiement (Gris foncé) */
-.modern-payment-table thead th {
-    background-color: #333 !important;
-    color: white !important;
-}

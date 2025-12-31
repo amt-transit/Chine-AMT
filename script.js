@@ -752,7 +752,7 @@ async function sauvegarderModificationChine() {
     if(currentModifEnvoi.type === 'aerien_normal') t = PRIX_AERIEN_NORMAL;
     else if(currentModifEnvoi.type === 'aerien_express') t = PRIX_AERIEN_EXPRESS;
     else t = PRIX_MARITIME_CBM;
-    up.prixEstime = formatArgent((v * t) - r) + ' CFA';
+    up.prixEstime = formatArgent(v * t) + ' CFA';
 
     // --- LOGIQUE DE CHANGEMENT DE GROUPE ---
     if (nouveauGroupe && nouveauGroupe !== currentModifEnvoi.refGroupe) {
@@ -767,6 +767,24 @@ async function sauvegarderModificationChine() {
             const nouvelleRef = currentModifEnvoi.reference.replace(ancienneFin, nouveauGroupe);
             up.reference = nouvelleRef;
         }
+    }
+    // --- NOUVEAU BLOC : RECALCUL DE COHÉRENCE (SI DÉJÀ REÇU) ---
+    // Si le colis a déjà été réceptionné (quantité reçue > 0), on doit vérifier si la modif crée un écart
+    if (currentModifEnvoi.quantiteRecue > 0) {
+        const qRecue = currentModifEnvoi.quantiteRecue || 0;
+        const pRecu = currentModifEnvoi.poidsRecu || 0;
+        
+        let nouveauStatut = 'Reçu - Conforme';
+        const diffQ = qRecue - q; // q est la nouvelle quantité saisie
+        const diffP = pRecu - v;  // v est le nouveau poids/vol saisi
+
+        if (diffQ < 0) nouveauStatut = 'Reçu - Ecart';
+        else if (diffQ > 0) nouveauStatut = 'Reçu - Supérieur';
+        else { 
+            if (Math.abs(diffP) > 0.1) nouveauStatut = (diffP > 0 ? 'Reçu - Supérieur' : 'Reçu - Ecart'); 
+            else nouveauStatut = 'Reçu - Conforme'; 
+        }
+        up.status = nouveauStatut;
     }
     // ---------------------------------------
 
@@ -1967,8 +1985,8 @@ async function validerPaiementGroupe() {
                 // Préparation update
                 let updates = {
                     montantPaye: net, // On solde tout
-                    quantiteRecue: item.quantiteEnvoyee, // On suppose qu'on réceptionne tout si on paie tout (Optionnel, à voir selon votre process)
-                    // Si vous voulez juste payer sans valider la réception physique, retirez la ligne quantiteRecue
+                    quantiteRecue: item.quantiteEnvoyee,
+                    status: 'Reçu - Conforme',
                     datePaiement: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
