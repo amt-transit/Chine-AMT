@@ -32,6 +32,7 @@ let allHistoriqueData = [];
 let allReceptionData = [];
 let selectedGroupsHistorique = [];
 let selectedGroupsReception = [];
+let selectedHistoriqueIds = new Set(); // Stocke les ID sélectionnés dans l'historique
 
 const PRIX_AERIEN_NORMAL = 11000;
 const PRIX_AERIEN_EXPRESS = 14000;
@@ -607,7 +608,6 @@ function updateHistoriqueView(searchQuery) {
         return true;
     });
     
-    // DANS updateHistoriqueView (script.js)
 
     // Tri par Groupe DÉCROISSANT (EV10 avant EV9), puis par Référence
     filtered.sort((a, b) => {
@@ -636,7 +636,7 @@ function updateHistoriqueView(searchQuery) {
 
         if(curGrp!==null && d.refGroupe!==curGrp) {
             let u = currentHistoriqueType==='aerien'?'Kg':'CBM';
-            tb.innerHTML += `<tr class="subtotal-row"><td colspan="3">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
+            tb.innerHTML += `<tr class="subtotal-row"><td colspan="4">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
             gQ=0; gV=0; gP=0;
         }
         curGrp = d.refGroupe;
@@ -655,12 +655,13 @@ function updateHistoriqueView(searchQuery) {
         let pvStr = pv + (isAir?' Kg':' CBM');
         let mod = d.dernierModificateur ? `<span class="modif-info">Par ${d.dernierModificateur}</span>` : '-';
         const j = JSON.stringify({id:d.id, ...d}).replace(/'/g, "&#39;");
+        let checkbox = `<input type="checkbox" class="hist-check" value="${d.id}" onchange="gererSelectionHistorique('${d.id}')" onclick="event.stopPropagation()">`;
 
-        tb.innerHTML += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td>${d.reference}</td><td>${dateS}</td><td>${d.nom} ${d.prenom}</td><td>${d.quantiteEnvoyee}</td><td>${pvStr}</td><td>${formatArgent(final)} CFA</td><td>${mod}</td><td><i class="fas fa-edit"></i></td></tr>`;
+        tb.innerHTML += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td>${checkbox}</td><td>${d.reference}</td><td>${dateS}</td><td>${d.nom} ${d.prenom}</td><td>${d.quantiteEnvoyee}</td><td>${pvStr}</td><td>${formatArgent(final)} CFA</td><td>${mod}</td><td><i class="fas fa-edit"></i></td></tr>`;
 
         if(idx === filtered.length-1) {
             let u = isAir?'Kg':'CBM';
-            tb.innerHTML += `<tr class="subtotal-row"><td colspan="3">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
+            tb.innerHTML += `<tr class="subtotal-row"><td colspan="4">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
         }
     });
 
@@ -2049,6 +2050,131 @@ async function validerPaiementGroupe() {
         document.getElementById('check-all-rec').checked = false;
         updateBoutonGroupe();
         chargerClients(); // Rafraichir
+    } catch (e) {
+        alert("Erreur : " + e.message);
+    }
+}
+// ===========================================
+// GESTION ACTION DE MASSE (HISTORIQUE)
+// ===========================================
+
+// 1. Gérer la sélection (Coche unique)
+function gererSelectionHistorique(id) {
+    if (selectedHistoriqueIds.has(id)) selectedHistoriqueIds.delete(id);
+    else selectedHistoriqueIds.add(id);
+    updateActionsHistorique();
+}
+
+// 2. Gérer "Tout Cocher"
+function toggleToutSelectionnerHist(source) {
+    const boxes = document.querySelectorAll('.hist-check');
+    selectedHistoriqueIds.clear();
+    boxes.forEach(b => {
+        b.checked = source.checked;
+        if(b.checked) selectedHistoriqueIds.add(b.value);
+    });
+    updateActionsHistorique();
+}
+
+// 3. Afficher/Masquer le menu d'action
+function updateActionsHistorique() {
+    const div = document.getElementById('hist-bulk-actions');
+    const span = document.getElementById('hist-count-sel');
+    
+    if (selectedHistoriqueIds.size > 0) {
+        div.style.display = 'flex';
+        span.innerText = selectedHistoriqueIds.size + " élt(s)";
+        
+        // On charge la liste des groupes dans le select si c'est pas déjà fait
+        const select = document.getElementById('hist-bulk-select');
+        if (select.options.length === 0) {
+            chargerGroupesPourBulk();
+        }
+    } else {
+        div.style.display = 'none';
+    }
+}
+
+// 4. Charger les groupes dans le petit menu déroulant
+async function chargerGroupesPourBulk() {
+    const select = document.getElementById('hist-bulk-select');
+    select.innerHTML = '<option value="">Chargement...</option>';
+    
+    // On réutilise la fonction existante pour récupérer les groupes
+    // Ou on le fait rapidement ici basé sur les données chargées
+    let groupes = new Set(allHistoriqueData.map(d => d.refGroupe).filter(g => g && g.startsWith('EV')));
+    
+    const sorted = Array.from(groupes).sort((a, b) => {
+        return parseInt(b.replace('EV', '')||0) - parseInt(a.replace('EV', '')||0);
+    });
+
+    select.innerHTML = '<option value="">Choisir destination...</option>';
+    
+    // Option pour créer un nouveau
+    const optNew = document.createElement('option');
+    optNew.value = "NEW_CUSTOM";
+    optNew.innerText = "➕ Nouveau groupe...";
+    select.appendChild(optNew);
+
+    sorted.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g;
+        opt.innerText = g;
+        select.appendChild(opt);
+    });
+}
+
+// 5. FONCTION PRINCIPALE : CHANGER LE GROUPE
+async function changerGroupeEnMasse() {
+    const select = document.getElementById('hist-bulk-select');
+    let nouveauGroupe = select.value;
+    
+    if (!nouveauGroupe) { alert("Veuillez choisir un groupe de destination."); return; }
+
+    // Gestion Création Nouveau Groupe
+    if (nouveauGroupe === "NEW_CUSTOM") {
+        const nom = prompt("Nom du nouveau groupe (ex: EV15) :", "EV");
+        if (!nom) return;
+        nouveauGroupe = nom.toUpperCase().trim();
+    }
+
+    if (!confirm(`Déplacer ${selectedHistoriqueIds.size} colis vers le groupe ${nouveauGroupe} ?\nLes références seront mises à jour automatiquement.`)) return;
+
+    const batch = db.batch();
+    let count = 0;
+
+    selectedHistoriqueIds.forEach(id => {
+        const item = allHistoriqueData.find(d => d.id === id);
+        if (item) {
+            const refDoc = db.collection('expeditions').doc(id);
+            let updateData = { 
+                refGroupe: nouveauGroupe,
+                dernierModificateur: currentRole === 'chine' ? 'Agence Chine (Masse)' : 'Agence Abidjan (Masse)',
+                dateModification: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Mise à jour intelligente de la référence (ex: MRT-01-EV3 -> MRT-01-EV4)
+            if (item.reference && item.refGroupe && item.reference.endsWith(item.refGroupe)) {
+                updateData.reference = item.reference.replace(item.refGroupe, nouveauGroupe);
+            }
+
+            batch.update(refDoc, updateData);
+            count++;
+        }
+    });
+
+    try {
+        await batch.commit();
+        alert(`${count} colis déplacés vers ${nouveauGroupe} avec succès !`);
+        
+        // Reset
+        selectedHistoriqueIds.clear();
+        document.getElementById('check-all-hist').checked = false;
+        document.getElementById('hist-bulk-actions').style.display = 'none';
+        
+        // Rafraichir
+        chargerHistoriqueChine();
+        
     } catch (e) {
         alert("Erreur : " + e.message);
     }

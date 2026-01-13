@@ -148,13 +148,20 @@
                     
                     <div id="filter-container-hist" class="filter-box"></div>
 
-                    <div class="export-buttons">
+                    <div class="export-buttons" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <button class="btn-secondaire" onclick="exporterHistoriquePDF()">PDF</button>
                         <button class="btn-secondaire" onclick="exporterHistoriqueExcel()">Excel</button>
+
+                        <div id="hist-bulk-actions" style="display:none; align-items: center; gap: 5px; margin-left: auto; background: #fff3cd; padding: 5px; border-radius: 4px; border: 1px solid #ffeeba;">
+                            <span style="font-weight:bold; color:#856404;" id="hist-count-sel">0</span>
+                            <select id="hist-bulk-select" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc;">
+                                </select>
+                            <button class="btn-principal" onclick="changerGroupeEnMasse()" style="margin:0; width:auto; background-color: #e67e22; color: white; padding: 5px 10px;">📦 Déplacer</button>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table class="excel-table">
-                            <thead><tr><th>Ref</th><th>Date</th><th>Client</th><th>Qté</th><th>Kg/CBM</th><th>Prix</th><th>Info</th><th>Action</th></tr></thead>
+                            <thead><tr><th style="width: 30px;"><input type="checkbox" id="check-all-hist" onchange="toggleToutSelectionnerHist(this)"></th><th>Ref</th><th>Date</th><th>Client</th><th>Qté</th><th>Kg/CBM</th><th>Prix</th><th>Info</th><th>Action</th></tr></thead>
                             <tbody id="tbody-historique-chine"></tbody>
                             <tfoot>
                                 <tr class="group-summary-row">
