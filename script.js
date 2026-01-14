@@ -62,6 +62,7 @@ if(loginForm) {
     });
 }
 
+
 auth.onAuthStateChanged(user => {
     const overlay = document.getElementById('login-overlay');
     const app = document.getElementById('app-container');
@@ -72,44 +73,46 @@ auth.onAuthStateChanged(user => {
         if(overlay) overlay.style.display='none';
         if(app) app.style.display='block';
 
-        // 1. CAS AGENCE CHINE
+        // Détection de l'onglet demandé via l'URL (ex: .../index.html#Reception)
+        const hash = window.location.hash.replace('#', ''); // Récupère "Reception"
+        
+        // 1. Définition du rôle
         if(user.email.includes('chine')) {
             currentRole='chine'; 
             if(disp) disp.innerText="Agence Chine";
-            // On cache les onglets d'Abidjan
             document.getElementById('nav-reception').style.display='none';
             document.getElementById('nav-compta').style.display='none';
-            ouvrirPage(null, 'Envoi');
-        } 
-        // 2. CAS COMPTE SPECTATEUR (Nouveau)
-        else if (user.email.includes('audit')) { // Si l'email contient "audit"
-            currentRole = 'spectateur';
-            if(disp) disp.innerText = "Auditeur (Lecture Seule)";
             
-            // On cache TOUT sauf la compta
+            // Si l'URL demande un onglet autorisé, on l'ouvre, sinon par défaut Envoi
+            if(hash === 'Historique') ouvrirPage(null, 'Historique');
+            else ouvrirPage(null, 'Envoi');
+
+        } else if (user.email.includes('audit')) { 
+            currentRole = 'spectateur';
+            if(disp) disp.innerText = "Auditeur";
             document.getElementById('nav-envoi').style.display = 'none';
             document.getElementById('nav-historique').style.display = 'none';
             document.getElementById('nav-reception').style.display = 'none';
-            
-            // On s'assure que le bouton "Ajout Dépense" est caché
             const btnAjout = document.getElementById('btn-ajout-depense');
             if(btnAjout) btnAjout.style.display = 'none';
 
-            ouvrirPage(null, 'Comptabilite');
-        }
-        // 3. CAS ADMIN ABIDJAN (Par défaut)
-        else {
+            ouvrirPage(null, 'Comptabilite'); // L'auditeur n'a qu'un seul choix
+
+        } else {
             currentRole='abidjan'; 
             if(disp) disp.innerText="Agence Abidjan";
-            // On affiche tout
             document.getElementById('nav-reception').style.display='inline-block';
             document.getElementById('nav-compta').style.display='inline-block';
             
-            // On s'assure que le bouton Ajout Dépense est visible
             const btnAjout = document.getElementById('btn-ajout-depense');
             if(btnAjout) btnAjout.style.display = 'inline-block';
 
-            ouvrirPage(null, 'Reception');
+            // Si l'URL demande un onglet spécifique, on l'ouvre
+            if(['Envoi', 'Historique', 'Reception', 'Comptabilite'].includes(hash)) {
+                ouvrirPage(null, hash);
+            } else {
+                ouvrirPage(null, 'Reception'); // Par défaut
+            }
         }
     } else { 
         if(overlay) overlay.style.display='flex'; 

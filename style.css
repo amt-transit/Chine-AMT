@@ -89,6 +89,9 @@ header {
 .main-nav::-webkit-scrollbar { display: none; }
 
 .nav-link {
+    text-decoration: none; /* Enlève le soulignement du lien */
+    display: inline-flex;  /* Pour bien centrer le texte */
+    align-items: center;
     background-color: rgba(255, 255, 255, 0.15);
     border: none;
     border-radius: 20px; /* Forme "pilule" moderne */
