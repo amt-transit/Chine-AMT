@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMT - Comptabilité</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/logo_amt.png">
+</head>
+<body>
+    <header>
+        <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
+        <div class="header-info">
+            <span>Agence: <span id="agence-nom">Abidjan</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique & Modif</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception (Abidjan)</a>
+        <a href="comptabilite.html" class="nav-link active" id="nav-compta">💰 Comptabilité</a>
+    </nav>
+
+    <main>
+        <section id="Comptabilite" class="page-content" style="display:block;">
+            <div class="sub-nav-container">
+                <button class="sub-nav-link active" onclick="ouvrirSousOngletCompta('maritime')"><i class="fas fa-ship"></i> Maritime</button>
+                <button class="sub-nav-link" onclick="ouvrirSousOngletCompta('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+            </div>
+            <div class="card compta-card">
+                <div class="compta-header"><h2 id="titre-compta">SUIVI FINANCIER</h2></div>
+                <div class="dashboard-grid">
+                    <div class="dashboard-summary">
+                        <div class="summary-row red-bg"><span>Crédit</span><span id="total-credit">0 CFA</span></div>
+                        <div class="summary-row white-bg"><span>Solde Caisse</span><span id="total-caisse">0 CFA</span></div>
+                        <div class="summary-row blue-light-bg"><span>Bonus</span><span id="total-bonus">0 CFA</span></div>
+                    </div>
+                    <div class="dashboard-payments-modern">
+                        <table class="modern-payment-table">
+                            <thead><tr><th>Type</th><th>Entrée</th><th>Sortie</th></tr></thead>
+                            <tbody>
+                                <tr><td>Espèce</td><td id="pay-espece-in">0</td><td id="pay-espece-out">0</td></tr>
+                                <tr><td>Chèque</td><td id="pay-cheque-in">0</td><td id="pay-cheque-out">0</td></tr>
+                                <tr><td>OM</td><td id="pay-om-in">0</td><td id="pay-om-out">0</td></tr>
+                                <tr><td>Wave</td><td id="pay-wave-in">0</td><td id="pay-wave-out">0</td></tr>
+                                <tr><td>CB</td><td id="pay-cb-in">0</td><td id="pay-cb-out">0</td></tr>
+                                <tr class="modern-total-row"><td>TOTAL</td><td id="pay-total-in">0</td><td id="pay-total-out">0</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="table-container mt-20">
+                    <button id="btn-ajout-depense" class="btn-secondaire btn-small" onclick="ouvrirModalDepense()">+ Dépense</button>
+                    <table id="table-compta-details" class="excel-table">
+                        <thead><tr><th>Date</th><th>Ref</th><th>Desc</th><th>Client</th><th>Dû</th><th>Reste</th><th>Entrée</th><th>Sortie</th><th>Action</th></tr></thead>
+                        <tbody id="tbody-compta"></tbody>
+                        <tfoot>
+                            <tr class="group-summary-row" style="background-color: #000 !important; font-size: 1.2em;">
+                                <td colspan="9" id="grand-total-compta">GRAND TOTAL DU GROUPE : 0 Colis | 0 Kg/CBM</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-historique" class="modal-backdrop" onclick="fermerModalHistorique(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModalHistorique(event)">&times;</span>
+            <h3>Historique Paiements</h3>
+            <p>
+                Client: <strong id="hist-client-nom"></strong><br>
+                Ref: <span id="hist-ref"></span>
+            </p>
+            <table class="modern-payment-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Montant</th>
+                        <th>Type</th>
+                        <th>Agent</th>
+                        <th>Action</th> </tr>
+                </thead>
+                <tbody id="tbody-historique"></tbody>
+            </table>
+        </div>
+    </div>
+    <div id="modal-depense" class="modal-backdrop" onclick="fermerModalDepense(event)"><div class="modal-content"><span class="modal-close" onclick="fermerModalDepense(event)">&times;</span><h3>Sortie</h3><form id="form-depense"><div class="form-group"><label>Date</label><input type="date" id="depense-date"></div><div class="form-group"><label>Type</label><select id="depense-type"><option value="maritime">Mer</option><option value="aerien">Air</option></select></div><div class="form-group"><label>Groupe</label><input type="text" id="depense-groupe" placeholder="EV1"></div><div class="form-group"><label>Motif</label><input type="text" id="depense-motif"></div><div class="form-group"><label>Montant</label><input type="number" id="depense-montant"></div><div class="form-group"><label>Moyen</label><select id="depense-moyen"><option value="Espèce">Espèce</option><option value="Wave">Wave</option></select></div><button type="button" class="btn-principal btn-supprimer" onclick="enregistrerDepense()">Valider</button></form></div></div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="comptabilite.js"></script>
+</body>
+</html>

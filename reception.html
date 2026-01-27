@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMT - Réception</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/logo_amt.png">
+</head>
+<body>
+    <header>
+        <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
+        <div class="header-info">
+            <span>Agence: <span id="agence-nom">Abidjan</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique & Modif</a>
+        <a href="reception.html" class="nav-link active" id="nav-reception">📥 Réception (Abidjan)</a>
+        <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
+    </nav>
+
+    <main>
+        <section id="Reception" class="page-content" style="display:block;">
+            <h2>Réception (Abidjan)</h2>
+            <div class="sub-nav-container">
+                <button class="sub-nav-link active" id="btn-rec-maritime" onclick="ouvrirSousOngletReception('maritime')"><i class="fas fa-ship"></i> Maritime</button>
+                <button class="sub-nav-link" id="btn-rec-aerien" onclick="ouvrirSousOngletReception('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+            </div>
+            <div class="card">
+                <div class="form-group" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <input type="text" id="search-reception" placeholder="Rechercher..." style="flex: 1;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: bold; color: #555;">
+                        <input type="checkbox" id="cb-show-paid-rec" onchange="toggleShowPaidReception()"> Afficher les colis payés
+                    </label>
+                </div>
+                
+                <div id="filter-container-rec" class="filter-box"></div>
+
+                <div class="export-buttons" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <button id="btn-export-pdf" class="btn-secondaire" onclick="exporterPDF()">PDF</button>
+                        <button id="btn-export-excel" class="btn-secondaire" onclick="exporterExcel()">Excel</button>
+                    </div>
+                    
+                    <button id="btn-group-pay" onclick="ouvrirModalPaiementGroupe()" class="btn-principal" style="display: none; background-color: #27ae60; width: auto;">
+                        💰 Solder la sélection (<span id="count-sel">0</span>)
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table id="table-expeditions" class="interactive-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;"><input type="checkbox" id="check-all-rec" onchange="toggleToutSelectionner(this)"></th>  
+                                <th>Ref</th>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Desc.</th>
+                                <th>Type</th>
+                                <th>Qté</th>
+                                <th>Kg/CBM</th>
+                                <th>Reste</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="liste-clients-tbody"></tbody>
+                        <tfoot>
+                            <tr class="group-summary-row">
+                                <td colspan="5">TOTAL GÉNÉRAL</td>
+                                <td id="total-rec-qty">0</td>
+                                <td id="total-rec-vol">0</td>
+                                <td id="total-rec-prix">0 CFA</td>
+                                <td colspan="3"></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModal(event)">&times;</span>
+            <div id="details-reception">
+                <h3>Détails : <span id="client-selectionne"></span>
+                    <button class="btn-secondaire btn-small" onclick="ouvrirModalModifReception()" style="background-color: #7f8c8d; float: right;">✏️ Corriger Erreur</button>
+                </h3>
+                <p>
+                    Expéditeur: <strong><span id="expediteur-affiche"></span></strong><br>
+                    Ref: <strong><span id="ref-attendue"></span></strong><br>
+                    Desc: <span id="desc-attendue"></span><br>
+                    Tél: <span id="tel-attendu"></span><br>
+                    Attendu: <span id="qte-attendue"></span> | <span id="poids-attendu"></span><br>
+                    Reste à recevoir: <strong><span id="qte-restant"></span></strong> | <strong><span id="poids-restant"></span></strong><br>
+                    Prix Initial: <span id="prix-attendu"></span><br>
+                    <strong style="font-size:1.2em; color:#dc3545;">Reste: <span id="prix-restant"></span></strong>
+                </p>
+                
+                <div class="form-group" id="photos-recues-container" style="display:none;">
+                    <div id="photos-recues-apercu"></div>
+                </div>
+                
+                <hr>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">Étiquette</button>
+                    <button class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">Facture</button>
+                    <button class="btn-secondaire" onclick="genererBonLivraison()" style="background-color: #8e44ad; color: white;">📄 BL</button>
+                    <button id="btn-marquer-arrive" class="btn-secondaire" onclick="basculerStatutArrive()" style="background-color: #17a2b8; color: white; margin-left: auto;">🛬 Arrivé au Dépôt</button>
+                </div>
+                
+                <div id="reception-status-display">
+                    <p id="reception-status" class="status-badge"></p>
+                    <div id="reception-summary"></div>
+                </div>
+                
+                <div id="form-reception-container">
+                    <hr>
+                    <strong>Ajouter Paiement/Réception:</strong>
+                    <form id="form-reception">
+                        <div class="form-group">
+                            <label>Quantité</label>
+                            <input type="number" id="quantite-recue" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label id="label-poids-recu">Poids/Vol</label>
+                            <input type="number" id="poids-recu" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Montant</label>
+                            <input type="number" id="montant-paye" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Moyen</label>
+                            <select id="moyen-paiement">
+                                <option value="Espèce">Espèce</option>
+                                <option value="Chèque">Chèque</option>
+                                <option value="OM">OM</option>
+                                <option value="Wave">Wave</option>
+                                <option value="CB">CB</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn-principal" onclick="enregistrerReception()">Valider</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-modif-reception" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="modal-close" onclick="fermerModalModifReception()">&times;</span>
+            <h3>Corriger la Réception</h3>
+            <p class="info-text" style="color: #c0392b;">Utilisez ceci uniquement pour corriger une erreur de saisie.</p>
+            
+            <form id="form-modif-reception">
+                <div class="form-group">
+                    <label>Quantité Reçue (Totale)</label>
+                    <input type="number" id="modif-rec-qte">
+                </div>
+                <div class="form-group">
+                    <label>Poids / Vol Reçu (Total)</label>
+                    <input type="number" id="modif-rec-poids" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Montant Payé (Total)</label>
+                    <input type="number" id="modif-rec-paye">
+                </div>
+                
+                <button type="button" class="btn-principal" onclick="sauvegarderCorrectionReception()">Enregistrer la correction</button>
+            </form>
+        </div>
+    </div>
+    <div id="modal-paiement-groupe" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="modal-close" onclick="fermerModalPaiementGroupe()">&times;</span>
+            <h3>Règlement Groupé</h3>
+            <p>Vous avez sélectionné <strong><span id="group-count">0</span></strong> colis.</p>
+            <div style="background: #e8f5e9; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                Total Restant à Payer : <strong id="group-total" style="color: #27ae60; font-size: 1.2em;">0 CFA</strong>
+            </div>
+            
+            <form id="form-paiement-groupe">
+                <div class="form-group">
+                    <label>Moyen de Paiement</label>
+                    <select id="group-moyen">
+                        <option value="Espèce">Espèce</option>
+                        <option value="Wave">Wave</option>
+                        <option value="OM">OM</option>
+                        <option value="Chèque">Chèque</option>
+                        <option value="CB">CB</option>
+                    </select>
+                </div>
+                <p class="info-text">Cette action va solder (payer entièrement) tous les colis sélectionnés.</p>
+                <button type="button" class="btn-principal" onclick="validerPaiementGroupe()">Valider le paiement total</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="pdf-utils.js"></script>
+    <script src="reception.js"></script>
+</body>
+</html>

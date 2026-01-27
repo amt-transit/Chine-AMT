@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMT - Historique</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/logo_amt.png">
+</head>
+<body>
+    <header>
+        <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
+        <div class="header-info">
+            <span>Agence: <span id="agence-nom">Chine</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html" class="nav-link active" id="nav-historique">📝 Historique & Modif</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception (Abidjan)</a>
+        <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
+    </nav>
+
+    <main>
+        <section id="Historique" class="page-content" style="display:block;">
+            <h2>Historique & Modification (Chine)</h2>
+            <div class="sub-nav-container">
+                <button class="sub-nav-link active" id="btn-hist-maritime" onclick="ouvrirSousOngletHistorique('maritime')"><i class="fas fa-ship"></i> Maritime</button>
+                <button class="sub-nav-link" id="btn-hist-aerien" onclick="ouvrirSousOngletHistorique('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+            </div>
+            <div class="card">
+                <div class="form-group" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <input type="text" id="search-hist-chine" placeholder="Rechercher..." style="flex: 1;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: bold; color: #555;">
+                        <input type="checkbox" id="cb-show-paid-hist" onchange="toggleShowPaidHistorique()"> Afficher les colis payés
+                    </label>
+                </div>
+                
+                <div id="filter-container-hist" class="filter-box"></div>
+
+                <div class="export-buttons" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-secondaire" onclick="exporterHistoriquePDF()">PDF</button>
+                    <button class="btn-secondaire" onclick="exporterHistoriqueExcel()">Excel</button>
+
+                    <div id="hist-bulk-actions" style="display:none; align-items: center; gap: 5px; margin-left: auto; background: #fff3cd; padding: 5px; border-radius: 4px; border: 1px solid #ffeeba;">
+                        <span style="font-weight:bold; color:#856404;" id="hist-count-sel">0</span>
+                        <select id="hist-bulk-select" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc;">
+                            </select>
+                        <button class="btn-principal" onclick="changerGroupeEnMasse()" style="margin:0; width:auto; background-color: #e67e22; color: white; padding: 5px 10px;">📦 Déplacer</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="excel-table">
+                        <thead><tr><th style="width: 30px;"><input type="checkbox" id="check-all-hist" onchange="toggleToutSelectionnerHist(this)"></th><th>Ref</th><th>Date</th><th>Client</th><th>Qté</th><th>Kg/CBM</th><th>Prix</th><th>Info</th><th>Action</th></tr></thead>
+                        <tbody id="tbody-historique-chine"></tbody>
+                        <tfoot>
+                            <tr class="group-summary-row">
+                                <td colspan="3">TOTAL GÉNÉRAL</td>
+                                <td id="total-hist-qty">0</td>
+                                <td id="total-hist-vol">0</td>
+                                <td id="total-hist-prix">0 CFA</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-modif-chine" class="modal-backdrop" onclick="fermerModalModif(event)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="fermerModalModif(event)">&times;</span>
+            <h3>Modifier l'Expédition</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <button type="button" class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">🖨️ Étiquette</button>
+                <button type="button" class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">📄 Facture</button>
+                <button type="button" id="btn-marquer-arrive-hist" class="btn-secondaire" onclick="basculerStatutArrive()" style="background-color: #17a2b8; color: white; margin-left: auto;">🛬 Arrivé au Dépôt</button>
+            </div>
+            <p class="info-text">Vous pouvez modifier les informations du client et du colis.</p>
+            
+            <form id="form-modif-chine">
+                <div class="form-group">
+                    <label>Nom</label>
+                    <input type="text" id="modif-nom">
+                </div>
+                <div class="form-group">
+                    <label>Prénom</label>
+                    <input type="text" id="modif-prenom">
+                </div>
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    <input type="text" id="modif-tel">
+                </div>
+                
+                <hr> <div class="form-group">
+                    <label>Quantité</label>
+                    <input type="number" id="modif-qte">
+                </div>
+                <div class="form-group">
+                    <label>Poids / Volume</label>
+                    <input type="number" id="modif-poids" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Réduction (CFA)</label>
+                    <input type="number" id="modif-remise" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Prix Final</label>
+                    <input type="text" id="modif-prix-final" readonly>
+                </div>
+
+                <div class="form-group" style="background: #e8f5e9; padding: 5px; border-radius: 4px; margin-top: 10px;">
+                    <label style="color: #2e7d32;">Changer de Groupe</label>
+                    <select id="modif-groupe-select" style="width: 100%; height: 30px;" onchange="verifierCreationGroupe(this)">
+                        </select>
+                    <p class="info-text" style="font-size: 0.8em; margin: 2px 0;">Attention: Cela mettra aussi à jour la Référence (ex: -EV3 deviendra -EV4).</p>
+                </div>
+                <hr> <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn-principal" onclick="sauvegarderModificationChine()" style="flex: 2;">Enregistrer les modifications</button>
+                        
+                        <button type="button" class="btn-principal btn-supprimer" onclick="supprimerCeColis()" style="flex: 1; background-color: #c0392b;">🗑️ Supprimer</button>
+                    </div>
+                
+                <button type="button" class="btn-principal" onclick="sauvegarderModificationChine()">Enregistrer les modifications</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="pdf-utils.js"></script>
+    <script src="historique.js"></script>
+</body>
+</html>

@@ -397,3 +397,83 @@ tr.group-summary-row td {
 .row-month-3 { background-color: #fff3e0; } .row-month-4 { background-color: #fce4ec; } .row-month-5 { background-color: #fffde7; }
 .row-month-6 { background-color: #e0f2f1; } .row-month-7 { background-color: #ffebee; } .row-month-8 { background-color: #ede7f6; }
 .row-month-9 { background-color: #e0f7fa; } .row-month-10 { background-color: #f1f8e9; } .row-month-11 { background-color: #eceff1; }
+
+/* =================================== */
+/* 8. NOUVEAU DESIGN ENVOI SIMPLIFIÉ   */
+/* =================================== */
+.type-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Force 3 colonnes sur une ligne */
+    gap: 8px; /* Espace réduit entre les cartes */
+    margin-bottom: 15px;
+}
+
+.type-card {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 4px; /* Padding très compact */
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 85px; /* Hauteur fixe réduite */
+}
+
+.type-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    opacity: 1;
+}
+
+.type-card.selected {
+    border-color: #15609e;
+    background-color: #e3f2fd;
+    opacity: 1;
+    box-shadow: 0 0 0 2px rgba(21, 96, 158, 0.2);
+}
+
+.type-card i {
+    font-size: 1.6em; /* Icône plus petite */
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.type-card.selected i { color: #15609e; }
+.type-card h4 { margin: 0; font-size: 0.8em; line-height: 1.2; }
+.type-card p { margin: 2px 0 0; font-size: 0.65em; color: #666; }
+
+.step-badge {
+    background: #15609e; color: white;
+    border-radius: 50%; width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-right: 8px; font-size: 0.9em;
+}
+
+/* Couleurs distinctes pour les sections Envoi */
+#form-envoi-commun {
+    background-color: #e3f2fd; /* Bleu très clair */
+    border-color: #90caf9;
+}
+
+#form-ajout-client {
+    background-color: #f1f8e9; /* Vert très clair */
+    border-color: #a5d6a7;
+}
+
+#card-liste-attente {
+    background-color: #fff3e0; /* Orange très clair */
+    border-color: #ffcc80;
+}
+
+/* Optimisation Mobile Spécifique */
+@media (max-width: 480px) {
+    .card { padding: 10px; } /* Gagne de la place sur les bords */
+    h2 { font-size: 1.2em; }
+    .form-group label { font-size: 0.9em; }
+    .type-card { border-width: 1px; }
+}
