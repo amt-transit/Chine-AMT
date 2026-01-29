@@ -127,10 +127,15 @@ function exporterExcel() {
     var link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "expeditions.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
-function exporterPDF() {
+async function exporterPDF() {
     if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
     const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'mm', 'a4');
-    const headers = [["Ref", "Date", "Client", "Tél", "Desc", "Type", "Qté", "Poids", "Prix Restant", "Statut"]];
+    
+    const logo = await chargerLogo();
+    if (logo) { doc.addImage(logo, 'PNG', 14, 10, 20, 20); }
+    doc.setFontSize(18); doc.setTextColor(21, 96, 158); doc.text("LISTE DES EXPEDITIONS", 40, 22);
+
+    const headers = [["Ref", "Client", "Tél", "Desc.", "Type", "Qté", "Kg/CBM", "Reste"]];
     let tQ = 0, tV = 0, tP = 0;
     const body = clientsCharges.map(c => {
         let isAir = (c.type||"").startsWith('aerien');
@@ -140,9 +145,9 @@ function exporterPDF() {
         let dej = parseInt(c.montantPaye)||0;
         let rest = pN - dej;
         tQ += parseInt(c.quantiteEnvoyee)||0; tV += parseFloat(pv)||0; tP += rest;
-        return [c.reference, c.date, c.nom, c.tel || '', c.description, c.type, c.quantiteEnvoyee, pv, formatArgent(rest), c.status];
+        return [c.reference, c.nom, c.tel || '', c.description, c.type, c.quantiteEnvoyee, pv, formatArgent(rest)];
     });
-    doc.autoTable({ head: headers, body: body, styles: { fontSize: 7 }, foot: [["TOTAL GÉNÉRAL", "", "", "", "", "", tQ, tV.toFixed(2), formatArgent(tP) + " CFA", ""]], footStyles: { fillColor: [50, 50, 50], textColor: [0, 255, 255], fontStyle: 'bold' } }); 
+    doc.autoTable({ startY: 35, head: headers, body: body, styles: { fontSize: 9 }, foot: [["TOTAL GÉNÉRAL", "", "", "", "", tQ, tV.toFixed(2), formatArgent(tP) + " CFA"]], footStyles: { fillColor: [50, 50, 50], textColor: [0, 255, 255], fontStyle: 'bold' } }); 
     doc.save('expeditions.pdf');
 }
 
