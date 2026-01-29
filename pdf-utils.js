@@ -42,30 +42,38 @@ async function genererFacture() {
     doc.setFont("helvetica", "normal"); doc.text(`Nom: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 10, y); y += 5; doc.text(`Tél: ${currentEnvoi.tel}`, 10, y); y += 5; doc.text(`Réf: ${currentEnvoi.reference}`, 10, y); y += 10;
     const headers1 = [["SERVICES", "DESCRIPTION", "QUANTITE", "PRIX UNITAIRE", "PRIX TOTAL"]];
     let pBrut = parseInt((currentEnvoi.prixEstime || "0").replace(/\D/g, '')) || 0;
-    let pNet = pBrut - (currentEnvoi.remise || 0);
+    let remise = currentEnvoi.remise || 0;
+    let frais = currentEnvoi.fraisSupplementaires || 0;
+    let pNet = pBrut + frais - remise;
     let vol = (currentEnvoi.type || "").startsWith('aerien') ? currentEnvoi.poidsEnvoye : currentEnvoi.volumeEnvoye;
-    let pu = vol > 0 ? (pNet / vol).toFixed(0) : 0;
-    const data1 = [[(currentEnvoi.type || "").toUpperCase(), currentEnvoi.description || '-', `${currentEnvoi.quantiteEnvoyee} Colis / ${vol}`, formatArgent(pu), formatArgent(pNet)]];
+    let pu = vol > 0 ? (pBrut / vol).toFixed(0) : 0;
+    const data1 = [[(currentEnvoi.type || "").toUpperCase(), currentEnvoi.description || '-', `${currentEnvoi.quantiteEnvoyee} Colis / ${vol}`, formatArgent(pu), formatArgent(pBrut)]];
     doc.autoTable({ startY: y, head: headers1, body: data1, theme: 'grid', headStyles: { fillColor: [21, 96, 158] }, styles: { valign: 'middle' } });
     y = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("HISTORIQUE DES PAIEMENTS", 10, y); y += 5;
+    doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("HISTORIQUE DES PAIEMENTS", 10, y); y += 6;
     const headers2 = [["DATE", "PRIX TOTAL", "MNT. PAYE", "RESTANT", "AGENT"]];
     let histRows = []; let cumul = 0;
     if (currentEnvoi.historiquePaiements && currentEnvoi.historiquePaiements.length > 0) {
         let sorted = currentEnvoi.historiquePaiements.sort((a, b) => a.date.seconds - b.date.seconds);
         sorted.forEach(h => {
             let m = parseInt(h.montant) || 0; cumul += m; let resteALinstantT = pNet - cumul; let dateStr = new Date(h.date.seconds * 1000).toLocaleString('fr-FR'); let agent = h.agent || "-";
-            histRows.push([dateStr, formatArgent(pNet), `${formatArgent(m)} (${h.moyen})`, formatArgent(resteALinstantT), agent]);
+            histRows.push([dateStr, formatArgent(pNet), `${formatArgent(m)} (${h.moyen || '?'})`, formatArgent(resteALinstantT), agent]);
         });
     } else {
         let deja = parseInt(currentEnvoi.montantPaye) || 0;
         if (deja > 0) histRows.push(["-", formatArgent(pNet), formatArgent(deja), formatArgent(pNet - deja), "Ancien Système"]); else histRows.push(["-", formatArgent(pNet), "0", formatArgent(pNet), "-"]);
     }
     doc.autoTable({ startY: y, head: headers2, body: histRows, theme: 'striped', headStyles: { fillColor: [50, 50, 50] }, styles: { fontSize: 9 } });
-    y = doc.lastAutoTable.finalY + 10;
+    y = doc.lastAutoTable.finalY;
     let dejaPayeTotal = parseInt(currentEnvoi.montantPaye) || 0;
     let resteFinal = pNet - dejaPayeTotal;
-    doc.autoTable({ startY: y, body: [["NET À PAYER", formatArgent(pNet) + " CFA"], ["TOTAL PAYÉ", formatArgent(dejaPayeTotal) + " CFA"], ["RESTE DÛ", formatArgent(resteFinal) + " CFA"]], theme: 'plain', styles: { fontSize: 10, fontStyle: 'bold', halign: 'right', cellPadding: 2 }, columnStyles: { 0: { halign: 'left', cellWidth: 40, fillColor: [240, 240, 240] } }, margin: { left: 130 } });
+    let summaryBody = [ ["SOUS-TOTAL", formatArgent(pBrut) + " CFA"] ];
+    if (frais > 0) { summaryBody.push(["FRAIS SUPP.", `+${formatArgent(frais)} CFA`]); }
+    if (remise > 0) { summaryBody.push(["REMISE", `-${formatArgent(remise)} CFA`]); }
+    summaryBody.push(["NET À PAYER", formatArgent(pNet) + " CFA"]);
+    summaryBody.push(["TOTAL PAYÉ", formatArgent(dejaPayeTotal) + " CFA"]);
+    summaryBody.push(["RESTE DÛ", formatArgent(resteFinal) + " CFA"]);
+    doc.autoTable({ startY: y + 2, body: summaryBody, theme: 'plain', styles: { fontSize: 10, fontStyle: 'bold', halign: 'right', cellPadding: 2 }, columnStyles: { 0: { halign: 'left', cellWidth: 40, fillColor: [240, 240, 240] } }, margin: { left: 130 } });
     y = doc.lastAutoTable.finalY + 20;
     doc.setTextColor(150); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Merci de votre confiance - AMT Transit Cargo", 105, y, { align: 'center' }); doc.text("RC: 929 865 103 | Siège: Abidjan", 105, y + 4, { align: 'center' });
     doc.save(`Facture_${currentEnvoi.nom}.pdf`);
@@ -117,7 +125,7 @@ function exporterExcel() {
         let isAir = (c.type||"").startsWith('aerien');
         let pv = isAir ? c.poidsEnvoye : c.volumeEnvoye;
         let pB = parseInt((c.prixEstime||"0").replace(/\D/g, '')) || 0;
-        let pN = pB - (c.remise || 0);
+        let pN = pB + (c.fraisSupplementaires||0) - (c.remise || 0);
         let dej = parseInt(c.montantPaye)||0;
         let rest = pN - dej;
         tQ += parseInt(c.quantiteEnvoyee)||0; tV += parseFloat(pv)||0; tP += rest;
@@ -141,7 +149,7 @@ async function exporterPDF() {
         let isAir = (c.type||"").startsWith('aerien');
         let pv = isAir ? c.poidsEnvoye : c.volumeEnvoye;
         let pB = parseInt((c.prixEstime||"0").replace(/\D/g, '')) || 0;
-        let pN = pB - (c.remise || 0);
+        let pN = pB + (c.fraisSupplementaires||0) - (c.remise || 0);
         let dej = parseInt(c.montantPaye)||0;
         let rest = pN - dej;
         tQ += parseInt(c.quantiteEnvoyee)||0; tV += parseFloat(pv)||0; tP += rest;
@@ -160,7 +168,7 @@ function exporterHistoriqueExcel() {
         let pv = isAir ? d.poidsEnvoye : d.volumeEnvoye;
         let st = d.status || 'En attente';
         let pB = parseInt((d.prixEstime||"0").replace(/\D/g, '')) || 0;
-        let final = pB - (d.remise || 0);
+        let final = pB + (d.fraisSupplementaires||0) - (d.remise || 0);
         tQ += parseInt(d.quantiteEnvoyee)||0; tV += parseFloat(pv)||0; tP += final;
         csvContent += `"${d.reference}","${d.date}","${d.nom} ${d.prenom}","${d.tel}","${d.description}","${d.type}",${d.quantiteEnvoyee},"${pv}","${final}","${st}"\r\n`;
     });
@@ -177,7 +185,7 @@ function exporterHistoriquePDF() {
         let isAir = (d.type||"").startsWith('aerien');
         let pv = isAir ? d.poidsEnvoye : d.volumeEnvoye;
         let pB = parseInt((d.prixEstime||"0").replace(/\D/g, '')) || 0;
-        let final = pB - (d.remise || 0);
+        let final = pB + (d.fraisSupplementaires||0) - (d.remise || 0);
         tQ += parseInt(d.quantiteEnvoyee)||0; tV += parseFloat(pv)||0; tP += final;
         return [d.reference, d.date, `${d.nom} ${d.prenom}`, d.tel, d.description, d.type, d.quantiteEnvoyee, pv, formatArgent(final), d.status || 'En attente'];
     });

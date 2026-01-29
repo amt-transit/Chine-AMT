@@ -44,7 +44,7 @@ async function chargerCompta(type) {
                 html += `<tr class="${rowClass}"><td>${dS}</td><td>-</td><td>${it.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red">${formatArgent(m)}</td><td>${btnSuppr}</td></tr>`;
             } else {
                 GT_Q += parseInt(it.quantiteEnvoyee)||0; GT_V += parseFloat(type.startsWith('aerien')?it.poidsEnvoye:it.volumeEnvoye)||0;
-                let pB = parseInt((it.prixEstime || "0").replace(/\D/g, '')) || 0; let du = pB - (it.remise || 0); let paye = 0;
+                let pB = parseInt((it.prixEstime || "0").replace(/\D/g, '')) || 0; let du = pB + (it.fraisSupplementaires||0) - (it.remise || 0); let paye = 0;
                 if (it.hist.length > 0) { it.hist.forEach(h => { let m = parseFloat(h.montant) || 0; paye += m; let t = h.moyen || 'Espèce'; if (t.includes('Chèque')) modes.Chq += m; else if (t.includes('OM')) modes.OM += m; else if (t.includes('Wave')) modes.Wav += m; else if (t.includes('CB')) modes.CB += m; else modes.Esp += m; }); } else { paye = it.montantPaye || 0; modes.Esp += paye; }
                 let r = du - paye; caisse += paye; if (r > 0) cred += r; let diff = paye - du; if (diff > 0) bonus += diff; else if (diff < 0 && Math.abs(diff) < 500) bonus += diff;
                 grpDu += du; grpReste += (r > 0 ? r : 0); grpEntree += paye;

@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const mp = document.getElementById('modif-poids'); if(mp) mp.oninput=calculerPrixModif;
     const mr = document.getElementById('modif-remise'); if(mr) mr.oninput=calculerPrixModif;
+    const mf = document.getElementById('modif-frais'); if(mf) mf.oninput=calculerPrixModif;
 });
 
 function ouvrirSousOngletHistorique(type) {
@@ -51,7 +52,7 @@ function updateHistoriqueView(searchQuery) {
         if(selectedGroupsHistorique.length > 0 && !selectedGroupsHistorique.includes(d.refGroupe)) return false;
         
         let pB = parseInt((d.prixEstime||"0").replace(/\D/g,''))||0;
-        let final = pB - (d.remise||0);
+        let final = pB + (d.fraisSupplementaires||0) - (d.remise||0);
         let dejaPaye = parseInt(d.montantPaye) || 0;
         // Si on ne veut pas voir les payés, et que c'est payé (et que le prix n'est pas 0), on masque
         if (!showPaidHistorique && dejaPaye >= final && final > 0) return false;
@@ -79,7 +80,7 @@ function updateHistoriqueView(searchQuery) {
         let pv = isAir ? (d.poidsEnvoye||0) : (d.volumeEnvoye||0);
         gQ+=parseInt(d.quantiteEnvoyee)||0; gV+=parseFloat(pv); tQ+=parseInt(d.quantiteEnvoyee)||0; tV+=parseFloat(pv);
         let pB = parseInt((d.prixEstime||"0").replace(/\D/g,''))||0;
-        let final = pB - (d.remise||0);
+        let final = pB + (d.fraisSupplementaires||0) - (d.remise||0);
         gP+=final; tP+=final;
         let dejaPaye = parseInt(d.montantPaye) || 0;
         let colorStyle = "";
@@ -161,6 +162,7 @@ function ouvrirModalModif(envoi) {
         document.getElementById('modif-nom').value = envoi.nom || ''; document.getElementById('modif-prenom').value = envoi.prenom || ''; document.getElementById('modif-tel').value = envoi.tel || '';
         chargerGroupesDansModif(envoi.refGroupe);
         document.getElementById('modif-qte').value = envoi.quantiteEnvoyee; document.getElementById('modif-remise').value = envoi.remise || 0;
+        const elFrais = document.getElementById('modif-frais'); if(elFrais) elFrais.value = envoi.fraisSupplementaires || 0;
         const elP = document.getElementById('modif-poids');
         if((envoi.type||"").startsWith('aerien')) elP.value = envoi.poidsEnvoye; else elP.value = envoi.volumeEnvoye;
         calculerPrixModif();
@@ -171,9 +173,10 @@ function calculerPrixModif() {
     if(!currentModifEnvoi) return;
     const v = parseFloat(document.getElementById('modif-poids').value)||0;
     const r = parseInt(document.getElementById('modif-remise').value)||0;
+    const f = parseInt(document.getElementById('modif-frais').value)||0;
     let t = 0;
     if(currentModifEnvoi.type==='aerien_normal') t=PRIX_AERIEN_NORMAL; else if(currentModifEnvoi.type==='aerien_express') t=PRIX_AERIEN_EXPRESS; else t=PRIX_MARITIME_CBM;
-    document.getElementById('modif-prix-final').value = formatArgent((v*t)-r)+' CFA';
+    document.getElementById('modif-prix-final').value = formatArgent((v*t)+f-r)+' CFA';
 }
 function fermerModalModif(e) { if(e.target===modalModif || e.target.classList.contains('modal-close')) modalModif.style.display='none'; }
 
@@ -207,6 +210,7 @@ async function sauvegarderModificationChine() {
     if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }
     const nom = document.getElementById('modif-nom').value; const prenom = document.getElementById('modif-prenom').value; const tel = document.getElementById('modif-tel').value;
     const q = parseInt(document.getElementById('modif-qte').value) || 0; const v = parseFloat(document.getElementById('modif-poids').value) || 0; const r = parseInt(document.getElementById('modif-remise').value) || 0;
+    const f = parseInt(document.getElementById('modif-frais').value) || 0;
     const nouveauGroupe = document.getElementById('modif-groupe-select').value;
 
     // 1. Récupérer les données fraîches de la base pour le calcul du statut
@@ -219,7 +223,7 @@ async function sauvegarderModificationChine() {
     }
     const freshData = freshDoc.data();
 
-    let up = { nom: nom, prenom: prenom, tel: tel, quantiteEnvoyee: q, remise: r, dernierModificateur: currentRole === 'chine' ? 'Agence Chine' : 'Agence Abidjan', dateModification: firebase.firestore.FieldValue.serverTimestamp() };
+    let up = { nom: nom, prenom: prenom, tel: tel, quantiteEnvoyee: q, remise: r, fraisSupplementaires: f, dernierModificateur: currentRole === 'chine' ? 'Agence Chine' : 'Agence Abidjan', dateModification: firebase.firestore.FieldValue.serverTimestamp() };
     if((currentModifEnvoi.type || "").startsWith('aerien')) up.poidsEnvoye = v; else up.volumeEnvoye = v;
     let t = 0;
     if(currentModifEnvoi.type === 'aerien_normal') t = PRIX_AERIEN_NORMAL; else if(currentModifEnvoi.type === 'aerien_express') t = PRIX_AERIEN_EXPRESS; else t = PRIX_MARITIME_CBM;

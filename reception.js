@@ -47,7 +47,7 @@ function updateReceptionView(searchQuery) {
         if(selectedGroupsReception.length > 0 && !selectedGroupsReception.includes(d.refGroupe)) return false;
         
         let pB = parseInt((d.prixEstime||"0").replace(/\D/g,''))||0;
-        let pN = pB - (d.remise||0);
+        let pN = pB + (d.fraisSupplementaires||0) - (d.remise||0);
         let res = pN - (parseInt(d.montantPaye)||0);
         // Si masqué et reste à payer <= 0 (et que le prix n'était pas gratuit), on cache
         if (!showPaidReception && res <= 0 && pN > 0) return false;
@@ -62,7 +62,7 @@ function updateReceptionView(searchQuery) {
         let isAir = (d.type||"").startsWith('aerien');
         let pv = isAir ? (d.poidsEnvoye||0) : (d.volumeEnvoye||0);
         let pB = parseInt((d.prixEstime||"0").replace(/\D/g,''))||0;
-        let pN = pB - (d.remise||0);
+        let pN = pB + (d.fraisSupplementaires||0) - (d.remise||0);
         let res = pN - (parseInt(d.montantPaye)||0);
         if(curGrp!==null && d.refGroupe!==curGrp) {
             let u = currentReceptionType.startsWith('aerien')?'Kg':'CBM';
@@ -134,7 +134,7 @@ function selectionnerClient(envoi) {
     const expEl = document.getElementById('expediteur-affiche'); if(expEl) expEl.innerText = envoi.expediteur || 'AMT TRANSIT CARGO';
     let isAir = (envoi.type || "").startsWith('aerien');
     set('poids-attendu', (isAir ? envoi.poidsEnvoye : envoi.volumeEnvoye) + (isAir ? ' Kg' : ' CBM'));
-    let pB = parseInt((envoi.prixEstime || "0").replace(/\D/g, '')) || 0; let tot = pB - (envoi.remise || 0); let dej = parseInt(envoi.montantPaye) || 0; let res = tot - dej;
+    let pB = parseInt((envoi.prixEstime || "0").replace(/\D/g, '')) || 0; let tot = pB + (envoi.fraisSupplementaires||0) - (envoi.remise || 0); let dej = parseInt(envoi.montantPaye) || 0; let res = tot - dej;
     set('prix-attendu', formatArgent(tot) + ' CFA');
     const elR = document.getElementById('prix-restant');
     if (elR) { if (res <= 0) { elR.innerText = "SOLDÉ (0 CFA)"; elR.style.color = "green"; document.getElementById('montant-paye').value = 0; } else { elR.innerText = formatArgent(res) + ' CFA'; elR.style.color = "#dc3545"; document.getElementById('montant-paye').value = res; } }
@@ -233,7 +233,7 @@ function ouvrirModalPaiementGroupe() {
         const item = allReceptionData.find(d => d.id === id);
         if (item) {
             let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0;
-            let net = pB - (item.remise||0);
+            let net = pB + (item.fraisSupplementaires||0) - (item.remise||0);
             let deja = parseInt(item.montantPaye)||0;
             let reste = net - deja;
             if (reste > 0) totalDette += reste;
@@ -249,7 +249,7 @@ async function validerPaiementGroupe() {
     selectedReceptionIds.forEach(id => {
         const item = allReceptionData.find(d => d.id === id);
         if (item) {
-            let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0; let net = pB - (item.remise||0); let deja = parseInt(item.montantPaye)||0; let reste = net - deja;
+            let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0; let net = pB + (item.fraisSupplementaires||0) - (item.remise||0); let deja = parseInt(item.montantPaye)||0; let reste = net - deja;
             if (reste > 0) { const ref = db.collection('expeditions').doc(id); let updates = { montantPaye: net, quantiteRecue: item.quantiteEnvoyee, status: 'Reçu - Conforme', datePaiement: firebase.firestore.FieldValue.serverTimestamp() }; updates.historiquePaiements = firebase.firestore.FieldValue.arrayUnion({ date: firebase.firestore.Timestamp.now(), montant: reste, moyen: moyen, agent: agent }); batch.update(ref, updates); count++; }
         }
     });
