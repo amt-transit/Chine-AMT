@@ -212,7 +212,7 @@ button:active { transform: translateY(1px); }
 .btn-principal { background-color: #15609e; color: white; width: 100%; margin-top: 5px; }
 .btn-principal:hover { background-color: #125a96; }
 
-.btn-secondaire { background-color: #6c757d; color: white; width: 100%; margin-top: 5px; }
+.btn-secondaire { background-color: #2193f7; color: white; width: 100%; margin-top: 5px; }
 .btn-secondaire:hover { background-color: #5a6268; }
 
 .btn-small { width: auto; padding: 6px 12px; font-size: 0.9em; }
@@ -468,6 +468,40 @@ tr.group-summary-row td {
 #card-liste-attente {
     background-color: #fff3e0; /* Orange très clair */
     border-color: #ffcc80;
+}
+
+/* Mise en avant du bouton "Ajouter ce client à la liste" */
+#btn-ajouter-client {
+    background-color: #27ae60; /* Vert émeraude vif */
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 10px rgba(39, 174, 96, 0.4);
+    margin-top: 20px;
+    border: none;
+}
+#btn-ajouter-client:hover {
+    background-color: #219150;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(39, 174, 96, 0.5);
+}
+
+/* Mise en avant du bouton "Ajouter sous colis" */
+#btn-ajouter-sous-colis {
+    background-color: #3498db; /* Bleu vif */
+    color: white;
+    font-weight: bold;
+    padding: 10px;
+    margin-top: 10px;
+    box-shadow: 0 3px 6px rgba(52, 152, 219, 0.3);
+    width: 100%;
+}
+#btn-ajouter-sous-colis:hover {
+    background-color: #2980b9;
+    transform: translateY(-1px);
 }
 
 /* Optimisation Mobile Spécifique */
