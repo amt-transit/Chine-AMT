@@ -231,8 +231,12 @@ async function sauvegarderModificationChine() {
 
     if (nouveauGroupe && nouveauGroupe !== currentModifEnvoi.refGroupe) {
         up.refGroupe = nouveauGroupe;
-        if (currentModifEnvoi.reference && currentModifEnvoi.reference.endsWith(currentModifEnvoi.refGroupe)) {
-            up.reference = currentModifEnvoi.reference.replace(currentModifEnvoi.refGroupe, nouveauGroupe);
+        let ref = currentModifEnvoi.reference || "";
+        let oldG = currentModifEnvoi.refGroupe || "";
+        if (oldG && ref.endsWith(oldG)) {
+            up.reference = ref.substring(0, ref.lastIndexOf(oldG)) + nouveauGroupe;
+        } else {
+            up.reference = ref + (ref.endsWith('-') ? '' : '-') + nouveauGroupe;
         }
     }
     
@@ -279,7 +283,18 @@ async function changerGroupeEnMasse() {
     const batch = db.batch(); let count = 0;
     selectedHistoriqueIds.forEach(id => {
         const item = allHistoriqueData.find(d => d.id === id);
-        if (item) { const refDoc = db.collection('expeditions').doc(id); let updateData = { refGroupe: nouveauGroupe, dernierModificateur: currentRole === 'chine' ? 'Agence Chine (Masse)' : 'Agence Abidjan (Masse)', dateModification: firebase.firestore.FieldValue.serverTimestamp() }; if (item.reference && item.refGroupe && item.reference.endsWith(item.refGroupe)) { updateData.reference = item.reference.replace(item.refGroupe, nouveauGroupe); } batch.update(refDoc, updateData); count++; }
+        if (item) { 
+            const refDoc = db.collection('expeditions').doc(id); 
+            let updateData = { refGroupe: nouveauGroupe, dernierModificateur: currentRole === 'chine' ? 'Agence Chine (Masse)' : 'Agence Abidjan (Masse)', dateModification: firebase.firestore.FieldValue.serverTimestamp() }; 
+            let ref = item.reference || "";
+            let oldG = item.refGroupe || "";
+            if (oldG && ref.endsWith(oldG)) {
+                updateData.reference = ref.substring(0, ref.lastIndexOf(oldG)) + nouveauGroupe;
+            } else {
+                updateData.reference = ref + (ref.endsWith('-') ? '' : '-') + nouveauGroupe;
+            }
+            batch.update(refDoc, updateData); count++; 
+        }
     });
     try { await batch.commit(); alert(`${count} colis déplacés vers ${nouveauGroupe} avec succès !`); selectedHistoriqueIds.clear(); document.getElementById('check-all-hist').checked = false; document.getElementById('hist-bulk-actions').style.display = 'none'; chargerHistoriqueChine(); } catch (e) { alert("Erreur : " + e.message); }
 }
