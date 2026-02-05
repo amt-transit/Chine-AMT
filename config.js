@@ -36,8 +36,8 @@ let selectedHistoriqueIds = new Set();
 let selectedReceptionIds = new Set();
 
 // Constantes Prix
-const PRIX_AERIEN_NORMAL = 10000;
-const PRIX_AERIEN_EXPRESS = 12000;
+const PRIX_AERIEN_NORMAL = 11000;
+const PRIX_AERIEN_EXPRESS = 13000;
 const PRIX_MARITIME_CBM = 250000;
 
 // États courants
