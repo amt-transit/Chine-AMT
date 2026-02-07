@@ -93,10 +93,13 @@ async function genererBonLivraison() {
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica", "normal");
     doc.text(`N° BL: BL-${currentEnvoi.reference}`, 130, 28);
     doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 130, 33);
-    doc.setFont("helvetica", "bold"); doc.text(`Lieu de livraison : ${lieu.toUpperCase()}`, 130, 40);
-    doc.line(10, 45, 200, 45);
+    doc.setFont("helvetica", "bold");
+    const lieuSplit = doc.splitTextToSize(`Lieu de livraison : ${lieu.toUpperCase()}`, 70);
+    doc.text(lieuSplit, 130, 40);
+    let lineY = 45 + (lieuSplit.length - 1) * 5;
+    doc.line(10, lineY, 200, lineY);
 
-    let y = 55;
+    let y = lineY + 10;
     doc.setFontSize(11); doc.text("DESTINATAIRE:", 10, y); doc.setFont("helvetica", "normal");
     y += 5; doc.text(`Nom: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 10, y);
     y += 5; doc.text(`Téléphone: ${currentEnvoi.tel}`, 10, y);
