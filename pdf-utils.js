@@ -155,7 +155,7 @@ async function exporterPDF() {
         tQ += parseInt(c.quantiteEnvoyee)||0; tV += parseFloat(pv)||0; tP += rest;
         return [c.reference, c.nom, c.tel || '', c.description, c.type, c.quantiteEnvoyee, pv, formatArgent(rest)];
     });
-    doc.autoTable({ startY: 35, head: headers, body: body, styles: { fontSize: 9 }, foot: [["TOTAL GÉNÉRAL", "", "", "", "", tQ, tV.toFixed(2), formatArgent(tP) + " CFA"]], footStyles: { fillColor: [50, 50, 50], textColor: [0, 255, 255], fontStyle: 'bold' } }); 
+    doc.autoTable({ startY: 35, head: headers, body: body, styles: { fontSize: 8 }, foot: [["TOTAL GÉNÉRAL", "", "", "", "", tQ, tV.toFixed(2), formatArgent(tP) + " CFA"]], footStyles: { fillColor: [50, 50, 50], textColor: [0, 255, 255], fontStyle: 'bold' } }); 
     doc.save('expeditions.pdf');
 }
 
