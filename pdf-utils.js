@@ -81,7 +81,7 @@ async function genererFacture() {
 
 async function genererBonLivraison() {
     if (!currentEnvoi) return;
-    let lieu = prompt("Veuillez saisir le LIEU DE LIVRAISON :", "Agence Abidjan - Treichville");
+    let lieu = prompt("Veuillez saisir le LIEU DE LIVRAISON :", "Koumassi Zone Industreille - Cocody");
     if (lieu === null) return; 
 
     const { jsPDF } = window.jspdf;
