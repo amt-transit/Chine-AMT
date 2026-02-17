@@ -76,7 +76,7 @@ async function genererFacture() {
 
     // Coordonnées de l'entreprise
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(...darkColor);
     doc.text("AMT TRANSIT CARGO", 45, 26);
     doc.text("Siège: Abidjan - Chine", 45, 31);
