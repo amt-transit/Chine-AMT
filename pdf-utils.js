@@ -3,95 +3,308 @@
 // =======================================================
 // EXPORT PDF & EXCEL
 // =======================================================
+// Fonction utilitaire pour charger le logo en tant qu'objet Image pour jsPDF
 function chargerLogo() { return new Promise(r => { const i = new Image(); i.src = '/logo_amt.png'; i.onload = () => r(i); i.onerror = () => r(null); }); }
 
+// Génère une étiquette PDF au format 100x60mm pour l'impression thermique
 async function genererEtiquette() {
     if (!currentEnvoi) return;
     const { jsPDF } = window.jspdf;
+    // Création du document PDF en mode paysage ('l'), unité mm, taille personnalisée
     const doc = new jsPDF('l', 'mm', [100, 60]); 
     const logo = await chargerLogo();
+    // Dessin du cadre orange
     doc.setDrawColor(255, 165, 0); doc.setLineWidth(1.5); doc.rect(2, 2, 96, 56); doc.setLineWidth(0.5); doc.rect(4, 4, 92, 52);
+    // Ajout du logo si chargé
     if (logo) doc.addImage(logo, 'PNG', 6, 6, 12, 12);
+    // En-tête de l'étiquette
     doc.setTextColor(255, 140, 0); doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.text("amt TRANSIT CARGO", 22, 10);
     doc.setTextColor(0); doc.setFontSize(8); doc.text("+225 89 84 46 57", 22, 15); doc.setFontSize(24); doc.text("N", 88, 12);
+    // Lignes de séparation et détails
     doc.setDrawColor(0); doc.setLineWidth(0.1);
     let y = 22; const x = 6; const lineW = 88;
+    // Section Expéditeur
     doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.text("EXPEDITEUR", x, y); y += 3;
     doc.setFont("helvetica", "normal"); doc.text(`NOM ET PRENOM: ${currentEnvoi.expediteur || 'AMT TRANSIT CARGO'}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
     doc.text(`NUMERO: ${currentEnvoi.telExpediteur || '+225 0703165050'}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 6;
+    // Section Destinataire
     doc.setFont("helvetica", "bold"); doc.text("DESTINATAIRE", x, y); y += 3;
     doc.setFont("helvetica", "normal"); doc.text(`NOM ET PRENOM: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
     doc.text(`NUMERO: ${currentEnvoi.tel}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+    // Infos Colis
     let pv = (currentEnvoi.type || "").startsWith('aerien') ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
     doc.text(`KILOS: ${pv}  |  COLIS: ${currentEnvoi.quantiteEnvoyee}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+    // Pied de page
     doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("+8619515284352      +2250703165050", 50, 56, { align: 'center' });
     doc.save(`Etiquette_${currentEnvoi.nom}.pdf`);
 }
 
+// Génère la facture PDF principale (A4)
 async function genererFacture() {
     if (!currentEnvoi) return;
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc = new jsPDF('p', 'mm', 'a4'); // Portrait, millimètres, A4
+    
+    // --- DÉFINITION DES COULEURS (Charte graphique) ---
+    const blueColor = [26, 58, 95];     // Bleu foncé AMT (#1a3a5f)
+    const yellowColor = [241, 196, 15]; // Jaune AMT (#f1c40f)
+    const darkColor = [51, 51, 51];     // Gris très foncé pour le texte (#333)
+    const grayColor = [119, 119, 119];  // Gris moyen pour les infos secondaires (#777)
+
     const logo = await chargerLogo();
-    if (logo) doc.addImage(logo, 'PNG', 10, 10, 30, 30);
-    doc.setFontSize(18); doc.setTextColor(21, 96, 158); doc.setFont("helvetica", "bold"); doc.text("AMT TRANSIT CARGO", 50, 20);
-    doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica", "normal"); doc.text("Agence: Abidjan - Chine", 50, 26); doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 50, 32);
-    doc.line(10, 42, 200, 42);
-    let y = 50; const gap = 7;
-    doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("INFORMATIONS CLIENT", 10, y); y += 6;
-    doc.setFont("helvetica", "normal"); doc.text(`Nom: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 10, y); y += 5; doc.text(`Tél: ${currentEnvoi.tel}`, 10, y); y += 5; doc.text(`Réf: ${currentEnvoi.reference}`, 10, y); y += 10;
-    const headers1 = [["SERVICES", "DESCRIPTION", "QUANTITE", "PRIX UNITAIRE", "PRIX TOTAL"]];
+    
+    // --- BANDEAU SUPÉRIEUR ---
+    // Ligne jaune décorative tout en haut
+    doc.setDrawColor(...yellowColor);
+    doc.setLineWidth(2);
+    doc.line(0, 1, 210, 1); 
+
+    // --- EN-TÊTE (HEADER) ---
+    let y = 20;
+    
+    // Affichage du logo
+    if (logo) doc.addImage(logo, 'PNG', 15, 10, 25, 25);
+    
+    // Informations de l'entreprise (Gauche)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...blueColor);
+    doc.text("amt", 45, 20); // Partie 'amt' en bleu
+    const wAmt = doc.getTextWidth("amt");
+    doc.setTextColor(...yellowColor);
+    doc.text("transit", 45 + wAmt + 2, 20); // Partie 'transit' en jaune
+
+    // Coordonnées de l'entreprise
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...darkColor);
+    doc.text("AMT TRANSIT CARGO", 45, 26);
+    doc.text("Siège: Abidjan - Chine", 45, 31);
+    doc.text("Tél: +225 07 03 16 50 50", 45, 36);
+    doc.text("Tèl: +86 195 1528 4352", 45, 41);
+    doc.text("Email: info@amt-transit.com", 45, 46);
+
+    // Informations de la facture (Droite)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16); 
+    doc.setTextColor(...blueColor);
+    doc.text("FACTURE", 195, 20, { align: "right" }); // Titre aligné à droite
+    
+    doc.setFontSize(9);
+    doc.setTextColor(...darkColor);
+    doc.text(`N°: ${currentEnvoi.reference || '-'}`, 195, 30, { align: "right" });
+    doc.text(`DATE: ${new Date().toLocaleDateString('fr-FR')}`, 195, 35, { align: "right" });
+
+    // Ligne de séparation grise sous l'en-tête
+    y = 50;
+    doc.setDrawColor(238, 238, 238); // Gris très clair (#eee)
+    doc.setLineWidth(0.5);
+    doc.line(15, y, 195, y);
+
+    // --- SECTION DÉTAILS (CLIENT & LOGISTIQUE) ---
+    y += 10;
+    const col1X = 15;
+
+    // Titres des colonnes
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...darkColor);
+    
+    doc.text("CLIENT", col1X, y);
+    doc.text("LOGISTIQUE", 195, y, { align: "right" });
+    
+    // Ligne de soulignement jaune pour les titres
+    doc.setDrawColor(...yellowColor);
+    doc.setLineWidth(0.5);
+    doc.line(col1X, y + 2, 195, y + 2);
+
+    y += 10;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    
+    // Données Client (Gauche)
+    doc.text(`NOM: ${(currentEnvoi.prenom + ' ' + currentEnvoi.nom).toUpperCase()}`, col1X, y);
+    doc.text(`TÉL: ${currentEnvoi.tel}`, col1X, y + 6);
+    doc.text(`REF: ${currentEnvoi.reference}`, col1X, y + 12);
+
+    // Données Logistique (Droite)
+    doc.text(`EXPÉDITEUR: ${currentEnvoi.expediteur || 'AMT'}`, 195, y, { align: "right" });
+    doc.text(`TÉL EXP.: ${currentEnvoi.telExpediteur || '-'}`, 195, y + 6, { align: "right" });
+    doc.text(`DATE ENREG.: ${new Date(currentEnvoi.date).toLocaleDateString('fr-FR')}`, 195, y + 12, { align: "right" });
+
+    // --- TABLEAU DES SERVICES ---
+    y += 30;
+    
+    // Calculs financiers
     let pBrut = parseInt((currentEnvoi.prixEstime || "0").replace(/\D/g, '')) || 0;
     let remise = currentEnvoi.remise || 0;
     let frais = currentEnvoi.fraisSupplementaires || 0;
     let pNet = pBrut + frais - remise;
-    let vol = (currentEnvoi.type || "").startsWith('aerien') ? currentEnvoi.poidsEnvoye : currentEnvoi.volumeEnvoye;
-    let pu = vol > 0 ? (pBrut / vol).toFixed(0) : 0;
-    const data1 = [[(currentEnvoi.type || "").toUpperCase(), currentEnvoi.description || '-', `${currentEnvoi.quantiteEnvoyee} Colis / ${vol}`, formatArgent(pu), formatArgent(pBrut)]];
-    doc.autoTable({ startY: y, head: headers1, body: data1, theme: 'grid', headStyles: { fillColor: [21, 96, 158] }, styles: { valign: 'middle' } });
+    
+    // Détermination type (Air/Mer) et unités
+    let isAir = (currentEnvoi.type || "").startsWith('aerien');
+    let vol = isAir ? currentEnvoi.poidsEnvoye : currentEnvoi.volumeEnvoye;
+    let unit = isAir ? 'Kg' : 'CBM';
+    let pu = vol > 0 ? (pBrut / vol) : 0;
+
+    // Préparation des données pour autoTable
+    const headers = [["SERVICES", "DESCRIPTION", "QTÉ", "PRIX UNITAIRE", "TOTAL"]];
+    const body = [[
+        `Fret ${(currentEnvoi.type || "").toUpperCase()}`,
+        currentEnvoi.description || 'Marchandise diverse',
+        currentEnvoi.quantiteEnvoyee,
+        formatArgent(pu),
+        formatArgent(pBrut)
+    ]];
+
+    // Génération du tableau
+    doc.autoTable({
+        startY: y,
+        head: headers,
+        body: body,
+        theme: 'plain', // Thème minimaliste
+        headStyles: { 
+            fillColor: blueColor, 
+            textColor: 255, 
+            fontStyle: 'bold',
+            halign: 'left',
+            cellPadding: 2,
+            fontSize: 7
+        },
+        bodyStyles: {
+            textColor: darkColor,
+            cellPadding: 5,
+            valign: 'middle',
+            fontSize: 7
+        },
+        columnStyles: {
+            0: { cellWidth: 40 },
+            3: { halign: 'right' },
+            4: { halign: 'right' }
+        },
+        didParseCell: function(data) {
+            // Ajout d'une bordure fine en bas des cellules du corps
+            if (data.section === 'body') {
+                data.cell.styles.borderBottomWidth = 0.1;
+                data.cell.styles.borderBottomColor = [221, 221, 221];
+            }
+        }
+    });
+
+    // Mise à jour de la position Y après le tableau
     y = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("HISTORIQUE DES PAIEMENTS", 10, y); y += 6;
-    const headers2 = [["DATE", "PRIX TOTAL", "MNT. PAYE", "RESTANT", "AGENT"]];
-    let histRows = []; let cumul = 0;
-    if (currentEnvoi.historiquePaiements && currentEnvoi.historiquePaiements.length > 0) {
-        let sorted = currentEnvoi.historiquePaiements.sort((a, b) => a.date.seconds - b.date.seconds);
-        sorted.forEach(h => {
-            let m = parseInt(h.montant) || 0; cumul += m; let resteALinstantT = pNet - cumul; let dateStr = new Date(h.date.seconds * 1000).toLocaleString('fr-FR'); let agent = h.agent || "-";
-            histRows.push([dateStr, formatArgent(pNet), `${formatArgent(m)} (${h.moyen || '?'})`, formatArgent(resteALinstantT), agent]);
-        });
-    } else {
-        let deja = parseInt(currentEnvoi.montantPaye) || 0;
-        if (deja > 0) histRows.push(["-", formatArgent(pNet), formatArgent(deja), formatArgent(pNet - deja), "Ancien Système"]); else histRows.push(["-", formatArgent(pNet), "0", formatArgent(pNet), "-"]);
+
+    // --- TOTAUX (Aligné à droite) ---
+    const startXStats = 130;
+    
+    doc.setFontSize(9);
+    doc.setTextColor(...darkColor);
+    
+    // Total HT
+    doc.text("TOTAL HT", startXStats, y);
+    doc.text(`${formatArgent(pBrut)} CFA`, 195, y, { align: "right" });
+    y += 7;
+
+    // Frais supplémentaires
+    if (frais > 0) {
+        doc.text("Frais Suppl.", startXStats, y);
+        doc.text(`${formatArgent(frais)} CFA`, 195, y, { align: "right" });
+        y += 7;
     }
-    doc.autoTable({ startY: y, head: headers2, body: histRows, theme: 'striped', headStyles: { fillColor: [50, 50, 50] }, styles: { fontSize: 9 } });
-    y = doc.lastAutoTable.finalY;
+    // Remise
+    if (remise > 0) {
+        doc.text("Remise", startXStats, y);
+        doc.text(`- ${formatArgent(remise)} CFA`, 195, y, { align: "right" });
+        y += 7;
+    }
+
+    // Ligne de séparation avant le TTC
+    doc.setDrawColor(221, 221, 221);
+    doc.line(startXStats, y-2, 195, y-2);
+
+    // Total TTC
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...blueColor);
+    doc.text("TOTAL TTC", startXStats, y + 2);
+    doc.text(`${formatArgent(pNet)} CFA`, 195, y + 2, { align: "right" });
+
+    y += 15;
+
+    // --- ENCADRÉ STATUT PAIEMENT ---
     let dejaPayeTotal = parseInt(currentEnvoi.montantPaye) || 0;
     let resteFinal = pNet - dejaPayeTotal;
-    let summaryBody = [ ["SOUS-TOTAL", formatArgent(pBrut) + " CFA"] ];
-    if (frais > 0) { summaryBody.push(["FRAIS SUPP.", `+${formatArgent(frais)} CFA`]); }
-    if (remise > 0) { summaryBody.push(["REMISE", `-${formatArgent(remise)} CFA`]); }
-    summaryBody.push(["NET À PAYER", formatArgent(pNet) + " CFA"]);
-    summaryBody.push(["TOTAL PAYÉ", formatArgent(dejaPayeTotal) + " CFA"]);
-    summaryBody.push(["RESTE DÛ", formatArgent(resteFinal) + " CFA"]);
-    doc.autoTable({ startY: y + 2, body: summaryBody, theme: 'plain', styles: { fontSize: 10, fontStyle: 'bold', halign: 'right', cellPadding: 2 }, columnStyles: { 0: { halign: 'left', cellWidth: 40, fillColor: [240, 240, 240] } }, margin: { left: 130 } });
-    y = doc.lastAutoTable.finalY + 20;
-    doc.setTextColor(150); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Merci de votre confiance - AMT Transit Cargo", 105, y, { align: 'center' }); doc.text("RC: 929 865 103 | Siège: Abidjan", 105, y + 4, { align: 'center' });
+
+    // Fond gris clair
+    doc.setFillColor(249, 249, 249); 
+    doc.rect(15, y, 180, 20, 'F');
     
-    y += 10;
-    doc.setTextColor(0); doc.setFontSize(6); 
-    doc.setFont("helvetica", "bold"); doc.text("Condition de vente", 10, y); y += 3;
-    doc.text("Modalités de transport et responsabilité :", 10, y); y += 3;
+    // Barre verticale bleue à gauche
+    doc.setDrawColor(...blueColor);
+    doc.setLineWidth(1.5);
+    doc.line(15, y, 15, y + 20);
+
+    // Titre de l'encadré
+    doc.setFontSize(9);
+    doc.setTextColor(...darkColor);
+    doc.setFont("helvetica", "bold");
+    doc.text("Statut Paiement:", 20, y + 8);
+    
+    // Montant payé
     doc.setFont("helvetica", "normal");
-    const t1 = doc.splitTextToSize("Le calcul du fret étant établi sur la base du poids ou du volume (CBM), l'indemnisation en cas de sinistre (perte ou casse) sera strictement limitée à la valeur conventionnelle liée au volume (CBM) déclarée lors de la facturation. En aucun cas le transporteur ne pourra être tenu au remboursement de la valeur vénale ou marchande du contenu.", 190);
-    doc.text(t1, 10, y); y += (t1.length * 3) + 2;
-    doc.setFont("helvetica", "bold"); doc.text("Retrait des colis :", 10, y); y += 3;
+    doc.text(`${formatArgent(dejaPayeTotal)} CFA Payé`, 55, y + 8);
+    doc.text("|", 100, y + 8);
+    
+    // Reste à payer (Aligné à droite)
+    doc.setFont("helvetica", "bold");
+    doc.text(`Restant: ${formatArgent(resteFinal)} CFA`, 190, y + 8, { align: "right" });
+
+    // Info dernier agent
+    let agent = "Bureau";
+    if(currentEnvoi.historiquePaiements && currentEnvoi.historiquePaiements.length > 0) {
+        agent = currentEnvoi.historiquePaiements[currentEnvoi.historiquePaiements.length-1].agent || "Bureau";
+    }
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    const t2 = doc.splitTextToSize("Le destinataire est tenu de procéder à l'enlèvement des colis sous 7 jours après notification de l'arrivée. À défaut, le prestataire se réserve le droit de disposer de la marchandise (mise au rebut ou destruction) pour libérer l'espace de stockage, aux frais et risques du client.", 190);
-    doc.text(t2, 10, y);
+    doc.setTextColor(...grayColor);
+    doc.text(`Dernier Agent: ${agent}`, 20, y + 16);
+
+    y += 35;
+
+    // --- CONDITIONS DE VENTE (Bas de page) ---
+    // Ligne pointillée de séparation
+    doc.setDrawColor(221, 221, 221);
+    doc.setLineWidth(0.5);
+    doc.setLineDash([2, 2], 0);
+    doc.line(15, y, 195, y);
+    doc.setLineDash([]); // Retour ligne continue
+
+    y += 8;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...darkColor);
+    doc.text("CONDITIONS DE VENTE", 105, y, { align: "center" });
+    // Soulignement du titre
+    doc.setDrawColor(...darkColor);
+    doc.line(85, y+1, 125, y+1);
+
+    y += 6;
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    const terms = "Les délais de transport sont donnés à titre indicatif. AMT Transit ne saurait être tenu responsable des retards de navires ou de dédouanement. Le stockage est gratuit pendant 1 semaine après l'arrivée. Au-delà, des frais de magasinage s'appliquent. Les marchandises non récupérées après 3 mois seront considérées comme abandonnées. Les dommages sont indemnisés dans la limite des coûts de transport, sauf assurance spécifique. Toute marchandise doit être payée intégralement avant retrait.";
+    // Affichage du texte justifié (splitTextToSize gère le retour à la ligne)
+    doc.text(doc.splitTextToSize(terms, 180), 15, y);
+
+    // --- PIED DE PAGE (FOOTER) ---
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text("AMT TRANSIT CARGO - Siège Social: Abidjan, Côte d'Ivoire - RC: 929 865 103", 105, pageHeight - 10, { align: "center" });
 
     doc.save(`Facture_${currentEnvoi.nom}.pdf`);
 }
 
+// Génère un Bon de Livraison (BL)
 async function genererBonLivraison() {
     if (!currentEnvoi) return;
     let lieu = prompt("Veuillez saisir le LIEU DE LIVRAISON :", "Koumassi Zone Industreille - Cocody");
@@ -102,22 +315,29 @@ async function genererBonLivraison() {
     const logo = await chargerLogo();
     if (logo) doc.addImage(logo, 'PNG', 10, 10, 25, 25);
     
+    // Titre BL
     doc.setFontSize(22); doc.setTextColor(142, 68, 173); doc.setFont("helvetica", "bold"); doc.text("BON DE LIVRAISON", 130, 20);
+    
+    // Infos BL
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica", "normal");
     doc.text(`N° BL: BL-${currentEnvoi.reference}`, 130, 28);
     doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 130, 33);
+    
+    // Lieu de livraison
     doc.setFont("helvetica", "bold");
     const lieuSplit = doc.splitTextToSize(`Lieu de livraison : ${lieu.toUpperCase()}`, 70);
     doc.text(lieuSplit, 130, 40);
     let lineY = 45 + (lieuSplit.length - 1) * 5;
     doc.line(10, lineY, 200, lineY);
 
+    // Infos Destinataire
     let y = lineY + 10;
     doc.setFontSize(11); doc.text("DESTINATAIRE:", 10, y); doc.setFont("helvetica", "normal");
     y += 5; doc.text(`Nom: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, 10, y);
     y += 5; doc.text(`Téléphone: ${currentEnvoi.tel}`, 10, y);
     y += 5; doc.text(`Réf Colis: ${currentEnvoi.reference}`, 10, y);
 
+    // Tableau des colis
     y += 10;
     const headers = [["DESCRIPTION", "TYPE", "QUANTITÉ", "POIDS / VOL", "ETAT"]];
     let isAir = (currentEnvoi.type || "").startsWith('aerien');
@@ -126,6 +346,7 @@ async function genererBonLivraison() {
 
     doc.autoTable({ startY: y, head: headers, body: body, theme: 'grid', headStyles: { fillColor: [142, 68, 173] }, styles: { valign: 'middle', fontSize: 10 } });
 
+    // Zone de signatures
     y = doc.lastAutoTable.finalY + 20;
     doc.setLineWidth(0.5); doc.rect(10, y, 90, 40); doc.rect(110, y, 90, 40); 
     doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.text("VISA / SIGNATURE LIVREUR", 15, y + 5); doc.text("VISA / SIGNATURE CLIENT", 115, y + 5);
@@ -133,6 +354,7 @@ async function genererBonLivraison() {
     doc.save(`BL_${currentEnvoi.nom}.pdf`);
 }
 
+// Exporte la liste des expéditions en CSV (Excel)
 function exporterExcel() {
     if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
     let csvContent = "data:text/csv;charset=utf-8,Ref,Date,Client,Téléphone,Desc,Type,Qté,Poids,Prix Restant,Statut\r\n";
@@ -151,6 +373,7 @@ function exporterExcel() {
     var link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "expeditions.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
+// Exporte la liste des expéditions en PDF
 async function exporterPDF() {
     if (clientsCharges.length === 0) { alert("Rien à exporter."); return; }
     const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'mm', 'a4');
@@ -175,6 +398,7 @@ async function exporterPDF() {
     doc.save('expeditions.pdf');
 }
 
+// Exporte l'historique en CSV
 function exporterHistoriqueExcel() {
     if (historiqueCharges.length === 0) { alert("Rien à exporter."); return; }
     let csvContent = "data:text/csv;charset=utf-8,Ref,Date,Destinataire,Telephone,Description,Type,Qte,Poids/Vol,Prix Final,Statut\r\n";
@@ -192,6 +416,7 @@ function exporterHistoriqueExcel() {
     var link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "Historique_Envois.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
+// Exporte l'historique en PDF
 function exporterHistoriquePDF() {
     if (historiqueCharges.length === 0) { alert("Rien à exporter."); return; }
     const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'mm', 'a4');
