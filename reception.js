@@ -215,13 +215,33 @@ async function sauvegarderCorrectionReception() {
     const freshData = freshDoc.data();
 
     let st = 'Reçu - Conforme'; 
-    const diffQ = nQ - (freshData.quantiteEnvoyee || 0); 
+    // On met à jour aussi les infos d'envoi pour que le prix (Compta) soit cohérent avec la correction
     let isAir = (freshData.type || "").startsWith('aerien'); 
-    let attenduPV = isAir ? freshData.poidsEnvoye : freshData.volumeEnvoye; 
-    const diffP = nP - attenduPV;
+    
+    // Recalcul du prix basé sur le nouveau poids/volume
+    let tarif = 0;
+    if (freshData.type === 'aerien_normal') tarif = PRIX_AERIEN_NORMAL;
+    else if (freshData.type === 'aerien_express') tarif = PRIX_AERIEN_EXPRESS;
+    else if (freshData.type === 'maritime') tarif = PRIX_MARITIME_CBM;
+    
+    const nouveauPrix = Math.round(nP * tarif);
+    
+    const diffQ = nQ - (freshData.quantiteEnvoyee || 0); 
 
-    if (diffQ < 0) st = 'Reçu - Ecart'; else if (diffQ > 0) st = 'Reçu - Supérieur'; else { if (Math.abs(diffP) > 0.1) st = (diffP > 0 ? 'Reçu - Supérieur' : 'Reçu - Ecart'); else st = 'Reçu - Conforme'; }
-    try { await db.collection('expeditions').doc(currentEnvoi.id).update({ quantiteRecue: nQ, poidsRecu: nP, montantPaye: nM, status: st }); alert("Correction effectuée !"); fermerModalModifReception(); document.getElementById('modal-backdrop').style.display = 'none'; chargerClients(); } catch (e) { alert("Erreur : " + e.message); }
+    if (diffQ < 0) st = 'Reçu - Ecart'; else if (diffQ > 0) st = 'Reçu - Supérieur'; else st = 'Reçu - Conforme';
+    
+    let updates = { 
+        quantiteRecue: nQ, 
+        poidsRecu: nP, 
+        montantPaye: nM, 
+        status: st,
+        prixEstime: formatArgent(nouveauPrix) + ' CFA'
+    };
+    
+    // Mise à jour du poids/volume envoyé pour correspondre à la correction (la "vraie" valeur)
+    if (isAir) updates.poidsEnvoye = nP; else updates.volumeEnvoye = nP;
+
+    try { await db.collection('expeditions').doc(currentEnvoi.id).update(updates); alert("Correction effectuée !"); fermerModalModifReception(); document.getElementById('modal-backdrop').style.display = 'none'; chargerClients(); } catch (e) { alert("Erreur : " + e.message); }
 }
 
 const modalGroup = document.getElementById('modal-paiement-groupe');

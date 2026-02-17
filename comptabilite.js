@@ -89,10 +89,15 @@ async function supprimerPaiement(index) {
         if (!docSnap.exists) { alert("Erreur: Document introuvable"); return; }
         const data = docSnap.data(); let historique = data.historiquePaiements || [];
         if (index < 0 || index >= historique.length) return;
-        const montantAAnnuler = parseInt(historique[index].montant) || 0; historique.splice(index, 1);
-        const nouveauMontantPaye = (parseInt(data.montantPaye) || 0) - montantAAnnuler;
+        
+        historique.splice(index, 1);
+        
+        // Recalcul du montant total payé basé sur l'historique restant pour éviter les erreurs de synchro
+        let nouveauMontantPaye = 0;
+        historique.forEach(h => { nouveauMontantPaye += (parseInt(h.montant) || 0); });
+
         await docRef.update({ historiquePaiements: historique, montantPaye: nouveauMontantPaye });
-        alert("Paiement annulé avec succès."); modalHist.style.display = 'none'; chargerCompta(currentComptaType);
+        alert("Paiement annulé avec succès."); modalHist.style.display = 'none'; chargerCompta(currentComptaType); if(typeof chargerClients === 'function') chargerClients();
     } catch (e) { console.error(e); alert("Erreur lors de l'annulation : " + e.message); }
 }
 function fermerModalHistorique(e) { if (e.target === modalHist || e.target.classList.contains('modal-close') || e.target.classList.contains('btn-secondaire')) modalHist.style.display = 'none'; }

@@ -76,6 +76,19 @@ async function genererFacture() {
     doc.autoTable({ startY: y + 2, body: summaryBody, theme: 'plain', styles: { fontSize: 10, fontStyle: 'bold', halign: 'right', cellPadding: 2 }, columnStyles: { 0: { halign: 'left', cellWidth: 40, fillColor: [240, 240, 240] } }, margin: { left: 130 } });
     y = doc.lastAutoTable.finalY + 20;
     doc.setTextColor(150); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Merci de votre confiance - AMT Transit Cargo", 105, y, { align: 'center' }); doc.text("RC: 929 865 103 | Siège: Abidjan", 105, y + 4, { align: 'center' });
+    
+    y += 10;
+    doc.setTextColor(0); doc.setFontSize(6); 
+    doc.setFont("helvetica", "bold"); doc.text("Condition de vente", 10, y); y += 3;
+    doc.text("Modalités de transport et responsabilité :", 10, y); y += 3;
+    doc.setFont("helvetica", "normal");
+    const t1 = doc.splitTextToSize("Le calcul du fret étant établi sur la base du poids ou du volume (CBM), l'indemnisation en cas de sinistre (perte ou casse) sera strictement limitée à la valeur conventionnelle liée au volume (CBM) déclarée lors de la facturation. En aucun cas le transporteur ne pourra être tenu au remboursement de la valeur vénale ou marchande du contenu.", 190);
+    doc.text(t1, 10, y); y += (t1.length * 3) + 2;
+    doc.setFont("helvetica", "bold"); doc.text("Retrait des colis :", 10, y); y += 3;
+    doc.setFont("helvetica", "normal");
+    const t2 = doc.splitTextToSize("Le destinataire est tenu de procéder à l'enlèvement des colis sous 7 jours après notification de l'arrivée. À défaut, le prestataire se réserve le droit de disposer de la marchandise (mise au rebut ou destruction) pour libérer l'espace de stockage, aux frais et risques du client.", 190);
+    doc.text(t2, 10, y);
+
     doc.save(`Facture_${currentEnvoi.nom}.pdf`);
 }
 
