@@ -17,6 +17,8 @@ function ouvrirSousOngletHistorique(type) {
     currentHistoriqueType = type;
     const b1=document.getElementById('btn-hist-maritime'); const b2=document.getElementById('btn-hist-aerien');
     if(b1&&b2) { if(type==='maritime'){b1.classList.add('active');b2.classList.remove('active');} else {b1.classList.remove('active');b2.classList.add('active');} }
+    const panelBL = document.getElementById('panel-gestion-bl');
+    if(panelBL) panelBL.style.display = (type === 'maritime') ? 'block' : 'none';
     chargerHistoriqueChine();
 }
 
@@ -36,6 +38,7 @@ async function chargerHistoriqueChine() {
             if(match) allHistoriqueData.push({id:d.id, ...data});
         });
         renderGroupFilter(allHistoriqueData, 'filter-container-hist', ()=>updateHistoriqueView(sIn?sIn.value:''));
+        updateBLGroupSelect();
         updateHistoriqueView(sIn?sIn.value:'');
     } catch(e) { console.error(e); }
 }
@@ -72,7 +75,7 @@ function updateHistoriqueView(searchQuery) {
     filtered.forEach((d, idx) => {
         if(curGrp!==null && d.refGroupe!==curGrp) {
             let u = currentHistoriqueType==='aerien'?'Kg':'CBM';
-            html += `<tr class="subtotal-row"><td colspan="4">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
             gQ=0; gV=0; gP=0;
         }
         curGrp = d.refGroupe;
@@ -93,10 +96,10 @@ function updateHistoriqueView(searchQuery) {
         const j = JSON.stringify({id:d.id, ...d}).replace(/'/g, "&#39;");
         let checkbox = `<input type="checkbox" class="hist-check" value="${d.id}" onchange="gererSelectionHistorique('${d.id}')" onclick="event.stopPropagation()">`;
         let recuIcon = (d.quantiteRecue > 0 || d.estArrive) ? '<i class="fas fa-check-circle" style="color:#27ae60; margin-left:5px;" title="Reçu / Arrivé"></i>' : '';
-        html += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td>${checkbox}</td><td>${d.reference}${recuIcon}</td><td>${dateS}</td><td>${d.nom} ${d.prenom}</td><td>${d.quantiteEnvoyee}</td><td>${pvStr}</td><td style="${colorStyle}">${formatArgent(final)} CFA</td><td>${mod}</td><td><i class="fas fa-edit"></i></td></tr>`;
+        html += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td>${checkbox}</td><td>${d.reference}${recuIcon}</td><td>${d.numBL || '-'}</td><td>${dateS}</td><td>${d.nom} ${d.prenom}</td><td>${d.quantiteEnvoyee}</td><td>${pvStr}</td><td style="${colorStyle}">${formatArgent(final)} CFA</td><td>${mod}</td><td><i class="fas fa-edit"></i></td></tr>`;
         if(idx === filtered.length-1) {
             let u = isAir?'Kg':'CBM';
-            html += `<tr class="subtotal-row"><td colspan="4">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
         }
     });
     tb.innerHTML = html;
@@ -305,4 +308,50 @@ async function supprimerCeColis() {
     const confirmation = confirm(`ATTENTION !\n\nVous êtes sur le point de supprimer définitivement le colis :\n${currentModifEnvoi.reference}\n\nCette action est IRRÉVERSIBLE. Voulez-vous continuer ?`);
     if (!confirmation) return;
     try { await db.collection('expeditions').doc(currentModifEnvoi.id).delete(); alert("Colis supprimé avec succès."); if (modalModif) modalModif.style.display = 'none'; if (typeof chargerHistoriqueChine === "function") chargerHistoriqueChine(); } catch (e) { alert("Erreur lors de la suppression : " + e.message); }
+}
+
+function updateBLGroupSelect() {
+    const select = document.getElementById('select-bl-groupes');
+    if(!select) return;
+    const groups = [...new Set(allHistoriqueData.map(d => d.refGroupe).filter(g => g && g.startsWith('EV')))];
+    groups.sort((a,b) => parseInt(b.replace('EV','')) - parseInt(a.replace('EV','')));
+    const currentSelection = Array.from(select.selectedOptions).map(o => o.value);
+    select.innerHTML = '';
+    groups.forEach(g => {
+        const opt = document.createElement('option'); opt.value = g; opt.innerText = g;
+        if(currentSelection.includes(g)) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+async function associerBLAuxGroupes() {
+    const bl = document.getElementById('input-bl-conteneur').value.trim();
+    const select = document.getElementById('select-bl-groupes');
+    const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+    
+    if (!bl) { alert("Veuillez saisir un numéro de BL."); return; }
+    if (selectedOptions.length === 0) { alert("Veuillez sélectionner au moins un groupe."); return; }
+    
+    if (!confirm(`Associer le BL "${bl}" aux groupes : ${selectedOptions.join(', ')} ?\nCela mettra à jour tous les colis de ces groupes.`)) return;
+    
+    const btn = document.querySelector('button[onclick="associerBLAuxGroupes()"]');
+    if(btn) { btn.disabled = true; btn.innerText = "Traitement..."; }
+
+    try {
+        const groupChunks = [];
+        // Firestore 'in' query limite à 10 éléments
+        for (let i = 0; i < selectedOptions.length; i += 10) { groupChunks.push(selectedOptions.slice(i, i + 10)); }
+        let totalUpdated = 0;
+        for (const chunk of groupChunks) {
+            const snap = await db.collection('expeditions').where('refGroupe', 'in', chunk).get();
+            if (snap.empty) continue;
+            const docs = snap.docs; const batchSize = 450; 
+            for (let i = 0; i < docs.length; i += batchSize) {
+                const batch = db.batch(); const subDocs = docs.slice(i, i + batchSize);
+                subDocs.forEach(doc => { batch.update(doc.ref, { numBL: bl }); });
+                await batch.commit(); totalUpdated += subDocs.length;
+            }
+        }
+        alert(`Succès ! ${totalUpdated} colis mis à jour avec le BL ${bl}.`); chargerHistoriqueChine(); document.getElementById('input-bl-conteneur').value = ''; Array.from(select.options).forEach(opt => opt.selected = false);
+    } catch(e) { console.error(e); alert("Erreur : " + e.message); } finally { if(btn) { btn.disabled = false; btn.innerText = "💾 Enregistrer BL"; } }
 }

@@ -31,6 +31,21 @@
                 <button class="sub-nav-link active" id="btn-hist-maritime" onclick="ouvrirSousOngletHistorique('maritime')"><i class="fas fa-ship"></i> Maritime</button>
                 <button class="sub-nav-link" id="btn-hist-aerien" onclick="ouvrirSousOngletHistorique('aerien')"><i class="fas fa-plane"></i> Aérien</button>
             </div>
+            <div class="card" id="panel-gestion-bl" style="background-color: #e3f2fd; border: 1px solid #90caf9; margin-bottom: 15px;">
+                <h3 style="color: #15609e; margin-top: 0;"><i class="fas fa-ship"></i> Gestion Conteneur / BL</h3>
+                <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <label style="color: #15609e;">N° BL / Conteneur</label>
+                        <input type="text" id="input-bl-conteneur" placeholder="ex: MSCU1234567" style="border: 1px solid #15609e;">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <label style="color: #15609e;">Sélectionner Groupes (Ctrl+Click)</label>
+                        <select id="select-bl-groupes" multiple style="height: 60px; padding: 5px; border: 1px solid #15609e;">
+                        </select>
+                    </div>
+                    <button class="btn-principal" onclick="associerBLAuxGroupes()" style="width: auto; margin-bottom: 0; height: 40px; background-color: #15609e;">💾 Enregistrer BL</button>
+                </div>
+            </div>
             <div class="card">
                 <div class="form-group" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
                     <input type="text" id="search-hist-chine" placeholder="Rechercher..." style="flex: 1;">
@@ -54,7 +69,7 @@
                 </div>
                 <div class="table-container">
                     <table class="excel-table">
-                        <thead><tr><th style="width: 30px;"><input type="checkbox" id="check-all-hist" onchange="toggleToutSelectionnerHist(this)"></th><th>Ref</th><th>Date</th><th>Client</th><th>Qté</th><th>Kg/CBM</th><th>Prix</th><th>Info</th><th>Action</th></tr></thead>
+                        <thead><tr><th style="width: 30px;"><input type="checkbox" id="check-all-hist" onchange="toggleToutSelectionnerHist(this)"></th><th>Ref</th><th>Conteneur</th><th>Date</th><th>Client</th><th>Qté</th><th>Kg/CBM</th><th>Prix</th><th>Info</th><th>Action</th></tr></thead>
                         <tbody id="tbody-historique-chine"></tbody>
                         <tfoot>
                             <tr class="group-summary-row">

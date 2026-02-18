@@ -34,6 +34,9 @@ async function genererEtiquette() {
     // Infos Colis
     let pv = (currentEnvoi.type || "").startsWith('aerien') ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
     doc.text(`KILOS: ${pv}  |  COLIS: ${currentEnvoi.quantiteEnvoyee}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+    if(currentEnvoi.type === 'maritime' && currentEnvoi.numBL) {
+        doc.text(`BL / CONTENEUR: ${currentEnvoi.numBL}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+    }
     // Pied de page
     doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("+8619515284352      +2250703165050", 50, 56, { align: 'center' });
     doc.save(`Etiquette_${currentEnvoi.nom}.pdf`);
@@ -131,6 +134,7 @@ async function genererFacture() {
     doc.text(`EXPÉDITEUR: ${currentEnvoi.expediteur || 'AMT'}`, 195, y, { align: "right" });
     doc.text(`TÉL EXP.: ${currentEnvoi.telExpediteur || '-'}`, 195, y + 6, { align: "right" });
     doc.text(`DATE ENREG.: ${new Date(currentEnvoi.date).toLocaleDateString('fr-FR')}`, 195, y + 12, { align: "right" });
+    if(currentEnvoi.numBL) doc.text(`BL: ${currentEnvoi.numBL}`, 195, y + 18, { align: "right" });
 
     // --- TABLEAU DES SERVICES ---
     y += 30;
@@ -291,7 +295,7 @@ async function genererFacture() {
     y += 6;
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    const terms = "Les délais de transport sont donnés à titre indicatif. AMT Transit ne saurait être tenu responsable des retards de navires ou de dédouanement. Le stockage est gratuit pendant 1 semaine après l'arrivée. Au-delà, des frais de magasinage s'appliquent. Les marchandises non récupérées après 3 mois seront considérées comme abandonnées. Les dommages sont indemnisés dans la limite des coûts de transport, sauf assurance spécifique. Toute marchandise doit être payée intégralement avant retrait.";
+    const terms = "Les délais de transport sont fournis à titre purement indicatif par AMT Transit. Les retards de navires ou de dédouanement ne sauraient engager la responsabilité de l'entreprise. Le stockage est gracieux durant 7 jours calendaires après l'arrivée. Passé ce délai, des frais de magasinage s'appliquent. Toute marchandise non retirée après un délai de 30 jours (1 mois) sera considérée comme abandonnée et pourra être mise au rebut. L'indemnisation en cas de dommages est strictement limitée au montant des frais de transport, sauf en cas de souscription à une assurance spécifique préalable. Le règlement intégral est exigé avant tout retrait de marchandise. Toute contestation doit impérativement être signalée dès réception de la facture, faute de quoi les conditions sont considérées comme acceptées sans réserve.";
     // Affichage du texte justifié (splitTextToSize gère le retour à la ligne)
     doc.text(doc.splitTextToSize(terms, 180), 15, y);
 
@@ -322,6 +326,7 @@ async function genererBonLivraison() {
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica", "normal");
     doc.text(`N° BL: BL-${currentEnvoi.reference}`, 130, 28);
     doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 130, 33);
+    if(currentEnvoi.numBL) doc.text(`Conteneur: ${currentEnvoi.numBL}`, 130, 38);
     
     // Lieu de livraison
     doc.setFont("helvetica", "bold");

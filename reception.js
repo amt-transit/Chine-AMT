@@ -66,7 +66,7 @@ function updateReceptionView(searchQuery) {
         let res = pN - (parseInt(d.montantPaye)||0);
         if(curGrp!==null && d.refGroupe!==curGrp) {
             let u = currentReceptionType.startsWith('aerien')?'Kg':'CBM';
-            html += `<tr class="subtotal-row"><td colspan="6">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)}</td><td></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="7">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)}</td><td></td></tr>`;
             gQ=0; gV=0; gP=0;
         }
         curGrp = d.refGroupe;
@@ -75,10 +75,10 @@ function updateReceptionView(searchQuery) {
         const safe = encodeURIComponent(JSON.stringify({id:d.id, ...d}));
         let checkbox = `<input type="checkbox" class="rec-check" value="${d.id}" onchange="gererSelectionReception('${d.id}')" onclick="event.stopPropagation()">`;
         let recuIcon = (d.quantiteRecue > 0 || d.estArrive) ? '<i class="fas fa-check-circle" style="color:#27ae60; margin-left:5px;" title="Reçu / Arrivé"></i>' : '';
-        html += `<tr class="interactive-table-row" onclick='selectionnerClientViaData("${safe}")'><td>${checkbox}</td> <td>${d.reference}${recuIcon}</td><td>${new Date(d.date).toLocaleDateString()}</td><td>${d.nom} ${d.prenom}</td><td>${d.description}</td><td>${d.type}</td><td>${d.quantiteEnvoyee}</td><td>${pv}</td><td style="font-weight:bold; color:${res>0?'#c0392b':'#27ae60'}">${formatArgent(res)} CFA</td><td><span class="status-badge ${cl}">${d.status||'-'}</span></td></tr>`;
+        html += `<tr class="interactive-table-row" onclick='selectionnerClientViaData("${safe}")'><td>${checkbox}</td> <td>${d.reference}${recuIcon}</td><td>${d.numBL || '-'}</td><td>${new Date(d.date).toLocaleDateString()}</td><td>${d.nom} ${d.prenom}</td><td>${d.description}</td><td>${d.type}</td><td>${d.quantiteEnvoyee}</td><td>${pv}</td><td style="font-weight:bold; color:${res>0?'#c0392b':'#27ae60'}">${formatArgent(res)} CFA</td><td><span class="status-badge ${cl}">${d.status||'-'}</span></td></tr>`;
         if(idx === filtered.length-1) {
              let u = isAir?'Kg':'CBM';
-             html += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)}</td><td></td></tr>`;
+             html += `<tr class="subtotal-row"><td colspan="7">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)}</td><td></td></tr>`;
         }
     });
     tb.innerHTML = html;
