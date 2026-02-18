@@ -118,8 +118,17 @@ function toggleToutSelectionner(checkboxMaitre) {
 }
 function updateBoutonGroupe() {
     const btn = document.getElementById('btn-group-pay');
+    const btnWa = document.getElementById('btn-whatsapp-groupe');
     const count = document.getElementById('count-sel');
-    if (selectedReceptionIds.size > 0) { btn.style.display = 'block'; count.innerText = selectedReceptionIds.size; } else { btn.style.display = 'none'; }
+    const countWa = document.getElementById('count-sel-wa');
+    
+    if (selectedReceptionIds.size > 0) { 
+        btn.style.display = 'block'; count.innerText = selectedReceptionIds.size;
+        if(btnWa) { btnWa.style.display = 'block'; countWa.innerText = selectedReceptionIds.size; }
+    } else { 
+        btn.style.display = 'none'; 
+        if(btnWa) btnWa.style.display = 'none';
+    }
 }
 
 const modalBackdrop = document.getElementById('modal-backdrop');
@@ -274,4 +283,60 @@ async function validerPaiementGroupe() {
         }
     });
     try { await batch.commit(); alert(`${count} colis ont été soldés avec succès !`); fermerModalPaiementGroupe(); selectedReceptionIds.clear(); document.getElementById('check-all-rec').checked = false; updateBoutonGroupe(); chargerClients(); } catch (e) { alert("Erreur : " + e.message); }
+}
+
+const modalWa = document.getElementById('modal-whatsapp-groupe');
+function fermerModalWhatsAppGroupe() { if(modalWa) modalWa.style.display='none'; }
+
+function ouvrirModalWhatsAppGroupe() {
+    if (selectedReceptionIds.size === 0) return;
+    if(modalWa) modalWa.style.display = 'flex';
+    genererListeWhatsApp();
+}
+
+function genererListeWhatsApp() {
+    const container = document.getElementById('wa-clients-list');
+    const template = document.getElementById('wa-message-template').value;
+    container.innerHTML = '';
+    
+    selectedReceptionIds.forEach(id => {
+        const item = allReceptionData.find(d => d.id === id);
+        if (item) {
+            const row = document.createElement('div');
+            row.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee; background:white; margin-bottom:5px; border-radius:4px;";
+            
+            let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0;
+            let net = pB + (item.fraisSupplementaires||0) - (item.remise||0);
+            let reste = net - (parseInt(item.montantPaye)||0);
+
+            let blInfo = item.numBL ? `BL: ${item.numBL}. ` : "";
+            let msg = template
+                .replace(/{nom}/g, `${item.prenom} ${item.nom}`)
+                .replace(/{ref}/g, item.reference)
+                .replace(/{colis}/g, item.description)
+                .replace(/{reste}/g, formatArgent(reste))
+                .replace(/{bl}/g, blInfo);
+            
+            const encodedMsg = encodeURIComponent(msg);
+            let tel = (item.tel || "").replace(/[^0-9]/g, ''); 
+            
+            row.innerHTML = `<div style="flex:1"><strong>${item.nom}</strong> <span style="color:#666; font-size:0.9em;">(${item.tel})</span></div><a href="https://wa.me/${tel}?text=${encodedMsg}" target="_blank" class="btn-secondaire btn-small" style="background-color:#25D366; color:white; text-decoration:none; width:auto; display:inline-flex; align-items:center; gap:5px;"><i class="fab fa-whatsapp"></i> Envoyer</a>`;
+            container.appendChild(row);
+        }
+    });
+}
+
+function envoyerWhatsAppIndividuel() {
+    if(!currentEnvoi) return;
+    let tel = (currentEnvoi.tel || "").replace(/[^0-9]/g, '');
+    if(!tel) { alert("Numéro de téléphone invalide."); return; }
+    
+    let pB = parseInt((currentEnvoi.prixEstime||"0").replace(/\D/g,''))||0;
+    let net = pB + (currentEnvoi.fraisSupplementaires||0) - (currentEnvoi.remise||0);
+    let reste = net - (parseInt(currentEnvoi.montantPaye)||0);
+    
+    let blInfo = currentEnvoi.numBL ? ` BL: ${currentEnvoi.numBL}.` : "";
+    let msg = `Bonjour ${currentEnvoi.prenom} ${currentEnvoi.nom}, votre colis ${currentEnvoi.reference} (${currentEnvoi.description}) est arrivé à l'agence AMT Abidjan.${blInfo} Reste à payer: ${formatArgent(reste)} CFA. Merci de passer le récupérer.`;
+    
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
 }

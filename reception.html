@@ -47,9 +47,14 @@
                         <button id="btn-export-excel" class="btn-secondaire" onclick="exporterExcel()">Excel</button>
                     </div>
                     
-                    <button id="btn-group-pay" onclick="ouvrirModalPaiementGroupe()" class="btn-principal" style="display: none; background-color: #27ae60; width: auto;">
-                        💰 Solder la sélection (<span id="count-sel">0</span>)
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btn-group-pay" onclick="ouvrirModalPaiementGroupe()" class="btn-principal" style="display: none; background-color: #27ae60; width: auto;">
+                            💰 Solder la sélection (<span id="count-sel">0</span>)
+                        </button>
+                        <button id="btn-whatsapp-groupe" onclick="ouvrirModalWhatsAppGroupe()" class="btn-principal" style="display: none; background-color: #25D366; width: auto;">
+                            <i class="fab fa-whatsapp"></i> WhatsApp (<span id="count-sel-wa">0</span>)
+                        </button>
+                    </div>
                 </div>
                 <div class="table-container">
                     <table id="table-expeditions" class="interactive-table">
@@ -112,6 +117,7 @@
                     <button class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">Étiquette</button>
                     <button class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">Facture</button>
                     <button class="btn-secondaire" onclick="genererBonLivraison()" style="background-color: #8e44ad; color: white;">📄 BL</button>
+                    <button class="btn-secondaire" onclick="envoyerWhatsAppIndividuel()" style="background-color: #25D366; color: white;"><i class="fab fa-whatsapp"></i> WhatsApp</button>
                     <button id="btn-marquer-arrive" class="btn-secondaire" onclick="basculerStatutArrive()" style="background-color: #17a2b8; color: white; margin-left: auto;">🛬 Arrivé au Dépôt</button>
                 </div>
                 
@@ -199,6 +205,20 @@
                 <p class="info-text">Cette action va solder (payer entièrement) tous les colis sélectionnés.</p>
                 <button type="button" class="btn-principal" onclick="validerPaiementGroupe()">Valider le paiement total</button>
             </form>
+        </div>
+    </div>
+    <div id="modal-whatsapp-groupe" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="modal-close" onclick="fermerModalWhatsAppGroupe()">&times;</span>
+            <h3><i class="fab fa-whatsapp" style="color:#25D366;"></i> Message Groupé WhatsApp</h3>
+            <div class="form-group">
+                <label>Message (Variables : {nom}, {ref}, {colis}, {reste}, {bl})</label>
+                <textarea id="wa-message-template" rows="4" oninput="genererListeWhatsApp()" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family: sans-serif;">Bonjour {nom}, votre colis {ref} ({colis}) est arrivé à l'agence AMT Abidjan. {bl}Reste à payer: {reste} CFA. Merci de passer le récupérer.</textarea>
+            </div>
+            <div id="wa-clients-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; background: #f9f9f9;">
+                <!-- Liste générée par JS -->
+            </div>
+            <p class="info-text">Cliquez sur "Envoyer" pour ouvrir la conversation WhatsApp avec le message pré-rempli.</p>
         </div>
     </div>
 
