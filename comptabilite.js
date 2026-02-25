@@ -25,7 +25,7 @@ async function chargerCompta(type) {
                 items.push({ ...data, id: d.id, isDep: false, sortDate: dRef, grp: grp, sortRef: data.reference || "ZZZ", hist: data.historiquePaiements || [] });
             }
         });
-        snapS.forEach(d => { const data = d.data(); if (data.type === type) { let g = (data.refGroupe && data.refGroupe.trim()) ? data.refGroupe.toUpperCase() : "ZZZ_GEN"; items.push({ ...data, id: d.id, isDep: true, sortDate: new Date(data.date), grp: g, sortRef: "DEPENSE" }); } });
+        snapS.forEach(d => { const data = d.data(); if (data.type === type && !data.deleted) { let g = (data.refGroupe && data.refGroupe.trim()) ? data.refGroupe.toUpperCase() : "ZZZ_GEN"; items.push({ ...data, id: d.id, isDep: true, sortDate: new Date(data.date), grp: g, sortRef: "DEPENSE" }); } });
         items.sort((a, b) => { if (a.grp.startsWith('EV') && b.grp.startsWith('EV')) { const numA = parseInt(a.grp.replace('EV', '')) || 0; const numB = parseInt(b.grp.replace('EV', '')) || 0; return numB - numA; } return a.grp.localeCompare(b.grp); });
         let cred = 0, caisse = 0, bonus = 0; let modes = { Esp: 0, Chq: 0, OM: 0, Wav: 0, CB: 0 }, outM = { Esp: 0, Chq: 0, OM: 0, Wav: 0, CB: 0 };
         let curGrp = null, grpDu = 0, grpReste = 0, grpEntree = 0, grpSortie = 0; let GT_Q = 0, GT_V = 0; let html = '';
@@ -45,7 +45,7 @@ async function chargerCompta(type) {
             } else {
                 GT_Q += parseInt(it.quantiteEnvoyee)||0; GT_V += parseFloat(type.startsWith('aerien')?it.poidsEnvoye:it.volumeEnvoye)||0;
                 let pB = parseInt((it.prixEstime || "0").replace(/\D/g, '')) || 0; let du = pB + (it.fraisSupplementaires||0) - (it.remise || 0); let paye = 0;
-                if (it.hist.length > 0) { it.hist.forEach(h => { let m = parseFloat(h.montant) || 0; paye += m; let t = h.moyen || 'Espèce'; if (t.includes('Chèque')) modes.Chq += m; else if (t.includes('OM')) modes.OM += m; else if (t.includes('Wave')) modes.Wav += m; else if (t.includes('CB')) modes.CB += m; else modes.Esp += m; }); } else { paye = it.montantPaye || 0; modes.Esp += paye; }
+                if (it.hist.length > 0) { it.hist.forEach(h => { if(h.deleted) return; let m = parseFloat(h.montant) || 0; paye += m; let t = h.moyen || 'Espèce'; if (t.includes('Chèque')) modes.Chq += m; else if (t.includes('OM')) modes.OM += m; else if (t.includes('Wave')) modes.Wav += m; else if (t.includes('CB')) modes.CB += m; else modes.Esp += m; }); } else { paye = it.montantPaye || 0; modes.Esp += paye; }
                 let r = du - paye; caisse += paye; if (r > 0) cred += r; let diff = paye - du; if (diff > 0) bonus += diff; else if (diff < 0 && Math.abs(diff) < 500) bonus += diff;
                 grpDu += du; grpReste += (r > 0 ? r : 0); grpEntree += paye;
                 let recuIcon = (it.quantiteRecue > 0 || it.estArrive) ? '<i class="fas fa-check-circle" style="color:#27ae60; margin-left:5px;" title="Reçu / Arrivé"></i>' : '';
@@ -74,9 +74,13 @@ function voirHistoriquePaiement(item) {
     if (item.history && item.history.length > 0) {
         item.history.forEach((h, index) => {
             let d = new Date(h.date.seconds * 1000).toLocaleDateString('fr-FR');
-            let btnSuppr = '';
-            if (currentRole !== 'spectateur') { btnSuppr = `<button class="btn-suppr-small" onclick="supprimerPaiement(${index})" style="background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer;">X</button>`; }
-            html += `<tr><td>${d}</td><td class="text-green">${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td><td>${h.agent || '-'}</td><td>${btnSuppr}</td></tr>`;
+            if (h.deleted) {
+                html += `<tr style="background:#f9f9f9; color:#aaa; text-decoration:line-through;"><td>${d}</td><td>${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td><td>${h.agent || '-'}</td><td>Annulé</td></tr>`;
+            } else {
+                let btnSuppr = '';
+                if (currentRole !== 'spectateur') { btnSuppr = `<button class="btn-suppr-small" onclick="supprimerPaiement(${index})" style="background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer;">X</button>`; }
+                html += `<tr><td>${d}</td><td class="text-green">${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td><td>${h.agent || '-'}</td><td>${btnSuppr}</td></tr>`;
+            }
         });
     } else { html = '<tr><td colspan="5" style="text-align:center">Aucun historique de paiement.</td></tr>'; }
     tb.innerHTML = html;
@@ -88,13 +92,15 @@ async function supprimerPaiement(index) {
         const docRef = db.collection('expeditions').doc(currentIdPaiementOpen); const docSnap = await docRef.get();
         if (!docSnap.exists) { alert("Erreur: Document introuvable"); return; }
         const data = docSnap.data(); let historique = data.historiquePaiements || [];
-        if (index < 0 || index >= historique.length) return;
+        if (index < 0 || index >= historique.length || historique[index].deleted) return;
         
-        historique.splice(index, 1);
+        historique[index].deleted = true;
+        historique[index].dateSuppression = new Date();
+        historique[index].agentSuppression = currentUser ? currentUser.email : 'Inconnu';
         
         // Recalcul du montant total payé basé sur l'historique restant pour éviter les erreurs de synchro
         let nouveauMontantPaye = 0;
-        historique.forEach(h => { nouveauMontantPaye += (parseInt(h.montant) || 0); });
+        historique.forEach(h => { if(!h.deleted) nouveauMontantPaye += (parseInt(h.montant) || 0); });
 
         await docRef.update({ historiquePaiements: historique, montantPaye: nouveauMontantPaye });
         alert("Paiement annulé avec succès."); modalHist.style.display = 'none'; chargerCompta(currentComptaType); if(typeof chargerClients === 'function') chargerClients();
@@ -114,4 +120,4 @@ async function enregistrerDepense() {
     if (!d || !mt || m <= 0) { alert('Erreur saisie.'); return; }
     try { await db.collection('depenses').add({ date: d, type: document.getElementById('depense-type').value, refGroupe: grp, motif: mt, montant: m, moyenPaiement: document.getElementById('depense-moyen').value, creeLe: firebase.firestore.FieldValue.serverTimestamp() }); alert('OK'); modalDepense.style.display = 'none'; document.getElementById('form-depense').reset(); chargerCompta(currentComptaType); } catch (e) { alert(e.message); }
 }
-async function supprimerDepense(id) { if (confirm('Supprimer ?')) { await db.collection('depenses').doc(id).delete(); chargerCompta(currentComptaType); } }
+async function supprimerDepense(id) { if (confirm('Supprimer ?')) { await db.collection('depenses').doc(id).update({ deleted: true }); chargerCompta(currentComptaType); } }

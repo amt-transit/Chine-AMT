@@ -43,7 +43,8 @@ async function chargerAudit() {
             if (isMatch) {
             
             // Cas 1 : Historique détaillé disponible (Nouveau système)
-            if (d.historiquePaiements && Array.isArray(d.historiquePaiements) && d.historiquePaiements.length > 0) {
+            // On vérifie l'existence du tableau (même vide) pour éviter de basculer en mode "Ancien" par erreur si on a tout supprimé
+            if (d.historiquePaiements && Array.isArray(d.historiquePaiements)) {
                 d.historiquePaiements.forEach(p => {
                     let dateP = null;
                     if (p.date) {
@@ -60,7 +61,8 @@ async function chargerAudit() {
                         description: `Paiement colis ${d.description || ''}`,
                         montant: parseInt(p.montant) || 0,
                         moyen: p.moyen || '-',
-                        agent: p.agent || '-'
+                        agent: p.agent || '-',
+                        isDeleted: p.deleted || false
                     });
                 });
             } 
@@ -83,7 +85,8 @@ async function chargerAudit() {
                     description: `Régularisation ancien dossier`,
                     montant: parseInt(d.montantPaye) || 0,
                     moyen: d.moyenPaiement || 'Inconnu',
-                    agent: 'Système'
+                    agent: 'Système',
+                    isDeleted: false
                 });
             }
             }
@@ -105,7 +108,8 @@ async function chargerAudit() {
                 description: d.motif || 'Dépense diverse',
                 montant: (parseFloat(d.montant) || 0) * -1, // Négatif pour dépense
                 moyen: d.moyenPaiement || '-',
-                agent: '-' 
+                agent: '-',
+                isDeleted: d.deleted || false
             });
         });
 
@@ -115,7 +119,9 @@ async function chargerAudit() {
         
         let solde = 0;
         transactions.forEach(t => {
-            solde += t.montant;
+            if (!t.isDeleted) {
+                solde += t.montant;
+            }
             t.solde = solde;
         });
 
@@ -142,17 +148,26 @@ function updateAuditView(search) {
     let html = '';
     filtered.forEach(t => {
         const dateStr = t.date ? t.date.toLocaleDateString('fr-FR') + ' ' + t.date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'}) : '-';
-        const color = t.montant >= 0 ? '#27ae60' : '#c0392b';
-        const typeLabel = t.montant >= 0 ? '<span class="status-badge status-conforme">Entrée</span>' : '<span class="status-badge status-ecart">Sortie</span>';
+        let color = t.montant >= 0 ? '#27ae60' : '#c0392b';
+        let typeLabel = t.montant >= 0 ? '<span class="status-badge status-conforme">Entrée</span>' : '<span class="status-badge status-ecart">Sortie</span>';
+        let rowStyle = '';
+        let amountStyle = `font-weight:bold; color:${color}`;
+
+        if (t.isDeleted) {
+            rowStyle = 'style="background-color: #f2f2f2; color: #999;"';
+            amountStyle = 'style="text-decoration: line-through; color: #999;"';
+            typeLabel = '<span class="status-badge" style="background-color:#999;">SUPPRIMÉ</span>';
+            color = '#999';
+        }
         
         html += `
-            <tr>
+            <tr ${rowStyle}>
                 <td>${dateStr}</td>
                 <td>${typeLabel}</td>
                 <td>${t.ref}</td>
                 <td>${t.tiers}</td>
                 <td>${t.description}</td>
-                <td style="font-weight:bold; color:${color}">${formatArgent(t.montant)} CFA</td>
+                <td ${amountStyle}>${formatArgent(t.montant)} CFA</td>
                 <td style="font-weight:bold; color:#15609e">${formatArgent(t.solde)} CFA</td>
                 <td>${t.moyen}</td>
                 <td>${t.agent}</td>
