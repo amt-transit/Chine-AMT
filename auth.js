@@ -46,6 +46,7 @@ auth.onAuthStateChanged(user => {
         if(currentRole === 'chine') {
             const navRec = document.getElementById('nav-reception'); if(navRec) navRec.style.display='none';
             const navCompta = document.getElementById('nav-compta'); if(navCompta) navCompta.style.display='none';
+            const navAudit = document.getElementById('nav-audit'); if(navAudit) navAudit.style.display='none';
         } else if (currentRole === 'spectateur') {
             const navEnv = document.getElementById('nav-envoi'); if(navEnv) navEnv.style.display='none';
             const navHist = document.getElementById('nav-historique'); if(navHist) navHist.style.display='none';
@@ -55,6 +56,7 @@ auth.onAuthStateChanged(user => {
             // Abidjan
             const navRec = document.getElementById('nav-reception'); if(navRec) navRec.style.display='inline-flex';
             const navCompta = document.getElementById('nav-compta'); if(navCompta) navCompta.style.display='inline-flex';
+            const navAudit = document.getElementById('nav-audit'); if(navAudit) navAudit.style.display='inline-flex';
             const btnAjout = document.getElementById('btn-ajout-depense');
             if(btnAjout) btnAjout.style.display = 'inline-block';
         }

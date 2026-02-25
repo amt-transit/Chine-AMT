@@ -290,9 +290,11 @@ tbody tr:hover { background-color: #e3f2fd; }
 /* Tableau Compta (Couleurs spécifiques) */
 .excel-table thead th { background-color: #4472c4 !important; color: white !important; }
 .excel-table td { text-align: center; }
-.excel-table td:nth-child(6) { color: #c0392b; font-weight: bold; } /* Reste */
-.excel-table td:nth-child(7) { color: #27ae60; font-weight: bold; } /* Entrée */
-.excel-table td:nth-child(8) { color: #c0392b; font-weight: bold; } /* Sortie */
+
+#table-compta-details td:nth-child(6) { color: #333; font-weight: bold; } /* Dû */
+#table-compta-details td:nth-child(7) { font-weight: bold; } /* Reste (Géré par JS) */
+#table-compta-details td:nth-child(8) { color: #27ae60; font-weight: bold; } /* Entrée (Vert) */
+#table-compta-details td:nth-child(9) { color: #c0392b; font-weight: bold; } /* Sortie (Rouge) */
 
 /* Lignes de résumé (Totals) */
 tr.group-summary-row { background-color: #444 !important; }
