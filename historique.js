@@ -231,7 +231,26 @@ async function sauvegarderModificationChine() {
     let t = 0;
     if(currentModifEnvoi.type === 'aerien_normal') t = PRIX_AERIEN_NORMAL; else if(currentModifEnvoi.type === 'aerien_express') t = PRIX_AERIEN_EXPRESS; else t = PRIX_MARITIME_CBM;
     up.prixEstime = formatArgent(v * t) + ' CFA';
+    
+    const nouveauPrixVal = (v * t) + f - r;
 
+    // LOGIQUE AUDIT : Détection changement de prix (Facture)
+    // Recalcul de l'ancien net pour comparaison juste
+    let tOld = 0;
+    if(freshData.type === 'aerien_normal') tOld = PRIX_AERIEN_NORMAL; else if(freshData.type === 'aerien_express') tOld = PRIX_AERIEN_EXPRESS; else tOld = PRIX_MARITIME_CBM;
+    let volOld = (freshData.type||"").startsWith('aerien') ? (freshData.poidsEnvoye||0) : (freshData.volumeEnvoye||0);
+    const ancienNet = (volOld * tOld) + (freshData.fraisSupplementaires||0) - (freshData.remise||0);
+    
+    if (Math.abs(ancienNet - nouveauPrixVal) > 5) { // Tolérance de 5 CFA pour arrondis
+        up.historiqueModifications = firebase.firestore.FieldValue.arrayUnion({
+            date: new Date(),
+            type: 'prix',
+            ancien: ancienNet,
+            nouveau: nouveauPrixVal,
+            auteur: currentUser ? currentUser.email : 'Système'
+        });
+    }
+    
     if (nouveauGroupe && nouveauGroupe !== currentModifEnvoi.refGroupe) {
         up.refGroupe = nouveauGroupe;
         let ref = currentModifEnvoi.reference || "";

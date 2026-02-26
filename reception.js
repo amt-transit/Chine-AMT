@@ -247,6 +247,18 @@ async function sauvegarderCorrectionReception() {
         prixEstime: formatArgent(nouveauPrix) + ' CFA'
     };
     
+    // LOGIQUE AUDIT : Détection changement de paiement (Correction manuelle)
+    const ancienPaye = parseInt(freshData.montantPaye) || 0;
+    if (ancienPaye !== nM) {
+        updates.historiqueModifications = firebase.firestore.FieldValue.arrayUnion({
+            date: new Date(),
+            type: 'paiement',
+            ancien: ancienPaye,
+            nouveau: nM,
+            auteur: currentUser ? currentUser.email : 'Système'
+        });
+    }
+
     // Mise à jour du poids/volume envoyé pour correspondre à la correction (la "vraie" valeur)
     if (isAir) updates.poidsEnvoye = nP; else updates.volumeEnvoye = nP;
 

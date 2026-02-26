@@ -89,6 +89,32 @@ async function chargerAudit() {
                     isDeleted: false
                 });
             }
+
+            // Cas 3 : Historique des modifications (Prix / Paiement)
+            if (d.historiqueModifications && Array.isArray(d.historiqueModifications)) {
+                d.historiqueModifications.forEach(m => {
+                    let dateM = null;
+                    if (m.date) {
+                        if (m.date.toDate) dateM = m.date.toDate();
+                        else if (m.date.seconds) dateM = new Date(m.date.seconds * 1000);
+                        else dateM = new Date(m.date);
+                    }
+                    
+                    transactions.push({
+                        date: dateM,
+                        type: m.type === 'prix' ? 'Modif. Facture' : 'Modif. Paiement',
+                        ref: d.reference || '?',
+                        tiers: `${d.nom || ''} ${d.prenom || ''}`,
+                        description: `Correction: ${formatArgent(m.ancien)} -> ${formatArgent(m.nouveau)}`,
+                        montant: parseInt(m.ancien) || 0, // On affiche l'ancien montant
+                        moyen: '-',
+                        agent: m.auteur || 'Système',
+                        isDeleted: false,
+                        isModified: true // Marqueur pour le style
+                    });
+                });
+            }
+
             }
         });
 
@@ -119,7 +145,7 @@ async function chargerAudit() {
         
         let solde = 0;
         transactions.forEach(t => {
-            if (!t.isDeleted) {
+            if (!t.isDeleted && !t.isModified) { // On ignore les modifications pour le solde de caisse
                 solde += t.montant;
             }
             t.solde = solde;
@@ -158,6 +184,12 @@ function updateAuditView(search) {
             amountStyle = 'style="text-decoration: line-through; color: #999;"';
             typeLabel = '<span class="status-badge" style="background-color:#999;">SUPPRIMÉ</span>';
             color = '#999';
+        } else if (t.isModified) {
+            // Style spécifique pour les modifications (Grisé mais pas barré)
+            rowStyle = 'style="background-color: #fcf8e3; color: #7f8c8d;"';
+            amountStyle = 'style="color: #7f8c8d; font-style: italic;"';
+            typeLabel = '<span class="status-badge" style="background-color:#95a5a6;">MODIFIÉ</span>';
+            color = '#7f8c8d';
         }
         
         html += `
