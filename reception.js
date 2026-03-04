@@ -55,6 +55,14 @@ function updateReceptionView(searchQuery) {
         if(searchQuery && !JSON.stringify(d).toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
     });
+
+    filtered.sort((a, b) => {
+        const numA = parseInt((a.refGroupe||"").replace('EV', '')) || 0;
+        const numB = parseInt((b.refGroupe||"").replace('EV', '')) || 0;
+        if (numA !== numB) return numB - numA; 
+        return (a.reference || "").localeCompare(b.reference || "");
+    });
+
     let curGrp=null, gQ=0, gV=0, gP=0, tQ=0, tV=0, tP=0;
     clientsCharges = filtered; 
     let html = '';
