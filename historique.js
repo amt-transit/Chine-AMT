@@ -321,6 +321,24 @@ async function changerGroupeEnMasse() {
     try { await batch.commit(); alert(`${count} colis déplacés vers ${nouveauGroupe} avec succès !`); selectedHistoriqueIds.clear(); document.getElementById('check-all-hist').checked = false; document.getElementById('hist-bulk-actions').style.display = 'none'; chargerHistoriqueChine(); } catch (e) { alert("Erreur : " + e.message); }
 }
 
+async function attribuerConteneurEnMasse() {
+    const conteneur = document.getElementById('hist-bulk-conteneur').value.trim();
+    if (!conteneur) { alert("Veuillez saisir un numéro de conteneur / BL."); return; }
+    if (!confirm(`Attribuer le conteneur "${conteneur}" aux ${selectedHistoriqueIds.size} colis sélectionnés ?`)) return; 
+    if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }
+    
+    const batch = db.batch(); let count = 0;
+    selectedHistoriqueIds.forEach(id => {
+        const item = allHistoriqueData.find(d => d.id === id);
+        if (item) { 
+            const refDoc = db.collection('expeditions').doc(id); 
+            let updateData = { numBL: conteneur, dernierModificateur: currentRole === 'chine' ? 'Agence Chine (Masse)' : 'Agence Abidjan (Masse)', dateModification: firebase.firestore.FieldValue.serverTimestamp() }; 
+            batch.update(refDoc, updateData); count++; 
+        }
+    });
+    try { await batch.commit(); alert(`${count} colis mis à jour avec le conteneur ${conteneur} !`); selectedHistoriqueIds.clear(); document.getElementById('check-all-hist').checked = false; document.getElementById('hist-bulk-actions').style.display = 'none'; document.getElementById('hist-bulk-conteneur').value = ''; chargerHistoriqueChine(); } catch (e) { alert("Erreur : " + e.message); }
+}
+
 async function supprimerCeColis() {
     if (!currentModifEnvoi) return;
     if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }

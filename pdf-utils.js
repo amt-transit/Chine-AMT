@@ -134,7 +134,7 @@ async function genererFacture() {
     doc.text(`EXPÉDITEUR: ${currentEnvoi.expediteur || 'AMT'}`, 195, y, { align: "right" });
     doc.text(`TÉL EXP.: ${currentEnvoi.telExpediteur || '-'}`, 195, y + 6, { align: "right" });
     doc.text(`DATE ENREG.: ${new Date(currentEnvoi.date).toLocaleDateString('fr-FR')}`, 195, y + 12, { align: "right" });
-    if(currentEnvoi.numBL) doc.text(`BL: ${currentEnvoi.numBL}`, 195, y + 18, { align: "right" });
+    if(currentEnvoi.numBL) doc.text(`CONTENEUR / BL: ${currentEnvoi.numBL}`, 195, y + 18, { align: "right" });
 
     // --- TABLEAU DES SERVICES ---
     y += 30;

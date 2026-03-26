@@ -340,6 +340,8 @@ tr.group-summary-row td {
 
     /* Éléments qui prennent toute la largeur */
     #form-envoi-commun h3, 
+    #form-envoi-commun > label,
+    .type-selection-grid,
     #form-ajout-client h3, 
     #form-ajout-client hr,
     #form-ajout-client h4,

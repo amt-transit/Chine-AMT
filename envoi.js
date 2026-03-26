@@ -44,6 +44,12 @@ function selectType(type, element) {
     document.querySelectorAll('.type-card').forEach(card => card.classList.remove('selected'));
     element.classList.add('selected');
     
+    // Afficher ou masquer le champ de conteneur
+    const containerGroup = document.getElementById('container-group');
+    if (containerGroup) {
+        containerGroup.style.display = type === 'maritime' ? 'block' : 'none';
+    }
+    
     // 3. Déclencher la logique existante de changement de labels
     gererChampsEnvoi();
 }
@@ -192,6 +198,7 @@ async function validerEnvoiGroupe() {
         }
 
         const t = document.getElementById('type-envoi').value;
+        const numConteneur = document.getElementById('num-conteneur') ? document.getElementById('num-conteneur').value.trim() : '';
         let refG = ""; 
         const pref = t.startsWith('aerien') ? 'AIR' : 'MRT';
         const now = new Date();
@@ -210,6 +217,7 @@ async function validerEnvoiGroupe() {
                 refGroupe: refG, 
                 date: dateFinale, 
                 type: t,
+                numBL: t === 'maritime' ? numConteneur : '',
                 nom: c.nom, prenom: c.prenom, tel: c.tel, description: c.description, detailsColis: c.detailsColis || [],
                 expediteur: c.expediteur, telExpediteur: c.telExpediteur,
                 quantiteEnvoyee: parseInt(c.quantiteEnvoyee) || 0, 
