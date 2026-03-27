@@ -329,32 +329,98 @@ function genererListeWhatsApp() {
             let net = pB + (item.fraisSupplementaires||0) - (item.remise||0);
             let reste = net - (parseInt(item.montantPaye)||0);
 
-            let blInfo = item.numBL ? `BL: ${item.numBL}. ` : "";
-            let msg = template
-                .replace(/{nom}/g, `${item.prenom} ${item.nom}`)
-                .replace(/{ref}/g, item.reference)
-                .replace(/{colis}/g, item.description)
-                .replace(/{reste}/g, formatArgent(reste))
-                .replace(/{bl}/g, blInfo);
-            
-            const encodedMsg = encodeURIComponent(msg);
-            let tel = (item.tel || "").replace(/[^0-9]/g, ''); 
-            let waLink = tel ? `https://wa.me/${tel}?text=${encodedMsg}` : `https://wa.me/?text=${encodedMsg}`;
-            
             row.innerHTML = `
-                <div style="flex:1"><strong>${item.nom}</strong> <span style="color:#666; font-size:0.9em;">(${item.tel})</span></div>
+                <div style="flex:1; display:flex; align-items:center; gap:10px;">
+                    <strong>${item.nom}</strong>
+                    <input type="text" id="wa-tel-${item.id}" value="${item.tel || ''}" placeholder="+225..." style="padding:4px; border:1px solid #ccc; border-radius:4px; width:130px; font-size:0.9em;" title="Modifiez le numéro si nécessaire">
+                </div>
                 <div style="display:flex; gap:5px;">
-                    <a href="${waLink}" target="_blank" class="btn-secondaire btn-small" style="background-color:#25D366; color:white; text-decoration:none; width:auto; display:inline-flex; align-items:center; gap:5px;" title="Envoyer directement"><i class="fab fa-whatsapp"></i> Envoyer</a>
-                    <a href="https://wa.me/?text=${encodedMsg}" target="_blank" class="btn-secondaire btn-small" style="background-color:#128C7E; color:white; text-decoration:none; width:auto; display:inline-flex; align-items:center; gap:5px;" title="Partager à un autre contact"><i class="fas fa-share-alt"></i> Partager</a>
+                    <button type="button" onclick="envoyerWaRow('${item.id}')" class="btn-secondaire btn-small" style="background-color:#25D366; color:white; margin:0; width:auto; display:inline-flex; align-items:center; gap:5px;" title="Envoyer directement"><i class="fab fa-whatsapp"></i> Envoyer</button>
+                    <button type="button" onclick="partagerWaRow('${item.id}')" class="btn-secondaire btn-small" style="background-color:#128C7E; color:white; margin:0; width:auto; display:inline-flex; align-items:center; gap:5px;" title="Partager à un autre contact"><i class="fas fa-share-alt"></i> Partager</button>
                 </div>`;
             container.appendChild(row);
         }
     });
 }
 
+function envoyerWaRow(id) {
+    const item = allReceptionData.find(d => d.id === id);
+    if(!item) return;
+    
+    const telInput = document.getElementById(`wa-tel-${id}`).value;
+    let tel = telInput.replace(/[^0-9+]/g, '');
+    let numClean = tel.replace(/\+/g, ''); // L'API WhatsApp préfère les numéros sans le +
+    
+    if (numClean.startsWith('00')) numClean = numClean.substring(2);
+    if (numClean.length === 10 && !numClean.startsWith('225')) numClean = '225' + numClean; // Ajout automatique de l'indicatif CI
+    
+    // Si le numéro a été modifié dans le champ, on le sauvegarde silencieusement
+    if (tel && tel !== (item.tel || "").replace(/[^0-9+]/g, '')) {
+        db.collection('expeditions').doc(id).update({ tel: tel });
+        item.tel = tel; 
+    }
+
+    const template = document.getElementById('wa-message-template').value;
+    let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0;
+    let net = pB + (item.fraisSupplementaires||0) - (item.remise||0);
+    let reste = net - (parseInt(item.montantPaye)||0);
+    let blInfo = item.numBL ? `BL: ${item.numBL}. ` : "";
+    
+    let msg = template.replace(/{nom}/g, `${item.prenom} ${item.nom}`).replace(/{ref}/g, item.reference).replace(/{colis}/g, item.description).replace(/{reste}/g, formatArgent(reste)).replace(/{bl}/g, blInfo);
+        
+    let waUrl = numClean ? `https://api.whatsapp.com/send?phone=${numClean}&text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+}
+
+function partagerWaRow(id) {
+    const item = allReceptionData.find(d => d.id === id);
+    if(!item) return;
+    const template = document.getElementById('wa-message-template').value;
+    let pB = parseInt((item.prixEstime||"0").replace(/\D/g,''))||0;
+    let net = pB + (item.fraisSupplementaires||0) - (item.remise||0);
+    let reste = net - (parseInt(item.montantPaye)||0);
+    let blInfo = item.numBL ? `BL: ${item.numBL}. ` : "";
+    let msg = template.replace(/{nom}/g, `${item.prenom} ${item.nom}`).replace(/{ref}/g, item.reference).replace(/{colis}/g, item.description).replace(/{reste}/g, formatArgent(reste)).replace(/{bl}/g, blInfo);
+    let waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+}
+
 function envoyerWhatsAppIndividuel() {
     if(!currentEnvoi) return;
-    let tel = (currentEnvoi.tel || "").replace(/[^0-9]/g, '');
+    
+    let numInput = prompt("Confirmez ou modifiez le numéro WhatsApp (ex: +225...) :", currentEnvoi.tel || "");
+    if (numInput === null) return; // Action annulée
+    
+    let tel = numInput.replace(/[^0-9+]/g, '');
+    let numClean = tel.replace(/\+/g, '');
+    
+    if (numClean.startsWith('00')) numClean = numClean.substring(2);
+    if (numClean.length === 10 && !numClean.startsWith('225')) numClean = '225' + numClean; // Ajout automatique de l'indicatif CI
+    
+    if (tel && tel !== (currentEnvoi.tel || "").replace(/[^0-9+]/g, '')) {
+        if (confirm("Ce numéro est différent de l'original. Voulez-vous l'enregistrer dans la fiche du client ?")) {
+            db.collection('expeditions').doc(currentEnvoi.id).update({ tel: tel }).then(() => {
+                currentEnvoi.tel = tel;
+                const elTel = document.getElementById('tel-attendu');
+                if(elTel) elTel.innerText = tel;
+                chargerClients();
+            }).catch(e => console.error(e));
+        }
+    }
+
+    let pB = parseInt((currentEnvoi.prixEstime||"0").replace(/\D/g,''))||0;
+    let net = pB + (currentEnvoi.fraisSupplementaires||0) - (currentEnvoi.remise||0);
+    let reste = net - (parseInt(currentEnvoi.montantPaye)||0);
+    
+    let blInfo = currentEnvoi.numBL ? ` BL: ${currentEnvoi.numBL}.` : "";
+    let msg = `Bonjour ${currentEnvoi.prenom} ${currentEnvoi.nom}, votre colis ${currentEnvoi.reference} (${currentEnvoi.description}) est arrivé à l'agence AMT Abidjan.${blInfo} Reste à payer: ${formatArgent(reste)} CFA. Merci de passer le récupérer.`;
+    
+    let waUrl = numClean ? `https://api.whatsapp.com/send?phone=${numClean}&text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+}
+
+function partagerWhatsAppIndividuel() {
+    if(!currentEnvoi) return;
     
     let pB = parseInt((currentEnvoi.prixEstime||"0").replace(/\D/g,''))||0;
     let net = pB + (currentEnvoi.fraisSupplementaires||0) - (currentEnvoi.remise||0);
@@ -363,6 +429,6 @@ function envoyerWhatsAppIndividuel() {
     let blInfo = currentEnvoi.numBL ? ` BL: ${currentEnvoi.numBL}.` : "";
     let msg = `Bonjour ${currentEnvoi.prenom} ${currentEnvoi.nom}, votre colis ${currentEnvoi.reference} (${currentEnvoi.description}) est arrivé à l'agence AMT Abidjan.${blInfo} Reste à payer: ${formatArgent(reste)} CFA. Merci de passer le récupérer.`;
     
-    let waUrl = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    let waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, '_blank');
 }
