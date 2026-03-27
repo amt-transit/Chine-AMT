@@ -32,8 +32,9 @@ async function genererEtiquette() {
     doc.setFont("helvetica", "normal"); doc.text(`NOM ET PRENOM: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
     doc.text(`NUMERO: ${currentEnvoi.tel}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
     // Infos Colis
-    let pv = (currentEnvoi.type || "").startsWith('aerien') ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
-    doc.text(`KILOS: ${pv}  |  COLIS: ${currentEnvoi.quantiteEnvoyee}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+    let isAirLabel = (currentEnvoi.type || "").startsWith('aerien');
+    let pv = isAirLabel ? `${currentEnvoi.poidsEnvoye || 0} Kg` : `${currentEnvoi.volumeEnvoye || 0} CBM`;
+    doc.text(`${isAirLabel ? 'POIDS' : 'VOLUME'}: ${pv}  |  COLIS: ${currentEnvoi.quantiteEnvoyee}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
     if(currentEnvoi.type === 'maritime' && currentEnvoi.numBL) {
         doc.text(`BL / CONTENEUR: ${currentEnvoi.numBL}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
     }
@@ -159,11 +160,12 @@ async function genererFacture() {
     let pu = vol > 0 ? (pBrut / vol) : 0;
 
     // Préparation des données pour autoTable
-    const headers = [["SERVICES", "DESCRIPTION", "QTÉ", "PRIX UNITAIRE", "TOTAL"]];
+    const headers = [["SERVICES", "DESCRIPTION", "QTÉ", "POIDS / VOL", "PRIX UNITAIRE", "TOTAL"]];
     const body = [[
         `Fret ${(currentEnvoi.type || "").toUpperCase()}`,
         currentEnvoi.description || 'Marchandise diverse',
         currentEnvoi.quantiteEnvoyee,
+        `${vol || 0} ${unit}`,
         formatArgent(pu),
         formatArgent(pBrut)
     ]];
@@ -189,9 +191,9 @@ async function genererFacture() {
             fontSize: 7
         },
         columnStyles: {
-            0: { cellWidth: 40 },
-            3: { halign: 'right' },
-            4: { halign: 'right' }
+            0: { cellWidth: 35 },
+            4: { halign: 'right' },
+            5: { halign: 'right' }
         },
         didParseCell: function(data) {
             // Ajout d'une bordure fine en bas des cellules du corps
@@ -353,7 +355,7 @@ async function genererBonLivraison() {
     y += 10;
     const headers = [["DESCRIPTION", "TYPE", "QUANTITÉ", "POIDS / VOL", "ETAT"]];
     let isAir = (currentEnvoi.type || "").startsWith('aerien');
-    let poidVol = isAir ? `${currentEnvoi.poidsEnvoye} Kg` : `${currentEnvoi.volumeEnvoye} CBM`;
+    let poidVol = isAir ? `${currentEnvoi.poidsEnvoye || 0} Kg` : `${currentEnvoi.volumeEnvoye || 0} CBM`;
     const body = [[currentEnvoi.description, (currentEnvoi.type || "").toUpperCase(), currentEnvoi.quantiteEnvoyee, poidVol, currentEnvoi.status || "Non vérifié"]];
 
     doc.autoTable({ startY: y, head: headers, body: body, theme: 'grid', headStyles: { fillColor: [142, 68, 173] }, styles: { valign: 'middle', fontSize: 10 } });
