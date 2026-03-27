@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mp = document.getElementById('modif-poids'); if(mp) mp.oninput=calculerPrixModif;
     const mr = document.getElementById('modif-remise'); if(mr) mr.oninput=calculerPrixModif;
     const mf = document.getElementById('modif-frais'); if(mf) mf.oninput=calculerPrixModif;
+    const mType = document.getElementById('modif-type'); if(mType) mType.onchange=calculerPrixModif;
 });
 
 function ouvrirSousOngletHistorique(type) {
@@ -164,6 +165,8 @@ function ouvrirModalModif(envoi) {
         modalModif.style.display = 'flex';
         document.getElementById('modif-nom').value = envoi.nom || ''; document.getElementById('modif-prenom').value = envoi.prenom || ''; document.getElementById('modif-tel').value = envoi.tel || '';
         chargerGroupesDansModif(envoi.refGroupe);
+        const typeSelect = document.getElementById('modif-type');
+        if (typeSelect) typeSelect.value = envoi.type || 'aerien_normal';
         document.getElementById('modif-qte').value = envoi.quantiteEnvoyee; document.getElementById('modif-remise').value = envoi.remise || 0;
         const elFrais = document.getElementById('modif-frais'); if(elFrais) elFrais.value = envoi.fraisSupplementaires || 0;
         const elP = document.getElementById('modif-poids');
@@ -178,7 +181,15 @@ function calculerPrixModif() {
     const r = parseInt(document.getElementById('modif-remise').value)||0;
     const f = parseInt(document.getElementById('modif-frais').value)||0;
     let t = 0;
-    if(currentModifEnvoi.type==='aerien_normal') t=PRIX_AERIEN_NORMAL; else if(currentModifEnvoi.type==='aerien_express') t=PRIX_AERIEN_EXPRESS; else t=PRIX_MARITIME_CBM;
+    const typeSelect = document.getElementById('modif-type');
+    const typeEnvoi = typeSelect ? typeSelect.value : currentModifEnvoi.type;
+    
+    const lblPoids = document.getElementById('label-modif-poids');
+    if (lblPoids) {
+        lblPoids.innerText = typeEnvoi.startsWith('aerien') ? 'Poids (Kg)' : 'Volume (CBM)';
+    }
+
+    if(typeEnvoi==='aerien_normal') t=PRIX_AERIEN_NORMAL; else if(typeEnvoi==='aerien_express') t=PRIX_AERIEN_EXPRESS; else t=PRIX_MARITIME_CBM;
     document.getElementById('modif-prix-final').value = formatArgent((v*t)+f-r)+' CFA';
 }
 function fermerModalModif(e) { if(e.target===modalModif || e.target.classList.contains('modal-close')) modalModif.style.display='none'; }
@@ -226,10 +237,15 @@ async function sauvegarderModificationChine() {
     }
     const freshData = freshDoc.data();
 
-    let up = { nom: nom, prenom: prenom, tel: tel, quantiteEnvoyee: q, remise: r, fraisSupplementaires: f, dernierModificateur: currentRole === 'chine' ? 'Agence Chine' : 'Agence Abidjan', dateModification: firebase.firestore.FieldValue.serverTimestamp() };
-    if((currentModifEnvoi.type || "").startsWith('aerien')) up.poidsEnvoye = v; else up.volumeEnvoye = v;
+    const typeSelect = document.getElementById('modif-type');
+    const nouveauType = typeSelect ? typeSelect.value : currentModifEnvoi.type;
+
+    let up = { nom: nom, prenom: prenom, tel: tel, quantiteEnvoyee: q, remise: r, fraisSupplementaires: f, type: nouveauType, dernierModificateur: currentRole === 'chine' ? 'Agence Chine' : 'Agence Abidjan', dateModification: firebase.firestore.FieldValue.serverTimestamp() };
+    if(nouveauType.startsWith('aerien')) { up.poidsEnvoye = v; if (currentModifEnvoi.type === 'maritime') up.volumeEnvoye = 0; }
+    else { up.volumeEnvoye = v; if ((currentModifEnvoi.type || "").startsWith('aerien')) up.poidsEnvoye = 0; }
+
     let t = 0;
-    if(currentModifEnvoi.type === 'aerien_normal') t = PRIX_AERIEN_NORMAL; else if(currentModifEnvoi.type === 'aerien_express') t = PRIX_AERIEN_EXPRESS; else t = PRIX_MARITIME_CBM;
+    if(nouveauType === 'aerien_normal') t = PRIX_AERIEN_NORMAL; else if(nouveauType === 'aerien_express') t = PRIX_AERIEN_EXPRESS; else t = PRIX_MARITIME_CBM;
     up.prixEstime = formatArgent(v * t) + ' CFA';
     
     const nouveauPrixVal = (v * t) + f - r;

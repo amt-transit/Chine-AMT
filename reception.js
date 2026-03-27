@@ -339,8 +339,14 @@ function genererListeWhatsApp() {
             
             const encodedMsg = encodeURIComponent(msg);
             let tel = (item.tel || "").replace(/[^0-9]/g, ''); 
+            let waLink = tel ? `https://wa.me/${tel}?text=${encodedMsg}` : `https://wa.me/?text=${encodedMsg}`;
             
-            row.innerHTML = `<div style="flex:1"><strong>${item.nom}</strong> <span style="color:#666; font-size:0.9em;">(${item.tel})</span></div><a href="https://wa.me/${tel}?text=${encodedMsg}" target="_blank" class="btn-secondaire btn-small" style="background-color:#25D366; color:white; text-decoration:none; width:auto; display:inline-flex; align-items:center; gap:5px;"><i class="fab fa-whatsapp"></i> Envoyer</a>`;
+            row.innerHTML = `
+                <div style="flex:1"><strong>${item.nom}</strong> <span style="color:#666; font-size:0.9em;">(${item.tel})</span></div>
+                <div style="display:flex; gap:5px;">
+                    <a href="${waLink}" target="_blank" class="btn-secondaire btn-small" style="background-color:#25D366; color:white; text-decoration:none; width:auto; display:inline-flex; align-items:center; gap:5px;" title="Envoyer directement"><i class="fab fa-whatsapp"></i> Envoyer</a>
+                    <a href="https://wa.me/?text=${encodedMsg}" target="_blank" class="btn-secondaire btn-small" style="background-color:#128C7E; color:white; text-decoration:none; width:auto; display:inline-flex; align-items:center; gap:5px;" title="Partager à un autre contact"><i class="fas fa-share-alt"></i> Partager</a>
+                </div>`;
             container.appendChild(row);
         }
     });
@@ -349,7 +355,6 @@ function genererListeWhatsApp() {
 function envoyerWhatsAppIndividuel() {
     if(!currentEnvoi) return;
     let tel = (currentEnvoi.tel || "").replace(/[^0-9]/g, '');
-    if(!tel) { alert("Numéro de téléphone invalide."); return; }
     
     let pB = parseInt((currentEnvoi.prixEstime||"0").replace(/\D/g,''))||0;
     let net = pB + (currentEnvoi.fraisSupplementaires||0) - (currentEnvoi.remise||0);
@@ -358,5 +363,6 @@ function envoyerWhatsAppIndividuel() {
     let blInfo = currentEnvoi.numBL ? ` BL: ${currentEnvoi.numBL}.` : "";
     let msg = `Bonjour ${currentEnvoi.prenom} ${currentEnvoi.nom}, votre colis ${currentEnvoi.reference} (${currentEnvoi.description}) est arrivé à l'agence AMT Abidjan.${blInfo} Reste à payer: ${formatArgent(reste)} CFA. Merci de passer le récupérer.`;
     
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
+    let waUrl = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
 }

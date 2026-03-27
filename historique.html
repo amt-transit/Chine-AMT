@@ -115,12 +115,21 @@
                     <input type="text" id="modif-tel">
                 </div>
                 
+                <div class="form-group">
+                    <label>Type de transport</label>
+                    <select id="modif-type">
+                        <option value="aerien_normal">Aérien Normal</option>
+                        <option value="aerien_express">Aérien Express</option>
+                        <option value="maritime">Maritime</option>
+                    </select>
+                </div>
+
                 <hr> <div class="form-group">
                     <label>Quantité</label>
                     <input type="number" id="modif-qte">
                 </div>
                 <div class="form-group">
-                    <label>Poids / Volume</label>
+                    <label id="label-modif-poids">Poids / Volume</label>
                     <input type="number" id="modif-poids" step="0.01">
                 </div>
                 <div class="form-group">
@@ -147,8 +156,6 @@
                         
                         <button type="button" class="btn-principal btn-supprimer" onclick="supprimerCeColis()" style="flex: 1; background-color: #c0392b;">🗑️ Supprimer</button>
                     </div>
-                
-                <button type="button" class="btn-principal" onclick="sauvegarderModificationChine()">Enregistrer les modifications</button>
             </form>
         </div>
     </div>
