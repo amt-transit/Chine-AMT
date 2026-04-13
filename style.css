@@ -394,14 +394,59 @@ tr.group-summary-row td { color: cyan !important; font-weight: bold; text-align:
 /* =================================== */
 /* RESPONSIVE                          */
 /* =================================== */
-@media (max-width: 480px) {
+
+/* --- MOBILE & PETITS ÉCRANS (< 768px) --- */
+@media (max-width: 767px) {
     .card { padding: 12px; }
     h2 { font-size: 1.2em; }
     .kpi-value { font-size: 16px; }
     .transport-card .t-icon { font-size: 28px; }
     .wizard-label { font-size: 9px; }
+    
+    /* En-tête flexible */
+    header { padding: 0 10px; }
+    .logo { height: 32px; }
+    .header-info { font-size: 0.8em; }
+    
+    /* Empiler les éléments de grille sur mobile pour éviter l'écrasement */
+    .kpi-grid { grid-template-columns: 1fr; gap: 10px; }
+    .payment-method-grid { grid-template-columns: repeat(2, 1fr); }
+    .dashboard-grid { grid-template-columns: 1fr; }
+    
+    /* Boutons et inputs plus adaptés au tactile */
+    .form-group input, .form-group select, .form-group textarea, .big-input { font-size: 16px; /* Empêche le zoom auto iOS */ }
+    .sub-nav-container { justify-content: center; }
+    
+    /* Forcer les grilles 2 colonnes (comme dans la modale réception) à s'empiler en 1 seule colonne */
+    div[style*="grid-template-columns:1fr 1fr"],
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
 }
-@media (min-width: 768px) {
-    main { max-width: 900px; margin: 0 auto; }
+
+/* --- TABLETTES (768px à 1023px) --- */
+@media (min-width: 768px) and (max-width: 1023px) {
+    main { max-width: 95%; margin: 0 auto; }
     .transport-grid { grid-template-columns: repeat(3, 1fr); }
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* --- ORDINATEUR / DESKTOP (1024px et +) --- */
+@media (min-width: 1024px) {
+    /* Zone principale beaucoup plus large pour afficher les longs tableaux de gestion sans scroll */
+    main { max-width: 100%; margin: 0 auto; padding: 20px; }
+    
+    /* Tableaux plus aérés et confortables à lire */
+    table { font-size: 14px; }
+    tbody td { padding: 12px 10px; }
+    
+    /* Améliorations de l'interface (effets de survol à la souris) */
+    .nav-link { font-size: 14px; padding: 10px 20px; }
+    .nav-link:hover { transform: translateY(-2px); }
+    .btn-principal:hover, .btn-secondaire:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    
+    /* Grilles étirées sur une ligne pour utiliser l'espace */
+    .transport-grid { grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .payment-method-grid { grid-template-columns: repeat(6, 1fr); }
 }
