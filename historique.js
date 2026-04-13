@@ -209,19 +209,19 @@ function updateModalArriveButton() {
 
 async function basculerStatutArrive() {
     if (!currentModifEnvoi) return;
-    if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }
+    if(currentRole === 'spectateur') { showCustomAlert("Action non autorisée.", "error"); return; }
     const newState = !currentModifEnvoi.estArrive;
     try {
         await db.collection('expeditions').doc(currentModifEnvoi.id).update({ estArrive: newState });
         currentModifEnvoi.estArrive = newState;
         updateModalArriveButton();
         chargerHistoriqueChine();
-    } catch (e) { alert(e.message); }
+    } catch (e) { showCustomAlert(e.message, "error"); }
 }
 
 async function sauvegarderModificationChine() {
     if(!currentModifEnvoi) return;
-    if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }
+    if(currentRole === 'spectateur') { showCustomAlert("Action non autorisée.", "error"); return; }
     const nom = document.getElementById('modif-nom').value; const prenom = document.getElementById('modif-prenom').value; const tel = document.getElementById('modif-tel').value;
     const q = parseInt(document.getElementById('modif-qte').value) || 0; const v = parseFloat(document.getElementById('modif-poids').value) || 0; const r = parseInt(document.getElementById('modif-remise').value) || 0;
     const f = parseInt(document.getElementById('modif-frais').value) || 0;
@@ -232,7 +232,7 @@ async function sauvegarderModificationChine() {
     try {
         freshDoc = await db.collection('expeditions').doc(currentModifEnvoi.id).get();
     } catch(e) {
-        alert("Erreur de connexion : " + e.message);
+        showCustomAlert("Erreur de connexion : " + e.message, "error");
         return;
     }
     const freshData = freshDoc.data();
@@ -288,7 +288,7 @@ async function sauvegarderModificationChine() {
         else { if (Math.abs(diffP) > 0.1) nouveauStatut = (diffP > 0 ? 'Reçu - Supérieur' : 'Reçu - Ecart'); else nouveauStatut = 'Reçu - Conforme'; }
         up.status = nouveauStatut;
     }
-    try { await db.collection('expeditions').doc(currentModifEnvoi.id).update(up); alert('Modifié avec succès.'); modalModif.style.display = 'none'; chargerHistoriqueChine(); } catch(e) { alert(e.message); }
+    try { await db.collection('expeditions').doc(currentModifEnvoi.id).update(up); showCustomAlert('Modifié avec succès.', 'success'); modalModif.style.display = 'none'; chargerHistoriqueChine(); } catch(e) { showCustomAlert(e.message, "error"); }
 }
 
 async function chargerGroupesDansModif(groupeActuel) {
@@ -315,9 +315,9 @@ function verifierCreationGroupe(selectElement) {
 
 async function changerGroupeEnMasse() {
     const select = document.getElementById('hist-bulk-select'); let nouveauGroupe = select.value;
-    if (!nouveauGroupe) { alert("Veuillez choisir un groupe de destination."); return; }
+    if (!nouveauGroupe) { showCustomAlert("Veuillez choisir un groupe de destination.", "warning"); return; }
     if (nouveauGroupe === "NEW_CUSTOM") { const nom = prompt("Nom du nouveau groupe (ex: EV15) :", "EV"); if (!nom) return; nouveauGroupe = nom.toUpperCase().trim(); }
-    if (!confirm(`Déplacer ${selectedHistoriqueIds.size} colis vers le groupe ${nouveauGroupe} ?\nLes références seront mises à jour automatiquement.`)) return; if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }
+    if (!(await showCustomConfirm(`Déplacer ${selectedHistoriqueIds.size} colis vers le groupe ${nouveauGroupe} ?\nLes références seront mises à jour automatiquement.`))) return; if(currentRole === 'spectateur') { showCustomAlert("Action non autorisée.", "error"); return; }
     const batch = db.batch(); let count = 0;
     selectedHistoriqueIds.forEach(id => {
         const item = allHistoriqueData.find(d => d.id === id);
@@ -334,14 +334,14 @@ async function changerGroupeEnMasse() {
             batch.update(refDoc, updateData); count++; 
         }
     });
-    try { await batch.commit(); alert(`${count} colis déplacés vers ${nouveauGroupe} avec succès !`); selectedHistoriqueIds.clear(); document.getElementById('check-all-hist').checked = false; document.getElementById('hist-bulk-actions').style.display = 'none'; chargerHistoriqueChine(); } catch (e) { alert("Erreur : " + e.message); }
+    try { await batch.commit(); showCustomAlert(`${count} colis déplacés vers ${nouveauGroupe} avec succès !`, "success"); selectedHistoriqueIds.clear(); document.getElementById('check-all-hist').checked = false; document.getElementById('hist-bulk-actions').style.display = 'none'; chargerHistoriqueChine(); } catch (e) { showCustomAlert("Erreur : " + e.message, "error"); }
 }
 
 async function attribuerConteneurEnMasse() {
     const conteneur = document.getElementById('hist-bulk-conteneur').value.trim();
-    if (!conteneur) { alert("Veuillez saisir un numéro de conteneur / BL."); return; }
-    if (!confirm(`Attribuer le conteneur "${conteneur}" aux ${selectedHistoriqueIds.size} colis sélectionnés ?`)) return; 
-    if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }
+    if (!conteneur) { showCustomAlert("Veuillez saisir un numéro de conteneur / BL.", "warning"); return; }
+    if (!(await showCustomConfirm(`Attribuer le conteneur "${conteneur}" aux ${selectedHistoriqueIds.size} colis sélectionnés ?`))) return; 
+    if(currentRole === 'spectateur') { showCustomAlert("Action non autorisée.", "error"); return; }
     
     const batch = db.batch(); let count = 0;
     selectedHistoriqueIds.forEach(id => {
@@ -352,15 +352,15 @@ async function attribuerConteneurEnMasse() {
             batch.update(refDoc, updateData); count++; 
         }
     });
-    try { await batch.commit(); alert(`${count} colis mis à jour avec le conteneur ${conteneur} !`); selectedHistoriqueIds.clear(); document.getElementById('check-all-hist').checked = false; document.getElementById('hist-bulk-actions').style.display = 'none'; document.getElementById('hist-bulk-conteneur').value = ''; chargerHistoriqueChine(); } catch (e) { alert("Erreur : " + e.message); }
+    try { await batch.commit(); showCustomAlert(`${count} colis mis à jour avec le conteneur ${conteneur} !`, "success"); selectedHistoriqueIds.clear(); document.getElementById('check-all-hist').checked = false; document.getElementById('hist-bulk-actions').style.display = 'none'; document.getElementById('hist-bulk-conteneur').value = ''; chargerHistoriqueChine(); } catch (e) { showCustomAlert("Erreur : " + e.message, "error"); }
 }
 
 async function supprimerCeColis() {
     if (!currentModifEnvoi) return;
-    if(currentRole === 'spectateur') { alert("Action non autorisée."); return; }
-    const confirmation = confirm(`ATTENTION !\n\nVous êtes sur le point de supprimer définitivement le colis :\n${currentModifEnvoi.reference}\n\nCette action est IRRÉVERSIBLE. Voulez-vous continuer ?`);
+    if(currentRole === 'spectateur') { showCustomAlert("Action non autorisée.", "error"); return; }
+    const confirmation = await showCustomConfirm(`ATTENTION !\n\nVous êtes sur le point de supprimer définitivement le colis :\n${currentModifEnvoi.reference}\n\nCette action est IRRÉVERSIBLE. Voulez-vous continuer ?`);
     if (!confirmation) return;
-    try { await db.collection('expeditions').doc(currentModifEnvoi.id).delete(); alert("Colis supprimé avec succès."); if (modalModif) modalModif.style.display = 'none'; if (typeof chargerHistoriqueChine === "function") chargerHistoriqueChine(); } catch (e) { alert("Erreur lors de la suppression : " + e.message); }
+    try { await db.collection('expeditions').doc(currentModifEnvoi.id).delete(); showCustomAlert("Colis supprimé avec succès.", "success"); if (modalModif) modalModif.style.display = 'none'; if (typeof chargerHistoriqueChine === "function") chargerHistoriqueChine(); } catch (e) { showCustomAlert("Erreur lors de la suppression : " + e.message, "error"); }
 }
 
 function updateBLGroupSelect() {
@@ -382,10 +382,10 @@ async function associerBLAuxGroupes() {
     const select = document.getElementById('select-bl-groupes');
     const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
     
-    if (!bl) { alert("Veuillez saisir un numéro de BL."); return; }
-    if (selectedOptions.length === 0) { alert("Veuillez sélectionner au moins un groupe."); return; }
+    if (!bl) { showCustomAlert("Veuillez saisir un numéro de BL.", "warning"); return; }
+    if (selectedOptions.length === 0) { showCustomAlert("Veuillez sélectionner au moins un groupe.", "warning"); return; }
     
-    if (!confirm(`Associer le BL "${bl}" aux groupes : ${selectedOptions.join(', ')} ?\nCela mettra à jour tous les colis de ces groupes.`)) return;
+    if (!(await showCustomConfirm(`Associer le BL "${bl}" aux groupes : ${selectedOptions.join(', ')} ?\nCela mettra à jour tous les colis de ces groupes.`))) return;
     
     const btn = document.querySelector('button[onclick="associerBLAuxGroupes()"]');
     if(btn) { btn.disabled = true; btn.innerText = "Traitement..."; }
@@ -405,6 +405,6 @@ async function associerBLAuxGroupes() {
                 await batch.commit(); totalUpdated += subDocs.length;
             }
         }
-        alert(`Succès ! ${totalUpdated} colis mis à jour avec le BL ${bl}.`); chargerHistoriqueChine(); document.getElementById('input-bl-conteneur').value = ''; Array.from(select.options).forEach(opt => opt.selected = false);
-    } catch(e) { console.error(e); alert("Erreur : " + e.message); } finally { if(btn) { btn.disabled = false; btn.innerText = "💾 Enregistrer BL"; } }
+        showCustomAlert(`Succès ! ${totalUpdated} colis mis à jour avec le BL ${bl}.`, "success"); chargerHistoriqueChine(); document.getElementById('input-bl-conteneur').value = ''; Array.from(select.options).forEach(opt => opt.selected = false);
+    } catch(e) { console.error(e); showCustomAlert("Erreur : " + e.message, "error"); } finally { if(btn) { btn.disabled = false; btn.innerText = "💾 Enregistrer BL"; } }
 }

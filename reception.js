@@ -317,12 +317,12 @@ async function enregistrerReception() {
     const moyen       = document.getElementById('moyen-paiement').value || 'Espèce';
     const agent       = currentUser ? currentUser.email : 'Inconnu';
 
-    if (montant <= 0 && qteRecue <= 0) { alert('Veuillez saisir un montant ou une quantité.'); return; }
+    if (montant <= 0 && qteRecue <= 0) { showCustomAlert('Veuillez saisir un montant ou une quantité.', 'warning'); return; }
 
     try {
         const docRef = db.collection('expeditions').doc(currentEnvoi.id);
         const docSnap = await docRef.get();
-        if (!docSnap.exists) { alert('Erreur : document introuvable.'); return; }
+        if (!docSnap.exists) { showCustomAlert('Erreur : document introuvable.', 'error'); return; }
 
         const data = docSnap.data();
         let pB = parseInt((data.prixEstime || '0').replace(/\D/g, '')) || 0;
@@ -354,10 +354,10 @@ async function enregistrerReception() {
         };
         await docRef.update(updates);
 
-        alert(`✅ Paiement enregistré !\nReste à payer : ${formatArgent(resteApres)} CFA`);
+        showCustomAlert(`Paiement enregistré !\nReste à payer : ${formatArgent(resteApres)} CFA`, 'success');
         document.getElementById('modal-backdrop').style.display = 'none';
         chargerClients();
-    } catch (e) { alert('Erreur : ' + e.message); console.error(e); }
+    } catch (e) { showCustomAlert('Erreur : ' + e.message, 'error'); console.error(e); }
 }
 
 // ─── Correction réception ────────────────────────────────
@@ -366,15 +366,15 @@ async function sauvegarderCorrectionReception() {
     const qte    = parseInt(document.getElementById('modif-rec-qte').value) || 0;
     const poids  = parseFloat(document.getElementById('modif-rec-poids').value) || 0;
     const paye   = parseInt(document.getElementById('modif-rec-paye').value) || 0;
-    if (!confirm('Confirmer la correction ?')) return;
+    if (!(await showCustomConfirm('Confirmer la correction ?'))) return;
     try {
         await db.collection('expeditions').doc(currentEnvoi.id).update({
             quantiteRecue: qte, poidsRecu: poids, montantPaye: paye,
         });
-        alert('Correction enregistrée.');
+        showCustomAlert('Correction enregistrée.', 'success');
         fermerModalModifReception();
         chargerClients();
-    } catch (e) { alert('Erreur : ' + e.message); }
+    } catch (e) { showCustomAlert('Erreur : ' + e.message, 'error'); }
 }
 
 // ─── Statut Arrivé ───────────────────────────────────────
@@ -389,7 +389,7 @@ async function basculerStatutArrive() {
         const btn = document.getElementById('btn-marquer-arrive');
         if (btn) { btn.textContent = nouvelEtat ? '✅ Arrivé au dépôt' : '🛬 Marquer Arrivé'; btn.style.background = nouvelEtat ? '#27ae60' : '#17a2b8'; }
         chargerClients();
-    } catch (e) { alert('Erreur : ' + e.message); }
+    } catch (e) { showCustomAlert('Erreur : ' + e.message, 'error'); }
 }
 
 // ─── Sélection multiple ───────────────────────────────────
@@ -470,13 +470,13 @@ async function validerPaiementGroupe() {
     });
     try {
         await batch.commit();
-        alert(`✅ ${count} colis soldés avec succès !`);
+        showCustomAlert(`${count} colis soldés avec succès !`, 'success');
         fermerModalPaiementGroupe();
         selectedReceptionIds.clear();
         const ca = document.getElementById('check-all-rec'); if (ca) ca.checked = false;
         updateBoutonGroupe();
         chargerClients();
-    } catch (e) { alert('Erreur : ' + e.message); }
+    } catch (e) { showCustomAlert('Erreur : ' + e.message, 'error'); }
 }
 
 // ─── WhatsApp ─────────────────────────────────────────────

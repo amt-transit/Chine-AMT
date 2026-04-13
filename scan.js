@@ -70,7 +70,7 @@ async function rechercherColis(ref) {
             }
         }
         if (snap.empty) {
-            alert(`Colis introuvable pour la référence : ${scanRef}`);
+            showCustomAlert(`Colis introuvable pour la référence : ${scanRef}`, 'error');
             document.getElementById('scan-status').innerText = "Prêt à scanner.";
             if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume(); // 3 = PAUSED
             return;
@@ -82,7 +82,7 @@ async function rechercherColis(ref) {
         document.getElementById('scan-status').innerText = "Colis identifié.";
     } catch(e) {
         console.error(e);
-        alert("Erreur réseau lors de la recherche.");
+        showCustomAlert("Erreur réseau lors de la recherche.", 'error');
         if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
     }
 }
@@ -145,7 +145,7 @@ async function executerActionScan() {
         ref: currentScannedColis.reference, client: `${currentScannedColis.nom} ${currentScannedColis.prenom}`
     });
     
-    alert(`✅ Le colis a été marqué : ${conf.status} !`);
+    showCustomAlert(`Le colis a été marqué : ${conf.status} !`, 'success');
     document.getElementById('scan-result').style.display = 'none';
     document.getElementById('scan-status').innerText = "Prêt à scanner.";
     document.getElementById('manual-ref').value = '';

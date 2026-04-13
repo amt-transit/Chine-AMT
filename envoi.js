@@ -43,6 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // Restauration des données locales en cas d'actualisation
+    const savedBatch = localStorage.getItem('amt_envoiEnCours');
+    if (savedBatch) {
+        try {
+            const parsed = JSON.parse(savedBatch);
+            if (parsed && parsed.length > 0) {
+                envoiEnCours = parsed;
+                let hiddenInput = document.getElementById('type-envoi');
+                if (!hiddenInput) { hiddenInput = document.createElement('input'); hiddenInput.type = 'hidden'; hiddenInput.id = 'type-envoi'; document.body.appendChild(hiddenInput); }
+                hiddenInput.value = envoiEnCours[0].type || 'aerien_normal';
+                setTimeout(() => goStep(4), 100); // Redirige vers la liste des envois en attente
+            }
+        } catch(e) { console.error("Erreur sauvegarde locale", e); }
+    }
 });
 
 // ─── Navigation entre étapes ─────────────────────────────
@@ -200,7 +215,7 @@ function ajouterSousColisWizard() {
     const desc  = document.getElementById('multi-desc').value || 'Colis';
     const qte   = parseInt(document.getElementById('multi-qte').value) || 0;
     const poids = parseFloat(document.getElementById('multi-poids').value) || 0;
-    if (qte <= 0 || poids <= 0) { alert('Quantité et poids/volume doivent être > 0'); return; }
+    if (qte <= 0 || poids <= 0) { showCustomAlert('Quantité et poids/volume doivent être > 0', 'error'); return; }
     sousColisList.push({ desc, qte, val: poids });
     document.getElementById('multi-desc').value  = '';
     document.getElementById('multi-qte').value   = '1';
@@ -241,15 +256,15 @@ function _updateMultiTable() {
 // ─── Ajouter un client et aller à l'étape 4 ──────────────
 function ajouterClientEtContinuer() {
     const typeEnvoi = document.getElementById('type-envoi') ? document.getElementById('type-envoi').value : '';
-    if (!typeEnvoi) { alert('Erreur : aucun type de transport sélectionné.'); return; }
+    if (!typeEnvoi) { showCustomAlert('Erreur : aucun type de transport sélectionné.', 'error'); return; }
 
     const nom    = (document.getElementById('client-nom').value || '').trim();
     const prenom = (document.getElementById('client-prenom').value || '').trim();
     const tel    = (document.getElementById('client-tel').value || '').trim();
-    if (!nom || !tel) { alert('Veuillez renseigner le nom et le téléphone du client.'); return; }
+    if (!nom || !tel) { showCustomAlert('Veuillez renseigner le nom et le téléphone du client.', 'warning'); return; }
 
     const poidsVal = parseFloat(document.getElementById('sub-poids-vol').value) || 0;
-    if (poidsVal <= 0) { alert('Veuillez saisir le poids ou le volume.'); return; }
+    if (poidsVal <= 0) { showCustomAlert('Veuillez saisir le poids ou le volume.', 'warning'); return; }
 
     // Construire les sous-colis
     const descSimple = (document.getElementById('sub-desc').value || 'Colis').trim();
@@ -267,7 +282,22 @@ function ajouterClientEtContinuer() {
     else if (typeEnvoi === 'aerien_express') prixEstime = poidsVal * PRIX_AERIEN_EXPRESS;
     else if (typeEnvoi === 'maritime')  prixEstime = poidsVal * PRIX_MARITIME_CBM;
 
-    envoiEnCours.push({
+    // Génération de la référence unique dès l'étape 3
+    const pref = typeEnvoi.startsWith('aerien') ? 'AIR' : 'MRT';
+    let batchId = localStorage.getItem('amt_batchId');
+    let batchCounter = parseInt(localStorage.getItem('amt_batchCounter') || '0') + 1;
+    if (!batchId || envoiEnCours.length === 0) {
+        const now = new Date();
+        batchId = `${String(now.getFullYear()).slice(2)}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        localStorage.setItem('amt_batchId', batchId);
+        batchCounter = 1;
+    }
+    localStorage.setItem('amt_batchCounter', batchCounter.toString());
+    const refColis = `${pref}-${batchId}-${String(batchCounter).padStart(2, '0')}`;
+
+    const nouveauClient = {
+        reference:         refColis,
+        type:              typeEnvoi,
         expediteur:    (document.getElementById('expediteur-nom').value || 'AMT TRANSIT CARGO').trim(),
         telExpediteur: (document.getElementById('expediteur-tel').value || '+225 0703165050').trim(),
         nom, prenom, tel,
@@ -278,7 +308,12 @@ function ajouterClientEtContinuer() {
         volumeEnvoye:      volume,
         prixEstime:        formatArgent(prixEstime) + ' CFA',
         photosFiles:       Array.from(document.getElementById('photos-colis').files),
-    });
+    };
+    envoiEnCours.push(nouveauClient);
+
+    // Sauvegarde dans le localStorage en cas de fermeture accidentelle de la page
+    const toSave = envoiEnCours.map(c => { const copy = { ...c }; delete copy.photosFiles; return copy; });
+    localStorage.setItem('amt_envoiEnCours', JSON.stringify(toSave));
 
     // Réinitialiser le formulaire client
     document.getElementById('client-nom').value    = '';
@@ -286,16 +321,30 @@ function ajouterClientEtContinuer() {
     document.getElementById('client-tel').value    = '';
     document.getElementById('sub-desc').value      = '';
     document.getElementById('sub-poids-vol').value = '';
+        document.getElementById('photos-colis').value  = '';
     document.getElementById('apercu-photos').innerHTML = '';
     document.getElementById('autocomplete-suggestions').style.display = 'none';
+        
+        document.getElementById('multi-desc').value  = '';
+        document.getElementById('multi-qte').value   = '1';
+        document.getElementById('multi-poids').value = '';
+
     sousColisList = [];
+        _updateMultiTable();
+
     wizardQte = 1;
     const qteEl = document.getElementById('qte-display');
     if (qteEl) qteEl.textContent = '1';
     const prixEl = document.getElementById('prix-calcule-wizard');
     if (prixEl) prixEl.textContent = '0 CFA';
 
-    goStep(4);
+    currentEnvoi = nouveauClient;
+    showCustomConfirm(`✅ Client ajouté avec succès !\n\nVoulez-vous imprimer les étiquettes pour ce colis (${nouveauClient.quantiteEnvoyee} carton(s)) maintenant ?`).then(async (askPrint) => {
+        if (askPrint && typeof genererEtiquette === 'function') {
+            await genererEtiquette();
+        }
+        goStep(4);
+    });
 }
 
 // ─── Étape 4 : Afficher la liste ─────────────────────────
@@ -326,6 +375,10 @@ function renderClientsList() {
                 <div class="client-meta-main">${c.quantiteEnvoyee} colis · ${pv} ${unit} · ${c.tel}</div>
             </div>
         <div class="client-prix-main" style="white-space:nowrap;">${c.prixEstime}</div>
+        <div style="display:flex; gap:6px; margin-left:8px; margin-right:4px;">
+            <button title="Imprimer Étiquette" onclick="imprimerEtiquetteDirect(${i})" style="background:#f39c12; color:white; border:none; border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-print"></i></button>
+            <button title="Imprimer Facture" onclick="imprimerFactureDirect(${i})" style="background:#34495e; color:white; border:none; border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-file-invoice"></i></button>
+        </div>
             <button class="client-del-btn" onclick="removeClientFromList(${i})">✕</button>
         </div>`;
     });
@@ -340,12 +393,29 @@ function renderClientsList() {
 
 function removeClientFromList(i) {
     envoiEnCours.splice(i, 1);
+    const toSave = envoiEnCours.map(c => { const copy = { ...c }; delete copy.photosFiles; return copy; });
+    localStorage.setItem('amt_envoiEnCours', JSON.stringify(toSave));
+    if (envoiEnCours.length === 0) {
+        localStorage.removeItem('amt_batchId'); localStorage.removeItem('amt_batchCounter');
+    }
     renderClientsList();
+}
+
+function imprimerEtiquetteDirect(i) {
+    currentEnvoi = envoiEnCours[i];
+    if (typeof genererEtiquette === 'function') genererEtiquette();
+    else showCustomAlert("L'outil d'impression n'est pas chargé.", "error");
+}
+
+function imprimerFactureDirect(i) {
+    currentEnvoi = envoiEnCours[i];
+    if (typeof genererFacture === 'function') genererFacture();
+    else showCustomAlert("L'outil d'impression n'est pas chargé.", "error");
 }
 
 // ─── Validation globale ───────────────────────────────────
 async function validerEnvoiGroupe() {
-    if (envoiEnCours.length === 0) { alert('Ajoutez au moins un client avant de valider.'); return; }
+    if (envoiEnCours.length === 0) { showCustomAlert('Ajoutez au moins un client avant de valider.', 'warning'); return; }
     const btn = document.getElementById('btn-valider-envoi-groupe');
     btn.disabled = true;
     btn.textContent = '⏳ Enregistrement...';
@@ -362,7 +432,7 @@ async function validerEnvoiGroupe() {
                 if (lastDate && d < lastDate) {
                     const dStr = d.split('-').reverse().join('/');
                     const lastStr = lastDate.split('-').reverse().join('/');
-                    if (!confirm(`⚠️ ATTENTION : La date (${dStr}) est antérieure au dernier envoi (${lastStr}).\n\nContinuer ?`)) {
+                    if (!(await showCustomConfirm(`⚠️ ATTENTION : La date (${dStr}) est antérieure au dernier envoi (${lastStr}).\n\nContinuer ?`))) {
                         btn.disabled = false;
                         btn.textContent = '🚀 VALIDER L\'ENVOI GLOBAL';
                         return;
@@ -372,19 +442,16 @@ async function validerEnvoiGroupe() {
         }
 
         const numConteneur = (document.getElementById('num-conteneur') || {}).value || '';
-        const pref = t.startsWith('aerien') ? 'AIR' : 'MRT';
-        const now = new Date();
-        const batchId = `${String(now.getFullYear()).slice(2)}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
 
         const batch = db.batch();
+        const envoisSauvegardes = [];
 
         for (let i = 0; i < envoiEnCours.length; i++) {
             const c = envoiEnCours[i];
-            const idx = String(i + 1).padStart(2, '0');
             const newRef = db.collection('expeditions').doc();
 
-            batch.set(newRef, {
-                reference:        `${pref}-${batchId}-${idx}`,
+            const dataToSave = {
+                reference:        c.reference,
                 refGroupe:        '',
                 date:             d,
                 type:             t,
@@ -409,15 +476,26 @@ async function validerEnvoiGroupe() {
                 montantPaye:      0,
                 historiquePaiements: [],
                 photosURLs:       [],
-            });
+            };
+            
+            batch.set(newRef, dataToSave);
+            envoisSauvegardes.push(dataToSave);
         }
 
         await batch.commit();
-        alert(`✅ Envoi validé ! ${envoiEnCours.length} client(s) enregistré(s).`);
+        
+        localStorage.removeItem('amt_envoiEnCours'); localStorage.removeItem('amt_batchId'); localStorage.removeItem('amt_batchCounter');
+
+        const askPrint = await showCustomConfirm(`✅ Envoi validé avec succès ! (${envoiEnCours.length} client(s))\n\nVoulez-vous (ré)imprimer l'ensemble des étiquettes de tout le lot maintenant ?`);
+        if (askPrint && typeof genererEtiquettesBatch === 'function') {
+            btn.textContent = '🖨️ Impression...';
+            await genererEtiquettesBatch(envoisSauvegardes);
+        }
 
         // Réinitialiser complètement
         envoiEnCours = [];
         sousColisList = [];
+        _updateMultiTable();
         wizardQte = 1;
         selectedTransportCard = null;
         document.querySelectorAll('.transport-card').forEach(c => c.classList.remove('selected'));
@@ -429,12 +507,25 @@ async function validerEnvoiGroupe() {
         if (cg) cg.style.display = 'none';
         const nc = document.getElementById('num-conteneur');
         if (nc) nc.value = '';
+
+        // Vider les champs du formulaire client
+        document.getElementById('client-nom').value    = '';
+        document.getElementById('client-prenom').value = '';
+        document.getElementById('client-tel').value    = '';
+        document.getElementById('sub-desc').value      = '';
+        document.getElementById('sub-poids-vol').value = '';
+        document.getElementById('photos-colis').value  = '';
+        document.getElementById('apercu-photos').innerHTML = '';
+        document.getElementById('multi-desc').value  = '';
+        document.getElementById('multi-qte').value   = '1';
+        document.getElementById('multi-poids').value = '';
+        
         const btn1 = document.getElementById('btn-next-1');
         if (btn1) btn1.disabled = true;
         goStep(1);
 
     } catch (e) {
-        alert('Erreur lors de la validation : ' + e.message);
+        showCustomAlert('Erreur lors de la validation : ' + e.message, 'error');
         console.error(e);
     } finally {
         btn.disabled = false;
@@ -464,7 +555,7 @@ function ajouterSousColis() {
     const desc  = document.getElementById('sub-desc').value || 'Colis';
     const qte   = parseInt(document.getElementById('sub-qte') ? document.getElementById('sub-qte').value : 1) || 1;
     const val   = parseFloat(document.getElementById('sub-poids-vol').value) || 0;
-    if (qte <= 0 || val <= 0) { alert('Quantité et valeur doivent être > 0'); return; }
+    if (qte <= 0 || val <= 0) { showCustomAlert('Quantité et valeur doivent être > 0', 'error'); return; }
     sousColisList.push({ desc, qte, val });
     _updateMultiTable();
 }

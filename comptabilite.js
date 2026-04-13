@@ -87,10 +87,10 @@ function voirHistoriquePaiement(item) {
 }
 async function supprimerPaiement(index) {
     if (!currentIdPaiementOpen) return;
-    if (!confirm("⚠️ Êtes-vous sûr de vouloir ANNULER ce paiement ?\nLe montant sera déduit du total payé.")) return;
+    if (!(await showCustomConfirm("Êtes-vous sûr de vouloir ANNULER ce paiement ?\nLe montant sera déduit du total payé."))) return;
     try {
         const docRef = db.collection('expeditions').doc(currentIdPaiementOpen); const docSnap = await docRef.get();
-        if (!docSnap.exists) { alert("Erreur: Document introuvable"); return; }
+        if (!docSnap.exists) { showCustomAlert("Erreur: Document introuvable", "error"); return; }
         const data = docSnap.data(); let historique = data.historiquePaiements || [];
         if (index < 0 || index >= historique.length || historique[index].deleted) return;
         
@@ -103,8 +103,8 @@ async function supprimerPaiement(index) {
         historique.forEach(h => { if(!h.deleted) nouveauMontantPaye += (parseInt(h.montant) || 0); });
 
         await docRef.update({ historiquePaiements: historique, montantPaye: nouveauMontantPaye });
-        alert("Paiement annulé avec succès."); modalHist.style.display = 'none'; chargerCompta(currentComptaType); if(typeof chargerClients === 'function') chargerClients();
-    } catch (e) { console.error(e); alert("Erreur lors de l'annulation : " + e.message); }
+        showCustomAlert("Paiement annulé avec succès.", "success"); modalHist.style.display = 'none'; chargerCompta(currentComptaType); if(typeof chargerClients === 'function') chargerClients();
+    } catch (e) { console.error(e); showCustomAlert("Erreur lors de l'annulation : " + e.message, "error"); }
 }
 function fermerModalHistorique(e) { if (e.target === modalHist || e.target.classList.contains('modal-close') || e.target.classList.contains('btn-secondaire')) modalHist.style.display = 'none'; }
 
@@ -117,7 +117,7 @@ function ouvrirModalDepense() {
 function fermerModalDepense(e) { if (e.target === modalDepense || e.target.classList.contains('modal-close')) modalDepense.style.display = 'none'; }
 async function enregistrerDepense() {
     const d = document.getElementById('depense-date').value; const mt = document.getElementById('depense-motif').value; const m = parseFloat(document.getElementById('depense-montant').value) || 0; const grp = document.getElementById('depense-groupe').value.toUpperCase().trim();
-    if (!d || !mt || m <= 0) { alert('Erreur saisie.'); return; }
-    try { await db.collection('depenses').add({ date: d, type: document.getElementById('depense-type').value, refGroupe: grp, motif: mt, montant: m, moyenPaiement: document.getElementById('depense-moyen').value, creeLe: firebase.firestore.FieldValue.serverTimestamp() }); alert('OK'); modalDepense.style.display = 'none'; document.getElementById('form-depense').reset(); chargerCompta(currentComptaType); } catch (e) { alert(e.message); }
+    if (!d || !mt || m <= 0) { showCustomAlert('Veuillez remplir correctement tous les champs.', 'error'); return; }
+    try { await db.collection('depenses').add({ date: d, type: document.getElementById('depense-type').value, refGroupe: grp, motif: mt, montant: m, moyenPaiement: document.getElementById('depense-moyen').value, creeLe: firebase.firestore.FieldValue.serverTimestamp() }); showCustomAlert('Dépense enregistrée avec succès.', 'success'); modalDepense.style.display = 'none'; document.getElementById('form-depense').reset(); chargerCompta(currentComptaType); } catch (e) { showCustomAlert(e.message, "error"); }
 }
-async function supprimerDepense(id) { if (confirm('Supprimer ?')) { await db.collection('depenses').doc(id).update({ deleted: true }); chargerCompta(currentComptaType); } }
+async function supprimerDepense(id) { if (await showCustomConfirm('Voulez-vous vraiment supprimer cette dépense ?')) { await db.collection('depenses').doc(id).update({ deleted: true }); chargerCompta(currentComptaType); } }
