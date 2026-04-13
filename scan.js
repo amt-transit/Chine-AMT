@@ -1,6 +1,7 @@
 let html5QrcodeScanner;
 let currentScannedColis = null;
 let currentScanMode = 'chargement';
+let currentScannedColisIndex = null;
 let sessionScans = []; // Stocke les scans de la session active
 
 const scanModes = {
@@ -54,16 +55,29 @@ async function rechercherColis(ref) {
     document.getElementById('scan-status').innerText = `Recherche de la référence : ${ref}...`;
     document.getElementById('scan-result').style.display = 'none';
     
+    let scanRef = ref.trim();
+    let baseRef = scanRef;
+    let cIdx = null;
+
     try {
-        const snap = await db.collection('expeditions').where('reference', '==', ref).limit(1).get();
+        let snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
         if (snap.empty) {
-            alert(`Colis introuvable pour la référence : ${ref}`);
+            const lastDash = scanRef.lastIndexOf('-');
+            if (lastDash > 0) {
+                baseRef = scanRef.substring(0, lastDash);
+                cIdx = parseInt(scanRef.substring(lastDash + 1));
+                snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
+            }
+        }
+        if (snap.empty) {
+            alert(`Colis introuvable pour la référence : ${scanRef}`);
             document.getElementById('scan-status').innerText = "Prêt à scanner.";
             if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume(); // 3 = PAUSED
             return;
         }
         
         currentScannedColis = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        currentScannedColisIndex = cIdx;
         afficherResultat(currentScannedColis);
         document.getElementById('scan-status').innerText = "Colis identifié.";
     } catch(e) {
@@ -86,6 +100,26 @@ function afficherResultat(c) {
     let reste = pN - (parseInt(c.montantPaye) || 0);
     document.getElementById('res-reste').innerText = formatArgent(reste) + " CFA";
 
+    // Génération de la checklist des sous-colis
+    let scannes = c.colisScannes || [];
+    let qte = parseInt(c.quantiteEnvoyee) || 1;
+    let chkHtml = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid #ddd;"><strong>Détail des colis :</strong><div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">';
+    for(let i=1; i<=qte; i++) {
+        let isCurrent = (i === currentScannedColisIndex);
+        let isScanned = scannes.includes(i) || isCurrent;
+        let icon = isScanned ? '✅' : '❌';
+        let color = isScanned ? '#27ae60' : '#c0392b';
+        let bg = isCurrent ? '#e8f5e9' : '#fff';
+        let border = isCurrent ? '2px solid #27ae60' : '1px solid #eee';
+        let fw = isCurrent ? 'bold' : 'normal';
+        let txt = isCurrent ? 'Scanné' : (scannes.includes(i) ? 'Pointé' : 'Attente');
+        chkHtml += `<div style="background:${bg}; border:${border}; border-radius:6px; padding:6px; font-size:12px; font-weight:${fw};">
+            ${icon} Colis ${i}/${qte} <span style="float:right; color:${color}">${txt}</span>
+        </div>`;
+    }
+    chkHtml += '</div></div>';
+    document.getElementById('res-checklist').innerHTML = chkHtml;
+
     document.getElementById('scan-result').style.display = 'block';
 }
 
@@ -98,6 +132,10 @@ async function executerActionScan() {
         updates.estArrive = true;
     }
     
+    if (currentScannedColisIndex !== null) {
+        updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
+    }
+
     await db.collection('expeditions').doc(currentScannedColis.id).update(updates);
     
     // Ajouter à l'historique de session

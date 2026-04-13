@@ -32,11 +32,6 @@ async function genererEtiquette() {
     
     const qte = parseInt(currentEnvoi.quantiteEnvoyee) || 1;
     
-    let qrBase64 = null;
-    try {
-        qrBase64 = await genererQRCodeBase64(currentEnvoi.reference);
-    } catch(e) { console.error("Erreur QR Code:", e); }
-
     for (let i = 1; i <= qte; i++) {
         if (i > 1) doc.addPage([100, 60], 'l');
         
@@ -68,6 +63,11 @@ async function genererEtiquette() {
         // Pied de page
         doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("+8619515284352      +2250703165050", 50, 56, { align: 'center' });
         
+        let qrBase64 = null;
+        try {
+            qrBase64 = await genererQRCodeBase64(`${currentEnvoi.reference}-${i}`);
+        } catch(e) { console.error("Erreur QR Code:", e); }
+
         if (qrBase64) doc.addImage(qrBase64, 'PNG', 76, 34, 20, 20);
     }
     
