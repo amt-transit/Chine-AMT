@@ -4,10 +4,10 @@ let currentScanMode = 'chargement';
 let sessionScans = []; // Stocke les scans de la session active
 
 const scanModes = {
-    'chargement': { label: 'Marquer au Chargement', status: 'Au chargement', color: '#f39c12', icon: 'fas fa-truck-loading' },
-    'dechargement': { label: 'Marquer au Déchargement', status: 'Au déchargement', color: '#17a2b8', icon: 'fas fa-box-open' },
-    'livraison': { label: 'Marquer en Livraison', status: 'En livraison', color: '#8e44ad', icon: 'fas fa-motorcycle' },
-    'livre': { label: 'Marquer comme Livré', status: 'Livré', color: '#27ae60', icon: 'fas fa-check-circle' }
+    'chargement': { label: 'Chargement', status: 'Au chargement', color: '#f39c12', icon: 'fas fa-truck-loading' },
+    'dechargement': { label: 'Déchargement', status: 'Au déchargement', color: '#17a2b8', icon: 'fas fa-box-open' },
+    'livraison': { label: 'Livraison', status: 'En livraison', color: '#8e44ad', icon: 'fas fa-motorcycle' },
+    'livre': { label: 'Livré', status: 'Livré', color: '#27ae60', icon: 'fas fa-check-circle' }
 };
 
 function setScanMode(mode) {

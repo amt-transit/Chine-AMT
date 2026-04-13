@@ -31,6 +31,7 @@ header {
 }
 .logo-container { display: flex; align-items: center; }
 .logo { height: 40px; }
+.hamburger-btn { display: none; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding-right: 12px; }
 .header-info { font-size: 0.9em; color: rgba(255,255,255,0.85); display: flex; align-items: center; gap: 10px; }
 .header-info button { display: inline-block !important; }
 
@@ -417,6 +418,24 @@ tr.group-summary-row td { color: cyan !important; font-weight: bold; text-align:
     .form-group input, .form-group select, .form-group textarea, .big-input { font-size: 16px; /* Empêche le zoom auto iOS */ }
     .sub-nav-container { justify-content: center; }
     
+    /* Menu Hamburger Mobile */
+    .hamburger-btn { display: block; }
+    .main-nav {
+        display: none; /* Masqué par défaut */
+        flex-direction: column;
+        align-items: stretch;
+        position: absolute;
+        top: 56px; /* Hauteur du header */
+        left: 0;
+        width: 100%;
+        height: auto;
+        z-index: 1001;
+        padding: 15px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    }
+    .main-nav.show { display: flex; }
+    .main-nav .nav-link { justify-content: center; font-size: 16px; padding: 12px; margin-bottom: 5px; }
+
     /* Forcer les grilles 2 colonnes (comme dans la modale réception) à s'empiler en 1 seule colonne */
     div[style*="grid-template-columns:1fr 1fr"],
     div[style*="grid-template-columns: 1fr 1fr"] {

@@ -52,3 +52,9 @@ function formatArgent(montant) {
     if (isNaN(montant)) return "0";
     return parseInt(montant).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
+
+// Gestion de l'affichage du menu mobile
+function toggleMobileMenu() {
+    const nav = document.querySelector('.main-nav');
+    if (nav) nav.classList.toggle('show');
+}
