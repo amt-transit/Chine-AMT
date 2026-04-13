@@ -12,68 +12,115 @@
     <header>
         <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
         <div class="header-info">
-            <span>Agence: <span id="agence-nom">Chine</span></span>
-            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+            <span>Agence : <span id="agence-nom">Chine</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545;color:white;">Déconnexion</button>
         </div>
     </header>
 
     <nav class="main-nav">
         <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
-        <a href="historique.html" class="nav-link active" id="nav-historique">📝 Historique & Modif</a>
-        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception (Abidjan)</a>
+        <a href="historique.html" class="nav-link active" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
         <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
         <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
     </nav>
 
     <main>
         <section id="Historique" class="page-content" style="display:block;">
-            <h2>Historique & Modification (Chine)</h2>
+            <h2>📝 Historique & Modification (Chine)</h2>
+
             <div class="sub-nav-container">
-                <button class="sub-nav-link active" id="btn-hist-maritime" onclick="ouvrirSousOngletHistorique('maritime')"><i class="fas fa-ship"></i> Maritime</button>
-                <button class="sub-nav-link" id="btn-hist-aerien" onclick="ouvrirSousOngletHistorique('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+                <button class="sub-nav-link active" id="btn-hist-maritime" onclick="ouvrirSousOngletHistorique('maritime')">
+                    <i class="fas fa-ship"></i> Bateau
+                </button>
+                <button class="sub-nav-link" id="btn-hist-aerien" onclick="ouvrirSousOngletHistorique('aerien')">
+                    <i class="fas fa-plane"></i> Avion
+                </button>
             </div>
-            <div class="card" id="panel-gestion-bl" style="background-color: #e3f2fd; border: 1px solid #90caf9; margin-bottom: 15px;">
-                <h3 style="color: #15609e; margin-top: 0;"><i class="fas fa-ship"></i> Gestion Conteneur / BL</h3>
-                <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
-                        <label style="color: #15609e;">N° BL / Conteneur</label>
-                        <input type="text" id="input-bl-conteneur" placeholder="ex: MSCU1234567" style="border: 1px solid #15609e;">
+
+            <!-- Panneau Gestion BL (Maritime uniquement) -->
+            <div class="card" id="panel-gestion-bl" style="background:#e3f2fd;border:1.5px solid #90caf9;margin-bottom:14px;">
+                <div style="font-size:14px;font-weight:700;color:#15609e;margin-bottom:12px;">
+                    🚢 Associer un BL / Conteneur à des groupes
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:180px;">
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">N° BL / Conteneur</label>
+                        <input type="text" id="input-bl-conteneur" placeholder="ex: MSCU1234567"
+                            style="padding:10px;border:1.5px solid #15609e;border-radius:8px;width:100%;font-size:14px;">
                     </div>
-                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
-                        <label style="color: #15609e;">Sélectionner Groupes (Ctrl+Click)</label>
-                        <select id="select-bl-groupes" multiple style="height: 60px; padding: 5px; border: 1px solid #15609e;">
-                        </select>
+                    <div style="flex:1;min-width:180px;">
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Groupes (Ctrl+Clic pour plusieurs)</label>
+                        <select id="select-bl-groupes" multiple
+                            style="width:100%;height:64px;padding:6px;border:1.5px solid #15609e;border-radius:8px;font-size:13px;"></select>
                     </div>
-                    <button class="btn-principal" onclick="associerBLAuxGroupes()" style="width: auto; margin-bottom: 0; height: 40px; background-color: #15609e;">💾 Enregistrer BL</button>
+                    <button class="btn-principal btn-small" onclick="associerBLAuxGroupes()"
+                        style="background:#15609e;white-space:nowrap;height:42px;padding:0 16px;font-size:13px;">
+                        💾 Enregistrer BL
+                    </button>
                 </div>
             </div>
+
             <div class="card">
-                <div class="form-group" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                    <input type="text" id="search-hist-chine" placeholder="Rechercher..." style="flex: 1;">
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: bold; color: #555;">
-                        <input type="checkbox" id="cb-show-paid-hist" onchange="toggleShowPaidHistorique()"> Afficher les colis payés
+                <!-- Barre de recherche -->
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+                    <div style="flex:1;min-width:200px;position:relative;">
+                        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;">🔍</span>
+                        <input type="text" id="search-hist-chine" placeholder="Rechercher..."
+                            style="padding:11px 14px 11px 42px;font-size:15px;border:2px solid #dee2e6;border-radius:10px;width:100%;">
+                    </div>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#555;white-space:nowrap;">
+                        <input type="checkbox" id="cb-show-paid-hist" onchange="toggleShowPaidHistorique()" style="width:18px;height:18px;">
+                        Voir les payés
                     </label>
                 </div>
-                
+
+                <!-- Filtres groupes -->
                 <div id="filter-container-hist" class="filter-box"></div>
 
-                <div class="export-buttons" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn-secondaire" onclick="exporterHistoriquePDF()">PDF</button>
-                    <button class="btn-secondaire" onclick="exporterHistoriqueExcel()">Excel</button>
+                <!-- Actions en masse + Export -->
+                <div class="export-buttons">
+                    <button class="btn-secondaire btn-small" onclick="exporterHistoriquePDF()" style="background:#34495e;">📄 PDF</button>
+                    <button class="btn-secondaire btn-small" onclick="exporterHistoriqueExcel()" style="background:#27ae60;">📊 Excel</button>
 
-                    <div id="hist-bulk-actions" style="display:none; align-items: center; gap: 5px; margin-left: auto; background: #fff3cd; padding: 5px; border-radius: 4px; border: 1px solid #ffeeba;">
-                        <span style="font-weight:bold; color:#856404;" id="hist-count-sel">0</span>
-                        <select id="hist-bulk-select" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc;">
-                            </select>
-                        <button class="btn-principal" onclick="changerGroupeEnMasse()" style="margin:0; width:auto; background-color: #e67e22; color: white; padding: 5px 10px;">📦 Déplacer</button>
-                        <span style="border-left: 1px solid #ccc; height: 20px; margin: 0 5px;"></span>
-                        <input type="text" id="hist-bulk-conteneur" placeholder="N° Conteneur" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; width: 120px;">
-                        <button class="btn-principal" onclick="attribuerConteneurEnMasse()" style="margin:0; width:auto; background-color: #15609e; color: white; padding: 5px 10px;">🚢 Attribuer</button>
+                    <div id="hist-bulk-actions"
+                        style="display:none;align-items:center;gap:8px;margin-left:auto;background:#fff3cd;padding:8px 10px;border-radius:8px;border:1px solid #ffeeba;flex-wrap:wrap;">
+                        <span style="font-weight:700;color:#856404;font-size:13px;">
+                            <span id="hist-count-sel">0</span> sélectionné(s)
+                        </span>
+                        <select id="hist-bulk-select"
+                            style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;"></select>
+                        <button class="btn-small" onclick="changerGroupeEnMasse()"
+                            style="background:#e67e22;color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">
+                            📦 Déplacer
+                        </button>
+                        <span style="border-left:1px solid #ccc;height:20px;margin:0 4px;"></span>
+                        <input type="text" id="hist-bulk-conteneur" placeholder="N° Conteneur"
+                            style="padding:6px;border:1px solid #ccc;border-radius:6px;font-size:12px;width:120px;">
+                        <button class="btn-small" onclick="attribuerConteneurEnMasse()"
+                            style="background:#15609e;color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">
+                            🚢 Attribuer
+                        </button>
                     </div>
                 </div>
+
+                <!-- Tableau -->
                 <div class="table-container">
                     <table class="excel-table">
-                        <thead><tr><th style="width: 30px;"><input type="checkbox" id="check-all-hist" onchange="toggleToutSelectionnerHist(this)"></th><th>Ref</th><th>Conteneur</th><th>Date</th><th>Client</th><th>Qté</th><th>Kg/CBM</th><th>Prix</th><th>Info</th><th>Action</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="check-all-hist" onchange="toggleToutSelectionnerHist(this)"></th>
+                                <th>Réf.</th>
+                                <th>Conteneur</th>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Qté</th>
+                                <th>Kg/CBM</th>
+                                <th>Prix</th>
+                                <th>Modifié par</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
                         <tbody id="tbody-historique-chine"></tbody>
                         <tfoot>
                             <tr class="group-summary-row">
@@ -81,7 +128,7 @@
                                 <td id="total-hist-qty">0</td>
                                 <td id="total-hist-vol">0</td>
                                 <td id="total-hist-prix">0 CFA</td>
-                                <td colspan="3"></td>
+                                <td colspan="4"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -90,72 +137,84 @@
         </section>
     </main>
 
+    <!-- MODAL MODIFICATION -->
     <div id="modal-modif-chine" class="modal-backdrop" onclick="fermerModalModif(event)">
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModalModif(event)">&times;</span>
-            <h3>Modifier l'Expédition</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <button type="button" class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">🖨️ Étiquette</button>
-                <button type="button" class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">📄 Facture</button>
-                <button type="button" id="btn-marquer-arrive-hist" class="btn-secondaire" onclick="basculerStatutArrive()" style="background-color: #17a2b8; color: white; margin-left: auto;">🛬 Arrivé au Dépôt</button>
+            <h3>✏️ Modifier l'expédition</h3>
+
+            <!-- Boutons rapides -->
+            <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:12px;flex-wrap:wrap;">
+                <button type="button" onclick="genererEtiquette()" style="flex:1;background:#f39c12;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Étiquette</button>
+                <button type="button" onclick="genererFacture()" style="flex:1;background:#34495e;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;">📄 Facture</button>
+                <button type="button" id="btn-marquer-arrive-hist" onclick="basculerStatutArrive()" style="flex:1;background:#17a2b8;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;">🛬 Arrivé</button>
             </div>
-            <p class="info-text">Vous pouvez modifier les informations du client et du colis.</p>
-            
+
             <form id="form-modif-chine">
-                <div class="form-group">
-                    <label>Nom</label>
-                    <input type="text" id="modif-nom">
-                </div>
-                <div class="form-group">
-                    <label>Prénom</label>
-                    <input type="text" id="modif-prenom">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="modif-nom">
+                    </div>
+                    <div class="form-group">
+                        <label>Prénom</label>
+                        <input type="text" id="modif-prenom">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Téléphone</label>
                     <input type="text" id="modif-tel">
                 </div>
-                
                 <div class="form-group">
                     <label>Type de transport</label>
                     <select id="modif-type">
-                        <option value="aerien_normal">Aérien Normal</option>
-                        <option value="aerien_express">Aérien Express</option>
-                        <option value="maritime">Maritime</option>
+                        <option value="aerien_normal">✈️ Aérien Normal</option>
+                        <option value="aerien_express">🚀 Aérien Express</option>
+                        <option value="maritime">🚢 Maritime</option>
                     </select>
                 </div>
-
-                <hr> <div class="form-group">
-                    <label>Quantité</label>
-                    <input type="number" id="modif-qte">
-                </div>
-                <div class="form-group">
-                    <label id="label-modif-poids">Poids / Volume</label>
-                    <input type="number" id="modif-poids" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Réduction (CFA)</label>
-                    <input type="number" id="modif-remise" placeholder="0">
-                </div>
-                <div class="form-group">
-                    <label>Frais Supplémentaires (Douane, etc.)</label>
-                    <input type="number" id="modif-frais" placeholder="0">
-                </div>
-                <div class="form-group">
-                    <label>Prix Final</label>
-                    <input type="text" id="modif-prix-final" readonly>
-                </div>
-
-                <div class="form-group" style="background: #e8f5e9; padding: 5px; border-radius: 4px; margin-top: 10px;">
-                    <label style="color: #2e7d32;">Changer de Groupe</label>
-                    <select id="modif-groupe-select" style="width: 100%; height: 30px;" onchange="verifierCreationGroupe(this)">
-                        </select>
-                    <p class="info-text" style="font-size: 0.8em; margin: 2px 0;">Attention: Cela mettra aussi à jour la Référence (ex: -EV3 deviendra -EV4).</p>
-                </div>
-                <hr> <div style="display: flex; gap: 10px;">
-                        <button type="button" class="btn-principal" onclick="sauvegarderModificationChine()" style="flex: 2;">Enregistrer les modifications</button>
-                        
-                        <button type="button" class="btn-principal btn-supprimer" onclick="supprimerCeColis()" style="flex: 1; background-color: #c0392b;">🗑️ Supprimer</button>
+                <hr>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group">
+                        <label>Quantité</label>
+                        <input type="number" id="modif-qte">
                     </div>
+                    <div class="form-group">
+                        <label id="label-modif-poids">Poids / Volume</label>
+                        <input type="number" id="modif-poids" step="0.01">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group">
+                        <label>Réduction (CFA)</label>
+                        <input type="number" id="modif-remise" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Frais suppl. (CFA)</label>
+                        <input type="number" id="modif-frais" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Prix final</label>
+                    <input type="text" id="modif-prix-final" readonly
+                        style="background:#f8f9fa;font-weight:700;font-size:16px;color:#1C3A5E;">
+                </div>
+
+                <div class="form-group" style="background:#e8f5e9;padding:10px;border-radius:8px;">
+                    <label style="color:#2e7d32;">📦 Changer de groupe</label>
+                    <select id="modif-groupe-select" style="width:100%;padding:8px;border-radius:6px;border:1px solid #a5d6a7;font-size:14px;" onchange="verifierCreationGroupe(this)"></select>
+                    <p class="info-text" style="font-size:11px;margin:4px 0 0;">La référence sera automatiquement mise à jour.</p>
+                </div>
+
+                <hr>
+                <div style="display:flex;gap:10px;">
+                    <button type="button" class="btn-principal" onclick="sauvegarderModificationChine()" style="flex:2;">
+                        💾 Enregistrer
+                    </button>
+                    <button type="button" class="btn-principal btn-supprimer" onclick="supprimerCeColis()" style="flex:1;">
+                        🗑️ Supprimer
+                    </button>
+                </div>
             </form>
         </div>
     </div>

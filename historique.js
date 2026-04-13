@@ -76,7 +76,7 @@ function updateHistoriqueView(searchQuery) {
     filtered.forEach((d, idx) => {
         if(curGrp!==null && d.refGroupe!==curGrp) {
             let u = currentHistoriqueType==='aerien'?'Kg':'CBM';
-            html += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;">${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
             gQ=0; gV=0; gP=0;
         }
         curGrp = d.refGroupe;
@@ -97,10 +97,10 @@ function updateHistoriqueView(searchQuery) {
         const j = JSON.stringify({id:d.id, ...d}).replace(/'/g, "&#39;");
         let checkbox = `<input type="checkbox" class="hist-check" value="${d.id}" onchange="gererSelectionHistorique('${d.id}')" onclick="event.stopPropagation()">`;
         let recuIcon = (d.quantiteRecue > 0 || d.estArrive) ? '<i class="fas fa-check-circle" style="color:#27ae60; margin-left:5px;" title="Reçu / Arrivé"></i>' : '';
-        html += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td>${checkbox}</td><td>${d.reference}${recuIcon}</td><td>${d.numBL || '-'}</td><td>${dateS}</td><td>${d.nom} ${d.prenom}</td><td>${d.quantiteEnvoyee}</td><td>${pvStr}</td><td style="${colorStyle}">${formatArgent(final)} CFA</td><td>${mod}</td><td><i class="fas fa-edit"></i></td></tr>`;
+        html += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td>${checkbox}</td><td>${d.reference}${recuIcon}</td><td>${d.numBL || '-'}</td><td>${dateS}</td><td>${d.nom} ${d.prenom}</td><td>${d.quantiteEnvoyee}</td><td>${pvStr}</td><td style="${colorStyle} white-space:nowrap;">${formatArgent(final)} CFA</td><td>${mod}</td><td><i class="fas fa-edit"></i></td></tr>`;
         if(idx === filtered.length-1) {
             let u = isAir?'Kg':'CBM';
-            html += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td>${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="5">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;">${formatArgent(gP)} CFA</td><td colspan="2"></td></tr>`;
         }
     });
     tb.innerHTML = html;

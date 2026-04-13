@@ -1,188 +1,360 @@
-// c:\Users\JEANAFFA\OneDrive\Documents\GitHub\Chine-AMT\envoi.js
+// envoi.js — Logique métier Envoi (Wizard simplifié)
 
-// Initialisation
+// ─── Variables globales ──────────────────────────────────
+let currentStep = 1;
+let selectedTransportCard = null;
+let wizardQte = 1;
+
+// ─── Initialisation ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     loadAllClientsForAutocomplete();
-    
-    // Auto-remplir la date d'aujourd'hui
+
+    // Date du jour par défaut
     const dateInput = document.getElementById('date-envoi');
-    if(dateInput) dateInput.valueAsDate = new Date();
-    
-    // Autocomplete
+    if (dateInput) dateInput.valueAsDate = new Date();
+
+    // Autocomplete Nom
     const ni = document.getElementById('client-nom');
-    if(ni) { 
-        ni.addEventListener('input', ()=>{ 
-            const q = ni.value.toLowerCase(); 
-            const b = document.getElementById('autocomplete-suggestions'); 
-            if(q.length<1) { b.style.display='none'; return; } 
-            const m = allPastClients.filter(c=>c.nom.toLowerCase().startsWith(q)); 
-            showSuggestions(m); 
-        }); 
-        document.addEventListener('click', e=>{if(!e.target.closest('.autocomplete-container')) document.getElementById('autocomplete-suggestions').style.display='none';}); 
+    if (ni) {
+        ni.addEventListener('input', onNomInput);
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.autocomplete-container'))
+                document.getElementById('autocomplete-suggestions').style.display = 'none';
+        });
     }
 
-    // Photos
+    // Aperçu photos
     const photosInput = document.getElementById('photos-colis');
-    if(photosInput) {
-        photosInput.addEventListener('change', function() {
-            const d = document.getElementById('apercu-photos'); if(d) d.innerHTML='';
+    if (photosInput) {
+        photosInput.addEventListener('change', function () {
+            const d = document.getElementById('apercu-photos');
+            if (d) d.innerHTML = '';
             Array.from(this.files).forEach(f => {
-                if(f.type.startsWith('image/')){ const r=new FileReader(); r.onload=e=>{const i=document.createElement('img');i.src=e.target.result;d.appendChild(i);}; r.readAsDataURL(f); }
+                if (f.type.startsWith('image/')) {
+                    const r = new FileReader();
+                    r.onload = e => {
+                        const i = document.createElement('img');
+                        i.src = e.target.result;
+                        i.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #ddd;';
+                        d.appendChild(i);
+                    };
+                    r.readAsDataURL(f);
+                }
             });
         });
     }
 });
 
-// --- LOGIQUE METIER ENVOI ---
+// ─── Navigation entre étapes ─────────────────────────────
+function goStep(n) {
+    document.querySelectorAll('.wizard-screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen' + n).classList.add('active');
+    currentStep = n;
+    updateWizardBar(n);
 
-// Nouvelle fonction pour gérer la sélection visuelle (Cartes)
-function selectType(type, element) {
-    // 1. Mettre à jour l'input caché
-    document.getElementById('type-envoi').value = type;
-    
-    // 2. Gérer l'aspect visuel (classe .selected)
-    document.querySelectorAll('.type-card').forEach(card => card.classList.remove('selected'));
-    element.classList.add('selected');
-    
-    // Afficher ou masquer le champ de conteneur
-    const containerGroup = document.getElementById('container-group');
-    if (containerGroup) {
-        containerGroup.style.display = type === 'maritime' ? 'block' : 'none';
+    // Mettre à jour les labels dynamiques à l'étape 3
+    if (n === 3) {
+        const t = document.getElementById('type-envoi') ? document.getElementById('type-envoi').value : '';
+        _updateStep3Labels(t || (envoiEnCours.length > 0 ? envoiEnCours[0].type : 'aerien_normal'));
     }
-    
-    // 3. Déclencher la logique existante de changement de labels
-    gererChampsEnvoi();
+    // Rendre la liste à l'étape 4
+    if (n === 4) renderClientsList();
+
+    window.scrollTo(0, 0);
 }
 
-function gererChampsEnvoi(){
-    const t = document.getElementById('type-envoi').value;
-    const lbl = document.getElementById('label-sub-poids-vol');
-    const unit = document.getElementById('display-unit');
-    if(t.startsWith('aerien')) { lbl.innerText = "Poids (Kg)"; unit.innerText = "Kg"; } 
-    else { lbl.innerText = "Volume (CBM)"; unit.innerText = "CBM"; }
-    recalculerTotalClient();
+function updateWizardBar(active) {
+    const labels = ['', 'Transport', 'Client', 'Colis', 'Valider'];
+    for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById('wd' + i);
+        const lbl = document.getElementById('wl' + i);
+        if (!dot || !lbl) continue;
+        if (i < active) {
+            dot.className = 'wizard-dot done';
+            dot.innerHTML = '✓';
+            lbl.className = 'wizard-label done';
+        } else if (i === active) {
+            dot.className = 'wizard-dot active';
+            dot.innerHTML = i;
+            lbl.className = 'wizard-label active';
+        } else {
+            dot.className = 'wizard-dot todo';
+            dot.innerHTML = i;
+            lbl.className = 'wizard-label';
+        }
+        lbl.textContent = labels[i];
+    }
+    for (let i = 1; i <= 3; i++) {
+        const line = document.getElementById('wline' + i);
+        if (line) line.className = 'wizard-line' + (i < active ? ' done' : '');
+    }
 }
 
-function ajouterSousColis() {
-    const desc = document.getElementById('sub-desc').value || "Colis";
-    const qte = parseInt(document.getElementById('sub-qte').value) || 0;
-    const val = parseFloat(document.getElementById('sub-poids-vol').value) || 0;
-    if(qte <= 0 || val <= 0) { alert("Quantité et Valeur doivent être > 0"); return; }
-    sousColisList.push({ desc: desc, qte: qte, val: val });
-    document.getElementById('sub-desc').value = ""; document.getElementById('sub-qte').value = "1"; document.getElementById('sub-poids-vol').value = "";
-    updateSousColisTable();
+// ─── ÉTAPE 1 : Sélection du transport ────────────────────
+function selectType(type, element) {
+    // Stocker dans l'input caché existant (compat avec le reste du code)
+    let hiddenInput = document.getElementById('type-envoi');
+    if (!hiddenInput) {
+        hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.id = 'type-envoi';
+        document.body.appendChild(hiddenInput);
+    }
+    hiddenInput.value = type;
+
+    // Highlight visuel
+    document.querySelectorAll('.transport-card').forEach(c => c.classList.remove('selected'));
+    element.classList.add('selected');
+    selectedTransportCard = element;
+
+    // Afficher le champ conteneur si maritime
+    const cg = document.getElementById('conteneur-group');
+    if (cg) cg.style.display = (type === 'maritime') ? 'block' : 'none';
+
+    // Activer le bouton suivant
+    const btn = document.getElementById('btn-next-1');
+    if (btn) btn.disabled = false;
 }
 
-function updateSousColisTable() {
-    const tbody = document.getElementById('tbody-sub-colis');
-    let html = '';
-    sousColisList.forEach((item, index) => {
-        html += `<tr><td>${item.desc}</td><td>${item.qte}</td><td>${item.val}</td><td><button class="btn-suppr-small" onclick="supprimerSousColis(${index})">X</button></td></tr>`;
+// ─── ÉTAPE 2 : Client ────────────────────────────────────
+function onNomInput() {
+    const q = document.getElementById('client-nom').value.toLowerCase();
+    const b = document.getElementById('autocomplete-suggestions');
+    if (q.length < 1) { b.style.display = 'none'; checkStep2(); return; }
+    const m = allPastClients.filter(c => c.nom.toLowerCase().startsWith(q));
+    showSuggestions(m);
+    checkStep2();
+}
+
+function checkStep2() {
+    const n = (document.getElementById('client-nom').value || '').trim();
+    const t = (document.getElementById('client-tel').value || '').trim();
+    const btn = document.getElementById('btn-next-2');
+    if (btn) btn.disabled = !(n.length > 0 && t.length > 6);
+}
+
+function showSuggestions(m) {
+    const b = document.getElementById('autocomplete-suggestions');
+    b.innerHTML = '';
+    if (m.length === 0) { b.style.display = 'none'; return; }
+    m.slice(0, 6).forEach(c => {
+        const d = document.createElement('div');
+        d.innerHTML = `<strong>${c.nom}</strong> ${c.prenom} <span style="color:#aaa;font-size:12px;">${c.tel || ''}</span>`;
+        d.onclick = () => {
+            document.getElementById('client-nom').value = c.nom;
+            document.getElementById('client-prenom').value = c.prenom;
+            document.getElementById('client-tel').value = c.tel;
+            b.style.display = 'none';
+            checkStep2();
+        };
+        b.appendChild(d);
     });
-    tbody.innerHTML = html;
-    recalculerTotalClient();
+    b.style.display = 'block';
 }
 
-function supprimerSousColis(index) { sousColisList.splice(index, 1); updateSousColisTable(); }
+// ─── ÉTAPE 3 : Colis ─────────────────────────────────────
+function _updateStep3Labels(type) {
+    const isAerien = type.startsWith('aerien');
+    const modeLabels = {
+        aerien_normal:  ['Avion Normal',  '⚖️', 'Poids total (Kg)',    'Avion Normal',  '10 000 CFA/Kg'],
+        aerien_express: ['Avion Express', '🚀', 'Poids total (Kg)',    'Avion Express', '12 000 CFA/Kg'],
+        maritime:       ['Bateau',        '📦', 'Volume total (CBM)',  'Bateau',        '250 000 CFA/CBM'],
+    };
+    const labels = modeLabels[type] || modeLabels['aerien_normal'];
+    const el = (id) => document.getElementById(id);
+    if (el('colis-icon'))       el('colis-icon').textContent    = labels[1];
+    if (el('colis-step-title')) el('colis-step-title').textContent = labels[2];
+    if (el('weight-icon'))      el('weight-icon').textContent   = labels[1];
+    if (el('weight-label'))     el('weight-label').textContent  = labels[2];
+    if (el('mode-label-wizard'))el('mode-label-wizard').textContent = labels[3];
+    if (el('rate-label-wizard'))el('rate-label-wizard').textContent = labels[4];
+    if (el('multi-poids-label'))el('multi-poids-label').textContent = isAerien ? 'Kg' : 'CBM';
+    recalculerTotal();
+}
 
-function recalculerTotalClient() {
-    let totalQ = 0; let totalV = 0;
-    sousColisList.forEach(item => { totalQ += item.qte; totalV += item.val; });
-    document.getElementById('display-total-qte').innerText = totalQ;
-    document.getElementById('display-total-vol').innerText = totalV.toFixed(3);
-    const type = document.getElementById('type-envoi').value;
+function changeQte(delta) {
+    wizardQte = Math.max(1, wizardQte + delta);
+    const el = document.getElementById('qte-display');
+    if (el) el.textContent = wizardQte;
+    recalculerTotal();
+}
+
+function recalculerTotal() {
+    const type = (document.getElementById('type-envoi') ? document.getElementById('type-envoi').value : '') || 'aerien_normal';
+    const poids = parseFloat(document.getElementById('sub-poids-vol') ? document.getElementById('sub-poids-vol').value : 0) || 0;
     let prix = 0;
-    if (type === 'aerien_normal') prix = totalV * PRIX_AERIEN_NORMAL;
-    else if (type === 'aerien_express') prix = totalV * PRIX_AERIEN_EXPRESS;
-    else if (type === 'maritime') prix = totalV * PRIX_MARITIME_CBM;
-    document.getElementById('prix-calcule').innerText = formatArgent(prix) + ' CFA';
+    if (type === 'aerien_normal')  prix = poids * PRIX_AERIEN_NORMAL;
+    else if (type === 'aerien_express') prix = poids * PRIX_AERIEN_EXPRESS;
+    else if (type === 'maritime')  prix = poids * PRIX_MARITIME_CBM;
+
+    const el = document.getElementById('prix-calcule-wizard');
+    if (el) el.textContent = formatArgent(prix) + ' CFA';
+
+    // Compatibilité avec l'ancien ID
+    const el2 = document.getElementById('prix-calcule');
+    if (el2) el2.textContent = formatArgent(prix) + ' CFA';
 }
 
-function ajouterClientALaListe() {
-    const n = document.getElementById('client-nom').value;
-    const typeEnvoi = document.getElementById('type-envoi').value;
-    
-    if (!typeEnvoi) { alert("Veuillez d'abord sélectionner un Mode de Transport (Avion/Bateau) en haut."); return; }
-    if (!n) { alert('Nom du client requis'); return; }
-    
-    let details = [...sousColisList];
-    const totalQte = parseInt(document.getElementById('display-total-qte').innerText) || 0;
-    const totalVal = parseFloat(document.getElementById('display-total-vol').innerText) || 0;
-    
-    if(totalQte === 0) { alert("Veuillez ajouter au moins un colis."); return; }
-
-    const descriptionResume = details.length > 0 ? details.map(item => item.desc).join(', ') : "Colis divers";
-
-    let poids = 0; let volume = 0;
-    if (typeEnvoi.startsWith('aerien')) poids = totalVal; else volume = totalVal;
-
-    envoiEnCours.push({
-        expediteur: document.getElementById('expediteur-nom').value,
-        telExpediteur: document.getElementById('expediteur-tel').value,
-        nom: n, 
-        prenom: document.getElementById('client-prenom').value, 
-        tel: document.getElementById('client-tel').value,
-        description: descriptionResume, 
-        detailsColis: details,
-        quantiteEnvoyee: totalQte, 
-        poidsEnvoye: poids, 
-        volumeEnvoye: volume,
-        prixEstime: document.getElementById('prix-calcule').innerText,
-        photosFiles: Array.from(document.getElementById('photos-colis').files)
-    });
-
-    mettreAJourTableauEnvoiEnCours();
-    
-    document.getElementById('form-ajout-client').reset();
-    document.getElementById('expediteur-nom').value = "AMT TRANSIT CARGO"; 
-    document.getElementById('expediteur-tel').value = "+225 0703165050";
-    document.getElementById('apercu-photos').innerHTML = '';
-    sousColisList = []; updateSousColisTable(); 
-    document.getElementById('autocomplete-suggestions').style.display='none';
+// Sous-colis multiples (section avancée)
+function ajouterSousColisWizard() {
+    const desc  = document.getElementById('multi-desc').value || 'Colis';
+    const qte   = parseInt(document.getElementById('multi-qte').value) || 0;
+    const poids = parseFloat(document.getElementById('multi-poids').value) || 0;
+    if (qte <= 0 || poids <= 0) { alert('Quantité et poids/volume doivent être > 0'); return; }
+    sousColisList.push({ desc, qte, val: poids });
+    document.getElementById('multi-desc').value  = '';
+    document.getElementById('multi-qte').value   = '1';
+    document.getElementById('multi-poids').value = '';
+    _updateMultiTable();
 }
 
-function mettreAJourTableauEnvoiEnCours(){
-    const tb = document.getElementById('tbody-envoi-en-cours'); tb.innerHTML='';
-    if(envoiEnCours.length===0) { tb.innerHTML='<tr><td colspan="7" style="text-align:center">Aucun client.</td></tr>'; return; }
+function _updateMultiTable() {
+    const tbody = document.getElementById('tbody-sub-colis');
+    const table = document.getElementById('table-sub-colis');
     let html = '';
-    envoiEnCours.forEach((c,i)=>{
-        const t = document.getElementById('type-envoi').value;
-        let unit = t.startsWith('aerien') ? ' Kg' : ' CBM';
-        let pv = t.startsWith('aerien') ? c.poidsEnvoye : c.volumeEnvoye;
-        html +=`<tr>
-            <td>${c.expediteur}</td>
-            <td>${c.nom} ${c.prenom}</td>
-            <td>${c.tel}</td>
-            <td>${c.quantiteEnvoyee}</td>
-            <td>${pv} ${unit}</td>
-            <td>${c.prixEstime}</td>
-            <td>
-                <button class="btn-action" style="background:#f39c12;color:white;" onclick="editerEnvoi(${i})"><i class="fas fa-edit"></i></button>
-                <button class="btn-action btn-supprimer" onclick="envoiEnCours.splice(${i},1);mettreAJourTableauEnvoiEnCours()">X</button>
+    let totalQte = 0, totalVal = 0;
+    sousColisList.forEach((item, i) => {
+        totalQte += item.qte; totalVal += item.val;
+        html += `<tr>
+            <td style="padding:6px;">${item.desc}</td>
+            <td style="text-align:center;padding:6px;">${item.qte}</td>
+            <td style="text-align:center;padding:6px;">${item.val}</td>
+            <td style="text-align:center;padding:6px;">
+                <button onclick="sousColisList.splice(${i},1);_updateMultiTable();"
+                    style="background:#dc3545;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;">X</button>
             </td>
         </tr>`;
     });
-    tb.innerHTML = html;
+    if (tbody) tbody.innerHTML = html;
+    if (table) table.style.display = sousColisList.length > 0 ? 'table' : 'none';
+
+    // Mettre à jour les champs simples avec les totaux si sous-colis utilisés
+    if (sousColisList.length > 0) {
+        const qteEl = document.getElementById('qte-display');
+        if (qteEl) { qteEl.textContent = totalQte; wizardQte = totalQte; }
+        const pvEl = document.getElementById('sub-poids-vol');
+        if (pvEl) pvEl.value = totalVal.toFixed(3);
+        recalculerTotal();
+    }
 }
 
-function editerEnvoi(i) {
-    const c = envoiEnCours[i];
-    document.getElementById('client-nom').value = c.nom; document.getElementById('client-prenom').value = c.prenom; document.getElementById('client-tel').value = c.tel;
-    document.getElementById('expediteur-nom').value = c.expediteur; document.getElementById('expediteur-tel').value = c.telExpediteur;
-    if (c.detailsColis && c.detailsColis.length > 0) { sousColisList = [...c.detailsColis]; } 
-    else { sousColisList = [{ desc: c.description, qte: parseInt(c.quantiteEnvoyee), val: c.poidsEnvoye > 0 ? c.poidsEnvoye : c.volumeEnvoye }]; }
-    updateSousColisTable();
-    envoiEnCours.splice(i, 1); mettreAJourTableauEnvoiEnCours();
+// ─── Ajouter un client et aller à l'étape 4 ──────────────
+function ajouterClientEtContinuer() {
+    const typeEnvoi = document.getElementById('type-envoi') ? document.getElementById('type-envoi').value : '';
+    if (!typeEnvoi) { alert('Erreur : aucun type de transport sélectionné.'); return; }
+
+    const nom    = (document.getElementById('client-nom').value || '').trim();
+    const prenom = (document.getElementById('client-prenom').value || '').trim();
+    const tel    = (document.getElementById('client-tel').value || '').trim();
+    if (!nom || !tel) { alert('Veuillez renseigner le nom et le téléphone du client.'); return; }
+
+    const poidsVal = parseFloat(document.getElementById('sub-poids-vol').value) || 0;
+    if (poidsVal <= 0) { alert('Veuillez saisir le poids ou le volume.'); return; }
+
+    // Construire les sous-colis
+    const descSimple = (document.getElementById('sub-desc').value || 'Colis').trim();
+    let details = [...sousColisList];
+    if (details.length === 0) {
+        details = [{ desc: descSimple, qte: wizardQte, val: poidsVal }];
+    }
+
+    const descriptionResume = details.map(i => i.desc).join(', ');
+    let poids = 0, volume = 0;
+    if (typeEnvoi.startsWith('aerien')) poids = poidsVal; else volume = poidsVal;
+
+    let prixEstime = 0;
+    if (typeEnvoi === 'aerien_normal')  prixEstime = poidsVal * PRIX_AERIEN_NORMAL;
+    else if (typeEnvoi === 'aerien_express') prixEstime = poidsVal * PRIX_AERIEN_EXPRESS;
+    else if (typeEnvoi === 'maritime')  prixEstime = poidsVal * PRIX_MARITIME_CBM;
+
+    envoiEnCours.push({
+        expediteur:    (document.getElementById('expediteur-nom').value || 'AMT TRANSIT CARGO').trim(),
+        telExpediteur: (document.getElementById('expediteur-tel').value || '+225 0703165050').trim(),
+        nom, prenom, tel,
+        description:       descriptionResume,
+        detailsColis:      details,
+        quantiteEnvoyee:   wizardQte,
+        poidsEnvoye:       poids,
+        volumeEnvoye:      volume,
+        prixEstime:        formatArgent(prixEstime) + ' CFA',
+        photosFiles:       Array.from(document.getElementById('photos-colis').files),
+    });
+
+    // Réinitialiser le formulaire client
+    document.getElementById('client-nom').value    = '';
+    document.getElementById('client-prenom').value = '';
+    document.getElementById('client-tel').value    = '';
+    document.getElementById('sub-desc').value      = '';
+    document.getElementById('sub-poids-vol').value = '';
+    document.getElementById('apercu-photos').innerHTML = '';
+    document.getElementById('autocomplete-suggestions').style.display = 'none';
+    sousColisList = [];
+    wizardQte = 1;
+    const qteEl = document.getElementById('qte-display');
+    if (qteEl) qteEl.textContent = '1';
+    const prixEl = document.getElementById('prix-calcule-wizard');
+    if (prixEl) prixEl.textContent = '0 CFA';
+
+    goStep(4);
 }
 
+// ─── Étape 4 : Afficher la liste ─────────────────────────
+function renderClientsList() {
+    const container = document.getElementById('clients-list-display');
+    if (!container) return;
+    if (envoiEnCours.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#aaa;padding:20px;">Aucun client ajouté pour l\'instant.</p>';
+        return;
+    }
+
+    const typeEnvoi = document.getElementById('type-envoi') ? document.getElementById('type-envoi').value : '';
+    let total = 0;
+    let html = '';
+
+    envoiEnCours.forEach((c, i) => {
+        const isAir = (c.type || typeEnvoi || '').startsWith('aerien');
+        const pv = isAir ? c.poidsEnvoye : c.volumeEnvoye;
+        const unit = isAir ? 'Kg' : 'CBM';
+        const prixNum = parseInt((c.prixEstime || '0').replace(/\D/g, '')) || 0;
+        total += prixNum;
+        const initials = (c.nom || 'CL').substring(0, 2).toUpperCase();
+
+        html += `<div class="client-row">
+            <div class="client-avatar-circle">${initials}</div>
+            <div class="client-info-wrap">
+                <div class="client-name-main">${c.nom} ${c.prenom}</div>
+                <div class="client-meta-main">${c.quantiteEnvoyee} colis · ${pv} ${unit} · ${c.tel}</div>
+            </div>
+        <div class="client-prix-main" style="white-space:nowrap;">${c.prixEstime}</div>
+            <button class="client-del-btn" onclick="removeClientFromList(${i})">✕</button>
+        </div>`;
+    });
+
+    html += `<div class="clients-total-line">
+        <span>${envoiEnCours.length} client(s)</span>
+        <span style="color:#15609e;">${formatArgent(total)} CFA</span>
+    </div>`;
+
+    container.innerHTML = html;
+}
+
+function removeClientFromList(i) {
+    envoiEnCours.splice(i, 1);
+    renderClientsList();
+}
+
+// ─── Validation globale ───────────────────────────────────
 async function validerEnvoiGroupe() {
-    if (envoiEnCours.length === 0) return;
+    if (envoiEnCours.length === 0) { alert('Ajoutez au moins un client avant de valider.'); return; }
     const btn = document.getElementById('btn-valider-envoi-groupe');
-    btn.disabled = true; btn.innerText = 'En cours...';
+    btn.disabled = true;
+    btn.textContent = '⏳ Enregistrement...';
 
     try {
         const d = document.getElementById('date-envoi').value;
-        
+        const t = document.getElementById('type-envoi').value;
+
+        // Vérification chronologie
         if (d) {
             const lastSnap = await db.collection('expeditions').orderBy('date', 'desc').limit(1).get();
             if (!lastSnap.empty) {
@@ -190,67 +362,111 @@ async function validerEnvoiGroupe() {
                 if (lastDate && d < lastDate) {
                     const dStr = d.split('-').reverse().join('/');
                     const lastStr = lastDate.split('-').reverse().join('/');
-                    if (!confirm(`⚠️ ATTENTION : La date d'envoi (${dStr}) est antérieure au dernier envoi enregistré (${lastStr}).\n\nÊtes-vous sûr de vouloir continuer ?`)) {
-                        btn.disabled = false; btn.innerText = 'Valider l\'envoi Global'; return;
+                    if (!confirm(`⚠️ ATTENTION : La date (${dStr}) est antérieure au dernier envoi (${lastStr}).\n\nContinuer ?`)) {
+                        btn.disabled = false;
+                        btn.textContent = '🚀 VALIDER L\'ENVOI GLOBAL';
+                        return;
                     }
                 }
             }
         }
 
-        const t = document.getElementById('type-envoi').value;
-        const numConteneur = document.getElementById('num-conteneur') ? document.getElementById('num-conteneur').value.trim() : '';
-        let refG = ""; 
+        const numConteneur = (document.getElementById('num-conteneur') || {}).value || '';
         const pref = t.startsWith('aerien') ? 'AIR' : 'MRT';
         const now = new Date();
         const batchId = `${String(now.getFullYear()).slice(2)}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-        
+
         const batch = db.batch();
 
         for (let i = 0; i < envoiEnCours.length; i++) {
             const c = envoiEnCours[i];
-            const dateFinale = c.dateImportee ? c.dateImportee : d;
-            const idx = String(i+1).padStart(2, '0');
+            const idx = String(i + 1).padStart(2, '0');
             const newRef = db.collection('expeditions').doc();
-            
+
             batch.set(newRef, {
-                reference: `${pref}-${batchId}-${idx}`, 
-                refGroupe: refG, 
-                date: dateFinale, 
-                type: t,
-                numBL: t === 'maritime' ? numConteneur : '',
-                nom: c.nom, prenom: c.prenom, tel: c.tel, description: c.description, detailsColis: c.detailsColis || [],
-                expediteur: c.expediteur, telExpediteur: c.telExpediteur,
-                quantiteEnvoyee: parseInt(c.quantiteEnvoyee) || 0, 
-                poidsEnvoye: c.poidsEnvoye, volumeEnvoye: c.volumeEnvoye,
-                prixEstime: c.prixEstime, remise: 0, 
-                creeLe: firebase.firestore.FieldValue.serverTimestamp(),
-                status: 'En attente', quantiteRecue: 0, poidsRecu: 0, montantPaye: 0, historiquePaiements: [], photosURLs: []
+                reference:        `${pref}-${batchId}-${idx}`,
+                refGroupe:        '',
+                date:             d,
+                type:             t,
+                numBL:            t === 'maritime' ? numConteneur : '',
+                nom:              c.nom,
+                prenom:           c.prenom,
+                tel:              c.tel,
+                description:      c.description,
+                detailsColis:     c.detailsColis || [],
+                expediteur:       c.expediteur,
+                telExpediteur:    c.telExpediteur,
+                quantiteEnvoyee:  parseInt(c.quantiteEnvoyee) || 0,
+                poidsEnvoye:      c.poidsEnvoye,
+                volumeEnvoye:     c.volumeEnvoye,
+                prixEstime:       c.prixEstime,
+                remise:           0,
+                fraisSupplementaires: 0,
+                creeLe:           firebase.firestore.FieldValue.serverTimestamp(),
+                status:           'En attente',
+                quantiteRecue:    0,
+                poidsRecu:        0,
+                montantPaye:      0,
+                historiquePaiements: [],
+                photosURLs:       [],
             });
         }
+
         await batch.commit();
-        alert(`Envoi validé avec succès !`);
-        envoiEnCours = []; mettreAJourTableauEnvoiEnCours(); document.getElementById('form-envoi-commun').reset();
-    } catch (e) { alert("Erreur : " + e.message); console.error(e); } 
-    finally { btn.disabled = false; btn.innerText = 'Valider l\'envoi Global'; }
+        alert(`✅ Envoi validé ! ${envoiEnCours.length} client(s) enregistré(s).`);
+
+        // Réinitialiser complètement
+        envoiEnCours = [];
+        sousColisList = [];
+        wizardQte = 1;
+        selectedTransportCard = null;
+        document.querySelectorAll('.transport-card').forEach(c => c.classList.remove('selected'));
+        const hiddenType = document.getElementById('type-envoi');
+        if (hiddenType) hiddenType.value = '';
+        const dateEl = document.getElementById('date-envoi');
+        if (dateEl) dateEl.valueAsDate = new Date();
+        const cg = document.getElementById('conteneur-group');
+        if (cg) cg.style.display = 'none';
+        const nc = document.getElementById('num-conteneur');
+        if (nc) nc.value = '';
+        const btn1 = document.getElementById('btn-next-1');
+        if (btn1) btn1.disabled = true;
+        goStep(1);
+
+    } catch (e) {
+        alert('Erreur lors de la validation : ' + e.message);
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 VALIDER L\'ENVOI GLOBAL';
+    }
 }
 
-async function loadAllClientsForAutocomplete(){
-    try{ 
-        const s=await db.collection('expeditions').orderBy('creeLe', 'desc').limit(1000).get(); 
-        const m=new Map(); 
-        s.forEach(d=>{
-            const da=d.data(); 
-            if(da.tel && !m.has(da.tel)) m.set(da.tel, {nom: da.nom, prenom: da.prenom, tel: da.tel});
-        }); 
-        allPastClients=Array.from(m.values()); 
-    }catch(e){}
+// ─── Autocomplete (inchangé) ──────────────────────────────
+async function loadAllClientsForAutocomplete() {
+    try {
+        const s = await db.collection('expeditions').orderBy('creeLe', 'desc').limit(1000).get();
+        const m = new Map();
+        s.forEach(d => {
+            const da = d.data();
+            if (da.tel && !m.has(da.tel))
+                m.set(da.tel, { nom: da.nom, prenom: da.prenom, tel: da.tel });
+        });
+        allPastClients = Array.from(m.values());
+    } catch (e) { /* silencieux */ }
 }
 
-function showSuggestions(m){
-    const b=document.getElementById('autocomplete-suggestions'); b.innerHTML=''; if(m.length===0){b.style.display='none';return;}
-    m.slice(0,5).forEach(c=>{
-        const d=document.createElement('div'); d.innerHTML=`<strong>${c.nom}</strong> ${c.prenom}`;
-        d.onclick=()=>{document.getElementById('client-nom').value=c.nom;document.getElementById('client-prenom').value=c.prenom;document.getElementById('client-tel').value=c.tel;b.style.display='none';};
-        b.appendChild(d);
-    }); b.style.display='block';
+// ─── Compatibilité avec les fonctions héritées ───────────
+// Ces fonctions sont appelées depuis historique.html et reception.html via pdf-utils.js
+// On les garde pour la compatibilité mais elles redirigent vers la logique wizard
+
+function ajouterSousColis() {
+    const desc  = document.getElementById('sub-desc').value || 'Colis';
+    const qte   = parseInt(document.getElementById('sub-qte') ? document.getElementById('sub-qte').value : 1) || 1;
+    const val   = parseFloat(document.getElementById('sub-poids-vol').value) || 0;
+    if (qte <= 0 || val <= 0) { alert('Quantité et valeur doivent être > 0'); return; }
+    sousColisList.push({ desc, qte, val });
+    _updateMultiTable();
 }
+
+function mettreAJourTableauEnvoiEnCours() { renderClientsList(); }

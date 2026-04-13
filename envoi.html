@@ -12,130 +12,231 @@
     <header>
         <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
         <div class="header-info">
-            <span>Agence: <span id="agence-nom">Chine</span></span>
-            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+            <span id="agence-nom-display">Chine</span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545; color:white;">Déconnexion</button>
         </div>
     </header>
 
     <nav class="main-nav">
         <a href="envoi.html" class="nav-link active" id="nav-envoi">📦 Envoi (Chine)</a>
-        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique & Modif</a>
-        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception (Abidjan)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
         <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
         <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
     </nav>
 
+    <!-- Barre de progression wizard -->
+    <div class="wizard-progress" id="wizardProgress">
+        <div class="wizard-step">
+            <div class="wizard-dot active" id="wd1">1</div>
+            <div class="wizard-label active" id="wl1">Transport</div>
+        </div>
+        <div class="wizard-line" id="wline1"></div>
+        <div class="wizard-step">
+            <div class="wizard-dot todo" id="wd2">2</div>
+            <div class="wizard-label" id="wl2">Client</div>
+        </div>
+        <div class="wizard-line" id="wline2"></div>
+        <div class="wizard-step">
+            <div class="wizard-dot todo" id="wd3">3</div>
+            <div class="wizard-label" id="wl3">Colis</div>
+        </div>
+        <div class="wizard-line" id="wline3"></div>
+        <div class="wizard-step">
+            <div class="wizard-dot todo" id="wd4">4</div>
+            <div class="wizard-label" id="wl4">Valider</div>
+        </div>
+    </div>
+
     <main>
-        <section id="Envoi" class="page-content" style="display:block;">
-            <h2><i class="fas fa-box-open"></i> Nouvel Envoi Groupé</h2>
-            
-            <form id="form-envoi-commun" class="card">
-                <h3><span class="step-badge">1</span>Configuration de l'envoi</h3>
-                
-                <!-- Champ Date (Sera auto-rempli par JS) -->
-                <div class="form-group">
-                    <label>Date d'expédition</label>
-                    <input type="date" id="date-envoi" required style="font-weight:bold; color:#15609e;">
+        <!-- ÉTAPE 1 : Sélection du transport -->
+        <div class="wizard-screen active" id="screen1">
+            <div class="card">
+                <div class="big-label" style="margin-bottom:14px; font-size:18px;">
+                    <span class="lbl-icon">📦</span> Comment envoyer ?
                 </div>
-                
-                <div class="form-group" id="container-group" style="display:none;">
-                    <label>Numéro du Conteneur</label>
-                    <input type="text" id="num-conteneur" placeholder="ex: MSCU1234567" style="font-weight:bold; color:#15609e;">
+                <div class="transport-grid">
+                    <div class="transport-card" onclick="selectType('aerien_normal', this)" id="card-aerien-normal">
+                        <div class="t-icon">✈️</div>
+                        <div class="t-name">Avion Normal</div>
+                        <div class="t-price">10 000 / Kg</div>
+                    </div>
+                    <div class="transport-card" onclick="selectType('aerien_express', this)" id="card-aerien-express">
+                        <div class="t-icon">🚀</div>
+                        <div class="t-name">Avion Express</div>
+                        <div class="t-price">12 000 / Kg</div>
+                    </div>
+                    <div class="transport-card" onclick="selectType('maritime', this)" id="card-maritime">
+                        <div class="t-icon">🚢</div>
+                        <div class="t-name">Bateau</div>
+                        <div class="t-price">250 000 / CBM</div>
+                    </div>
                 </div>
 
-                <!-- Sélection Visuelle du Type -->
-                <label style="font-weight:600; margin-bottom:10px; display:block;">Mode de Transport :</label>
-                <div class="type-selection-grid">
-                    <div class="type-card" onclick="selectType('aerien_normal', this)">
-                        <i class="fas fa-plane"></i>
-                        <h4>Aérien Normal</h4>
-                        <p>10 000 / Kg</p>
-                    </div>
-                    <div class="type-card" onclick="selectType('aerien_express', this)">
-                        <i class="fas fa-plane-departure" style="color:#e67e22;"></i>
-                        <h4>Aérien Express</h4>
-                        <p>12 000 / Kg</p>
-                    </div>
-                    <div class="type-card" onclick="selectType('maritime', this)">
-                        <i class="fas fa-ship" style="color:#27ae60;"></i>
-                        <h4>Maritime</h4>
-                        <p>250 000 / CBM</p>
-                    </div>
+                <!-- Champ conteneur maritime (masqué par défaut) -->
+                <div id="conteneur-group" style="display:none; margin-top:4px;">
+                    <div class="big-label"><span class="lbl-icon">🏷️</span> Numéro du conteneur</div>
+                    <input type="text" class="big-input" id="num-conteneur" placeholder="ex: MSCU1234567">
                 </div>
-                <!-- Input caché pour stocker la valeur sélectionnée -->
-                <input type="hidden" id="type-envoi" value="">
-            </form>
 
-            <form id="form-ajout-client" class="card">
-                <h3><span class="step-badge">2</span>Saisie Client & Colis</h3>
-                
-                <!-- Expéditeur replié par défaut pour simplifier -->
-                <details style="margin-bottom: 15px; border: 1px solid #eee; padding: 10px; border-radius: 6px;">
-                    <summary style="cursor:pointer; color:#666; font-size:0.9em;">Modifier l'Expéditeur (Par défaut: AMT)</summary>
-                    <div class="form-group" style="margin-top:10px;"><label>Expéditeur (Nom)</label><input type="text" id="expediteur-nom" value="AMT TRANSIT CARGO"></div>
-                    <div class="form-group"><label>Expéditeur (Tel)</label><input type="text" id="expediteur-tel" value="+225 0703165050"></div>
+                <!-- Date -->
+                <div style="margin-top:14px;">
+                    <div class="big-label"><span class="lbl-icon">📅</span> Date d'expédition</div>
+                    <input type="date" class="big-input" id="date-envoi" style="font-weight:700; color:#15609e;">
+                </div>
+            </div>
+
+            <button class="step-btn step-btn-primary" id="btn-next-1" onclick="goStep(2)" disabled>
+                Continuer <span style="font-size:18px;">→</span>
+            </button>
+        </div>
+
+        <!-- ÉTAPE 2 : Saisie Client -->
+        <div class="wizard-screen" id="screen2">
+            <div class="card">
+                <div class="big-label" style="margin-bottom:14px; font-size:18px;">
+                    <span class="lbl-icon">👤</span> Qui reçoit le colis ?
+                </div>
+
+                <!-- Expéditeur (replié) -->
+                <details style="margin-bottom:14px; border:1px solid #eee; padding:10px; border-radius:8px;">
+                    <summary style="cursor:pointer; color:#888; font-size:13px; font-weight:600;">✏️ Modifier l'expéditeur (défaut : AMT)</summary>
+                    <div style="margin-top:10px;">
+                        <div class="big-label"><span class="lbl-icon">🏢</span> Nom expéditeur</div>
+                        <input type="text" class="big-input" id="expediteur-nom" value="AMT TRANSIT CARGO">
+                        <div class="big-label"><span class="lbl-icon">📞</span> Tél expéditeur</div>
+                        <input type="text" class="big-input" id="expediteur-tel" value="+225 0703165050">
+                    </div>
                 </details>
 
-                <div class="form-group autocomplete-container">
-                    <label>Nom du Client (Destinataire)</label>
-                    <input type="text" id="client-nom" required autocomplete="off" placeholder="Tapez pour rechercher..." style="background-color:#fff3cd;">
+                <!-- Autocomplete Nom -->
+                <div class="autocomplete-container">
+                    <div class="big-label"><span class="lbl-icon">🧑</span> Nom du client</div>
+                    <input type="text" class="big-input highlight" id="client-nom" autocomplete="off"
+                        placeholder="Tapez le nom..." oninput="onNomInput()" required>
                     <div id="autocomplete-suggestions" class="autocomplete-items"></div>
                 </div>
-                <div class="form-group"><label>Prénom</label><input type="text" id="client-prenom" required></div>
-                <div class="form-group"><label>Téléphone</label><input type="tel" id="client-tel" placeholder="+225..." required></div>
+                <div class="big-label"><span class="lbl-icon">📝</span> Prénom</div>
+                <input type="text" class="big-input" id="client-prenom" placeholder="Prénom" required>
+                <div class="big-label"><span class="lbl-icon">📱</span> Numéro de téléphone</div>
+                <input type="tel" class="big-input" id="client-tel" placeholder="+225 07 00 00 00 00"
+                    oninput="checkStep2()" required>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="step-btn step-btn-back" onclick="goStep(1)" style="flex:1;">← Retour</button>
+                <button class="step-btn step-btn-primary" id="btn-next-2" onclick="goStep(3)" disabled style="flex:2;">Continuer →</button>
+            </div>
+        </div>
 
-                <hr>
-                <h4>Contenu du colis</h4>
-                <div class="sub-colis-input-group">
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end;">
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>Description Colis</label>
-                            <input type="text" id="sub-desc" placeholder="ex: Chaussures">
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>Qté</label>
-                            <input type="number" id="sub-qte" value="1" min="1" style="font-weight:bold;">
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label id="label-sub-poids-vol">Kg / CBM</label>
-                            <input type="number" id="sub-poids-vol" step="0.001" style="font-weight:bold; color:#c0392b;">
-                        </div>
-                        <button type="button" class="btn-secondaire btn-small" onclick="ajouterSousColis()" style="height: 38px;">➕</button>
+        <!-- ÉTAPE 3 : Colis -->
+        <div class="wizard-screen" id="screen3">
+            <div class="card">
+                <div class="big-label" style="margin-bottom:4px; font-size:18px;">
+                    <span class="lbl-icon" id="colis-icon">⚖️</span>
+                    <span id="colis-step-title">Poids du colis</span>
+                </div>
+
+                <!-- Description -->
+                <div class="big-label"><span class="lbl-icon">🔤</span> Description du colis</div>
+                <input type="text" class="big-input" id="sub-desc" placeholder="ex: Chaussures, Vêtements...">
+
+                <!-- Quantité -->
+                <div class="big-label" style="margin-top:4px;"><span class="lbl-icon">🔢</span> Quantité de colis</div>
+                <div class="counter-wrap">
+                    <button class="counter-btn counter-minus" onclick="changeQte(-1)">−</button>
+                    <div class="counter-display">
+                        <div class="counter-val" id="qte-display">1</div>
+                        <div class="counter-unit">colis</div>
+                    </div>
+                    <button class="counter-btn counter-plus" onclick="changeQte(1)">+</button>
+                </div>
+
+                <!-- Poids / Volume -->
+                <div class="big-label"><span class="lbl-icon" id="weight-icon">⚖️</span> <span id="weight-label">Poids total (Kg)</span></div>
+                <input type="number" class="big-input highlight" id="sub-poids-vol" step="0.001"
+                    placeholder="0.000" oninput="recalculerTotal()">
+
+                <!-- Prix calculé -->
+                <div class="prix-banner">
+                    <div>
+                        <div class="prix-banner-label">Prix estimé</div>
+                        <div class="prix-banner-val" id="prix-calcule-wizard">0 CFA</div>
+                    </div>
+                    <div>
+                        <div class="prix-banner-mode" id="mode-label-wizard">Avion Normal</div>
+                        <div class="prix-banner-rate" id="rate-label-wizard">10 000 CFA/Kg</div>
                     </div>
                 </div>
 
-                <table id="table-sub-colis">
-                    <thead><tr><th>Desc</th><th>Qté</th><th>Poids/Vol</th><th>Action</th></tr></thead>
-                    <tbody id="tbody-sub-colis"></tbody>
-                </table>
+                <!-- Sous-colis multiples (optionnel avancé) -->
+                <details style="margin-top:8px; border:1px solid #eee; padding:10px; border-radius:8px;">
+                    <summary style="cursor:pointer; color:#888; font-size:13px; font-weight:600;">➕ Ajouter plusieurs types de colis</summary>
+                    <div style="margin-top:12px;">
+                        <div style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:8px;">
+                            <div>
+                                <div class="big-label" style="font-size:13px;">Description</div>
+                                <input type="text" id="multi-desc" class="big-input" style="font-size:14px;" placeholder="Chaussures">
+                            </div>
+                            <div>
+                                <div class="big-label" style="font-size:13px;">Qté</div>
+                                <input type="number" id="multi-qte" class="big-input" style="font-size:14px;" value="1" min="1">
+                            </div>
+                            <div>
+                                <div class="big-label" style="font-size:13px;" id="multi-poids-label">Kg</div>
+                                <input type="number" id="multi-poids" class="big-input" style="font-size:14px;" step="0.001">
+                            </div>
+                            <button type="button" onclick="ajouterSousColisWizard()"
+                                style="height:46px; background:#27ae60; color:white; border-radius:8px; border:none; font-size:20px; cursor:pointer; padding:0 10px;">➕</button>
+                        </div>
+                        <table id="table-sub-colis" style="width:100%; font-size:13px; border-collapse:collapse; display:none;">
+                            <thead><tr>
+                                <th style="text-align:left;padding:6px;background:#f0f2f5;">Desc</th>
+                                <th style="text-align:center;padding:6px;background:#f0f2f5;">Qté</th>
+                                <th style="text-align:center;padding:6px;background:#f0f2f5;">Poids/Vol</th>
+                                <th style="text-align:center;padding:6px;background:#f0f2f5;">X</th>
+                            </tr></thead>
+                            <tbody id="tbody-sub-colis"></tbody>
+                        </table>
+                    </div>
+                </details>
 
-                <div class="totaux-display">
-                    <span>Total Qté: <strong id="display-total-qte">0</strong></span>
-                    <span>Total <span id="display-unit">CBM</span>: <strong id="display-total-vol">0</strong></span>
+                <!-- Photos -->
+                <div style="margin-top:12px;">
+                    <div class="big-label"><span class="lbl-icon">📷</span> Photos du colis (optionnel)</div>
+                    <input type="file" id="photos-colis" accept="image/*" multiple
+                        style="font-size:14px; padding:8px; border:1.5px dashed #ccc; border-radius:8px; width:100%;">
+                    <div id="apercu-photos" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
                 </div>
-
-                <div class="form-group" style="margin-top:15px;">
-                    <label>Photos</label>
-                    <input type="file" id="photos-colis" accept="image/*" multiple>
-                    <div id="apercu-photos"></div>
-                </div>
-                <hr>
-                <h3 style="text-align: right;">Total Client : <span id="prix-calcule" style="font-size:1.4em;">0 CFA</span></h3>
-                <button type="button" id="btn-ajouter-client" class="btn-principal" onclick="ajouterClientALaListe()" style="background-color: #27ae60; font-size: 1.1em; padding: 12px;">✅ Ajouter ce client à la liste</button>
-            </form>
-
-            <div class="card" id="card-liste-attente">
-                <h3><span class="step-badge">3</span>Liste d'attente (Prêt à envoyer)</h3>
-                <div class="table-container">
-                    <table id="table-envoi-en-cours">
-                        <thead><tr><th>Exp.</th><th>Dest.</th><th>Tél Dest.</th><th>Qté Tot.</th><th>Total Kg/CBM</th><th>Prix</th><th>Act.</th></tr></thead>
-                        <tbody id="tbody-envoi-en-cours"></tbody>
-                    </table>
-                </div>
-                <hr>
-                <button type="button" id="btn-valider-envoi-groupe" class="btn-principal" onclick="validerEnvoiGroupe()" style="background-color: #d35400; font-size: 1.2em; padding: 15px;">🚀 VALIDER L'ENVOI GLOBAL</button>
             </div>
-        </section>
+
+            <button class="step-btn step-btn-green" onclick="ajouterClientEtContinuer()">
+                ✅ Ajouter ce client
+            </button>
+            <div style="display:flex; gap:10px;">
+                <button class="step-btn step-btn-back" onclick="goStep(2)">← Retour</button>
+            </div>
+        </div>
+
+        <!-- ÉTAPE 4 : Validation finale -->
+        <div class="wizard-screen" id="screen4">
+            <div class="card">
+                <div class="big-label" style="font-size:18px; margin-bottom:14px;">
+                    <span class="lbl-icon">📋</span> Liste des envois
+                </div>
+                <div id="clients-list-display">
+                    <p style="text-align:center; color:#aaa; padding:20px;">Aucun client ajouté pour l'instant.</p>
+                </div>
+            </div>
+
+            <button class="step-btn step-btn-orange" onclick="goStep(2)" style="margin-bottom:6px;">
+                ➕ Ajouter un autre client
+            </button>
+            <button class="step-btn step-btn-red" id="btn-valider-envoi-groupe" onclick="validerEnvoiGroupe()">
+                🚀 VALIDER L'ENVOI GLOBAL
+            </button>
+            <div style="height:16px;"></div>
+        </div>
+
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMT - Audit Paiements</title>
+    <title>AMT - Audit</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/png" href="/logo_amt.png">
@@ -12,43 +12,60 @@
     <header>
         <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
         <div class="header-info">
-            <span>Agence: <span id="agence-nom">Abidjan</span></span>
-            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+            <span>Agence : <span id="agence-nom">Abidjan</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545;color:white;">Déconnexion</button>
         </div>
     </header>
 
     <nav class="main-nav">
         <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
-        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique & Modif</a>
-        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception (Abidjan)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
         <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
         <a href="audit.html" class="nav-link active" id="nav-audit">📊 Audit</a>
     </nav>
 
     <main>
         <section id="Audit" class="page-content" style="display:block;">
-            <h2><i class="fas fa-search-dollar"></i> Audit des Paiements</h2>
+            <h2>📊 Audit des paiements</h2>
+
             <div class="sub-nav-container">
-                <button class="sub-nav-link active" id="btn-audit-maritime" onclick="ouvrirSousOngletAudit('maritime')"><i class="fas fa-ship"></i> Maritime</button>
-                <button class="sub-nav-link" id="btn-audit-aerien" onclick="ouvrirSousOngletAudit('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+                <button class="sub-nav-link active" id="btn-audit-maritime" onclick="ouvrirSousOngletAudit('maritime')">
+                    <i class="fas fa-ship"></i> Bateau
+                </button>
+                <button class="sub-nav-link" id="btn-audit-aerien" onclick="ouvrirSousOngletAudit('aerien')">
+                    <i class="fas fa-plane"></i> Avion
+                </button>
             </div>
-            
+
             <div class="card">
-                <div class="form-group">
-                    <input type="text" id="search-audit" placeholder="Rechercher une transaction (Ref, Nom, Agent...)" style="width: 100%;">
+                <!-- Recherche -->
+                <div style="position:relative; margin-bottom:12px;">
+                    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;">🔍</span>
+                    <input type="text" id="search-audit" placeholder="Rechercher une transaction..."
+                        style="padding:12px 14px 12px 42px;font-size:15px;border:2px solid #dee2e6;border-radius:10px;width:100%;">
                 </div>
-                
+
+                <!-- Filtres rapides par période -->
+                <div class="quick-filter-bar" id="quick-filters">
+                    <button class="quick-filter-btn active" onclick="setDateFilter('all', this)">Tout</button>
+                    <button class="quick-filter-btn" onclick="setDateFilter('today', this)">Aujourd'hui</button>
+                    <button class="quick-filter-btn" onclick="setDateFilter('week', this)">Cette semaine</button>
+                    <button class="quick-filter-btn" onclick="setDateFilter('month', this)">Ce mois</button>
+                </div>
+
+                <!-- Tableau -->
                 <div class="table-container">
-                    <table id="table-audit">
+                    <table id="table-audit" style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
                             <tr>
                                 <th>Date</th>
                                 <th>Type</th>
                                 <th>Référence</th>
-                                <th>Tiers (Client)</th>
+                                <th>Client</th>
                                 <th>Description</th>
-                                <th>Montant</th>
-                                <th>Solde</th>
+                                <th style="text-align:right;">Montant</th>
+                                <th style="text-align:right;">Solde</th>
                                 <th>Moyen</th>
                                 <th>Agent</th>
                             </tr>

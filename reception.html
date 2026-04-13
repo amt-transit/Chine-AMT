@@ -12,61 +12,78 @@
     <header>
         <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
         <div class="header-info">
-            <span>Agence: <span id="agence-nom">Abidjan</span></span>
-            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="margin-left:10px; background-color: #dc3545; color: white;">Déconnexion</button>
+            <span>Agence : <span id="agence-nom">Abidjan</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545;color:white;">Déconnexion</button>
         </div>
     </header>
 
     <nav class="main-nav">
         <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
-        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique & Modif</a>
-        <a href="reception.html" class="nav-link active" id="nav-reception">📥 Réception (Abidjan)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link active" id="nav-reception">📥 Réception</a>
         <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
         <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
     </nav>
 
     <main>
         <section id="Reception" class="page-content" style="display:block;">
-            <h2>Réception (Abidjan)</h2>
+            <h2>📥 Réception (Abidjan)</h2>
+
             <div class="sub-nav-container">
-                <button class="sub-nav-link active" id="btn-rec-maritime" onclick="ouvrirSousOngletReception('maritime')"><i class="fas fa-ship"></i> Maritime</button>
-                <button class="sub-nav-link" id="btn-rec-aerien" onclick="ouvrirSousOngletReception('aerien')"><i class="fas fa-plane"></i> Aérien</button>
+                <button class="sub-nav-link active" id="btn-rec-maritime" onclick="ouvrirSousOngletReception('maritime')">
+                    <i class="fas fa-ship"></i> Bateau
+                </button>
+                <button class="sub-nav-link" id="btn-rec-aerien" onclick="ouvrirSousOngletReception('aerien')">
+                    <i class="fas fa-plane"></i> Avion
+                </button>
             </div>
-            <div class="card">
-                <div class="form-group" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                    <input type="text" id="search-reception" placeholder="Rechercher..." style="flex: 1;">
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: bold; color: #555;">
-                        <input type="checkbox" id="cb-show-paid-rec" onchange="toggleShowPaidReception()"> Afficher les colis payés
+
+            <!-- Barre de recherche principale (grande et visible) -->
+            <div class="card" style="padding:14px;">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:200px; position:relative;">
+                        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;">🔍</span>
+                        <input type="text" id="search-reception" placeholder="Nom, téléphone, référence..."
+                            style="padding:13px 14px 13px 42px; font-size:16px; border:2px solid #dee2e6; border-radius:10px; width:100%;">
+                    </div>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:#555; white-space:nowrap;">
+                        <input type="checkbox" id="cb-show-paid-rec" onchange="toggleShowPaidReception()" style="width:18px;height:18px;">
+                        Voir les payés
                     </label>
                 </div>
-                
-                <div id="filter-container-rec" class="filter-box"></div>
+            </div>
 
-                <div class="export-buttons" style="display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <button id="btn-export-pdf" class="btn-secondaire" onclick="exporterPDF()">PDF</button>
-                        <button id="btn-export-excel" class="btn-secondaire" onclick="exporterExcel()">Excel</button>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px;">
-                        <button id="btn-group-pay" onclick="ouvrirModalPaiementGroupe()" class="btn-principal" style="display: none; background-color: #27ae60; width: auto;">
-                            💰 Solder la sélection (<span id="count-sel">0</span>)
-                        </button>
-                        <button id="btn-whatsapp-groupe" onclick="ouvrirModalWhatsAppGroupe()" class="btn-principal" style="display: none; background-color: #25D366; width: auto;">
-                            <i class="fab fa-whatsapp"></i> WhatsApp (<span id="count-sel-wa">0</span>)
-                        </button>
-                    </div>
+            <!-- Filtres groupes -->
+            <div id="filter-container-rec" class="filter-box" style="margin-bottom:10px;"></div>
+
+            <!-- Boutons d'actions groupées -->
+            <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; align-items:center;">
+                <button class="btn-secondaire btn-small" onclick="exporterPDF()" style="background:#34495e;">📄 PDF</button>
+                <button class="btn-secondaire btn-small" onclick="exporterExcel()" style="background:#27ae60;">📊 Excel</button>
+                <div style="margin-left:auto; display:flex; gap:8px;">
+                    <button id="btn-group-pay" onclick="ouvrirModalPaiementGroupe()"
+                        style="display:none; background:#27ae60; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px;">
+                        💰 Solder sélection (<span id="count-sel">0</span>)
+                    </button>
+                    <button id="btn-whatsapp-groupe" onclick="ouvrirModalWhatsAppGroupe()"
+                        style="display:none; background:#25D366; color:white; border:none; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="fab fa-whatsapp"></i> WhatsApp (<span id="count-sel-wa">0</span>)
+                    </button>
                 </div>
+            </div>
+
+            <!-- Tableau -->
+            <div class="card" style="padding:0; overflow:hidden;">
                 <div class="table-container">
                     <table id="table-expeditions" class="interactive-table">
                         <thead>
                             <tr>
-                                <th style="width: 30px;"><input type="checkbox" id="check-all-rec" onchange="toggleToutSelectionner(this)"></th>  
-                                <th>Ref</th>
+                                <th style="width:36px;"><input type="checkbox" id="check-all-rec" onchange="toggleToutSelectionner(this)"></th>
+                                <th>Réf.</th>
                                 <th>Conteneur</th>
                                 <th>Date</th>
                                 <th>Client</th>
-                                <th>Desc.</th>
+                                <th>Description</th>
                                 <th>Type</th>
                                 <th>Qté</th>
                                 <th>Kg/CBM</th>
@@ -90,137 +107,160 @@
         </section>
     </main>
 
+    <!-- MODAL DÉTAILS / PAIEMENT (simplifié) -->
     <div id="modal-backdrop" class="modal-backdrop" onclick="fermerModal(event)">
         <div class="modal-content">
             <span class="modal-close" onclick="fermerModal(event)">&times;</span>
+
             <div id="details-reception">
-                <h3>Détails : <span id="client-selectionne"></span>
-                    <button class="btn-secondaire btn-small" onclick="ouvrirModalModifReception()" style="background-color: #7f8c8d; float: right;">✏️ Corriger Erreur</button>
-                </h3>
-                <p>
-                    Expéditeur: <strong><span id="expediteur-affiche"></span></strong><br>
-                    Ref: <strong><span id="ref-attendue"></span></strong><br>
-                    Desc: <span id="desc-attendue"></span><br>
-                    Tél: <span id="tel-attendu"></span><br>
-                    Attendu: <span id="qte-attendue"></span> | <span id="poids-attendu"></span><br>
-                    Reste à recevoir: <strong><span id="qte-restant"></span></strong> | <strong><span id="poids-restant"></span></strong><br>
-                    Prix Initial: <span id="prix-attendu"></span><br>
-                    <strong style="font-size:1.2em; color:#dc3545;">Reste: <span id="prix-restant"></span></strong>
-                </p>
-                
-                <div class="form-group" id="photos-recues-container" style="display:none;">
-                    <div id="photos-recues-apercu"></div>
+                <!-- En-tête Client -->
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                    <div id="modal-avatar" style="width:52px;height:52px;border-radius:50%;background:#15609e;color:white;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;">CL</div>
+                    <div>
+                        <h3 style="margin:0;font-size:17px;" id="client-selectionne">Client</h3>
+                        <div style="color:#888;font-size:13px;">Réf : <strong id="ref-attendue">-</strong></div>
+                    </div>
+                    <button class="btn-secondaire btn-small" onclick="ouvrirModalModifReception()"
+                        style="background:#7f8c8d;margin-left:auto;">✏️ Corriger</button>
                 </div>
-                
-                <hr>
-                
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <button class="btn-secondaire" onclick="genererEtiquette()" style="background-color: #f39c12; color: white;">Étiquette</button>
-                    <button class="btn-secondaire" onclick="genererFacture()" style="background-color: #34495e; color: white;">Facture</button>
-                    <button class="btn-secondaire" onclick="genererBonLivraison()" style="background-color: #8e44ad; color: white;">📄 BL</button>
-                    <button class="btn-secondaire" onclick="envoyerWhatsAppIndividuel()" style="background-color: #25D366; color: white;"><i class="fab fa-whatsapp"></i> WhatsApp</button>
-                    <button type="button" class="btn-secondaire" onclick="partagerWhatsAppIndividuel()" style="background-color: #128C7E; color: white; width: auto; padding: 6px 12px; margin-left: 5px;" title="Partager à un autre contact"><i class="fas fa-share-alt"></i> Partager</button>
-                    <button id="btn-marquer-arrive" class="btn-secondaire" onclick="basculerStatutArrive()" style="background-color: #17a2b8; color: white; margin-left: auto;">🛬 Arrivé au Dépôt</button>
+
+                <!-- Infos résumé -->
+                <div style="background:#f8f9fa;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:14px;line-height:1.9;">
+                    <div>📦 <strong id="desc-attendue">-</strong></div>
+                    <div>📱 <span id="tel-attendu">-</span></div>
+                    <div>🏢 Expéditeur : <span id="expediteur-affiche">-</span></div>
+                    <div>📬 Attendu : <span id="qte-attendue">-</span> | <span id="poids-attendu">-</span></div>
+                    <div>⏳ Reste : <strong id="qte-restant">-</strong> | <strong id="poids-restant">-</strong></div>
+                    <div style="font-size:15px;">💰 Prix : <span id="prix-attendu">-</span></div>
                 </div>
-                
+
+                <!-- Montant restant mis en avant -->
+                <div style="background:#1C3A5E;border-radius:10px;padding:12px 16px;text-align:center;margin-bottom:14px;">
+                    <div style="color:rgba(255,255,255,0.65);font-size:13px;">Reste à payer</div>
+                    <div style="color:#F5A623;font-size:28px;font-weight:700;" id="prix-restant">0 CFA</div>
+                </div>
+
+                <!-- Photos -->
+                <div id="photos-recues-container" style="display:none; margin-bottom:12px;">
+                    <div id="photos-recues-apercu" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                </div>
+
+                <!-- Actions rapides -->
+                <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+                    <button onclick="genererEtiquette()" style="flex:1;min-width:80px;background:#f39c12;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Étiquette</button>
+                    <button onclick="genererFacture()" style="flex:1;min-width:80px;background:#34495e;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;">📄 Facture</button>
+                    <button onclick="genererBonLivraison()" style="flex:1;min-width:80px;background:#8e44ad;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;">📋 BL</button>
+                    <button onclick="envoyerWhatsAppIndividuel()" style="flex:1;min-width:80px;background:#25D366;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;"><i class="fab fa-whatsapp"></i> WA</button>
+                    <button id="btn-marquer-arrive" onclick="basculerStatutArrive()" style="flex:1;min-width:80px;background:#17a2b8;color:white;border:none;border-radius:8px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;">🛬 Arrivé</button>
+                </div>
+
                 <div id="reception-status-display">
                     <p id="reception-status" class="status-badge"></p>
                     <div id="reception-summary"></div>
                 </div>
-                
+
+                <!-- Formulaire paiement simplifié -->
                 <div id="form-reception-container">
-                    <hr>
-                    <strong>Ajouter Paiement/Réception:</strong>
+                    <div style="font-size:15px;font-weight:700;margin-bottom:10px;color:#1C3A5E;">💳 Enregistrer un paiement</div>
                     <form id="form-reception">
-                        <div class="form-group">
-                            <label>Quantité</label>
-                            <input type="number" id="quantite-recue" min="0">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                            <div>
+                                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Quantité reçue</label>
+                                <input type="number" id="quantite-recue" min="0" class="big-input" style="font-size:18px;text-align:center;padding:10px;">
+                            </div>
+                            <div>
+                                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;" id="label-poids-recu">Poids/Vol reçu</label>
+                                <input type="number" id="poids-recu" step="0.01" class="big-input" style="font-size:18px;text-align:center;padding:10px;">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label id="label-poids-recu">Poids/Vol</label>
-                            <input type="number" id="poids-recu" step="0.01">
+
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Montant payé (CFA)</label>
+                        <input type="number" id="montant-paye" min="0" class="big-input highlight"
+                            style="font-size:22px; font-weight:700; text-align:center; padding:12px; margin-bottom:12px;">
+
+                        <!-- Moyen de paiement — grands boutons tactiles -->
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">Moyen de paiement</label>
+                        <div class="payment-method-grid">
+                            <button type="button" class="payment-method-btn active" id="pm-Espèce" onclick="selectPaymentMethod('Espèce')">💵 Espèce</button>
+                            <button type="button" class="payment-method-btn" id="pm-Wave" onclick="selectPaymentMethod('Wave')">📲 Wave</button>
+                            <button type="button" class="payment-method-btn" id="pm-OM" onclick="selectPaymentMethod('OM')">📱 OM</button>
+                            <button type="button" class="payment-method-btn" id="pm-Chèque" onclick="selectPaymentMethod('Chèque')">🏦 Chèque</button>
+                            <button type="button" class="payment-method-btn" id="pm-CB" onclick="selectPaymentMethod('CB')">💳 CB</button>
+                            <div></div>
                         </div>
-                        <div class="form-group">
-                            <label>Montant</label>
-                            <input type="number" id="montant-paye" min="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Moyen</label>
-                            <select id="moyen-paiement">
-                                <option value="Espèce">Espèce</option>
-                                <option value="Chèque">Chèque</option>
-                                <option value="OM">OM</option>
-                                <option value="Wave">Wave</option>
-                                <option value="CB">CB</option>
-                            </select>
-                        </div>
-                        <button type="button" class="btn-principal" onclick="enregistrerReception()">Valider</button>
+                        <!-- Input caché pour stocker le moyen sélectionné -->
+                        <input type="hidden" id="moyen-paiement" value="Espèce">
+
+                        <button type="button" class="step-btn step-btn-green" onclick="enregistrerReception()" style="margin-top:12px;">
+                            ✅ Valider le paiement
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- MODAL CORRECTION RÉCEPTION -->
     <div id="modal-modif-reception" class="modal-backdrop">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width:400px;">
             <span class="modal-close" onclick="fermerModalModifReception()">&times;</span>
-            <h3>Corriger la Réception</h3>
-            <p class="info-text" style="color: #c0392b;">Utilisez ceci uniquement pour corriger une erreur de saisie.</p>
-            
+            <h3>✏️ Corriger la réception</h3>
+            <p class="info-text" style="color:#c0392b;">Uniquement pour corriger une erreur de saisie.</p>
             <form id="form-modif-reception">
                 <div class="form-group">
-                    <label>Quantité Reçue (Totale)</label>
+                    <label>Quantité reçue (totale)</label>
                     <input type="number" id="modif-rec-qte">
                 </div>
                 <div class="form-group">
-                    <label>Poids / Vol Reçu (Total)</label>
+                    <label>Poids / Vol reçu (total)</label>
                     <input type="number" id="modif-rec-poids" step="0.01">
                 </div>
                 <div class="form-group">
-                    <label>Montant Payé (Total)</label>
+                    <label>Montant payé (total)</label>
                     <input type="number" id="modif-rec-paye">
                 </div>
-                
-                <button type="button" class="btn-principal" onclick="sauvegarderCorrectionReception()">Enregistrer la correction</button>
+                <button type="button" class="btn-principal" onclick="sauvegarderCorrectionReception()">Enregistrer</button>
             </form>
         </div>
     </div>
+
+    <!-- MODAL PAIEMENT GROUPÉ -->
     <div id="modal-paiement-groupe" class="modal-backdrop">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width:400px;">
             <span class="modal-close" onclick="fermerModalPaiementGroupe()">&times;</span>
-            <h3>Règlement Groupé</h3>
+            <h3>💰 Règlement groupé</h3>
             <p>Vous avez sélectionné <strong><span id="group-count">0</span></strong> colis.</p>
-            <div style="background: #e8f5e9; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                Total Restant à Payer : <strong id="group-total" style="color: #27ae60; font-size: 1.2em;">0 CFA</strong>
+            <div style="background:#d1fae5;padding:12px;border-radius:10px;margin-bottom:16px;text-align:center;">
+                <div style="font-size:13px;color:#065f46;">Total restant à payer</div>
+                <div style="font-size:24px;font-weight:700;color:#065f46;" id="group-total">0 CFA</div>
             </div>
-            
-            <form id="form-paiement-groupe">
-                <div class="form-group">
-                    <label>Moyen de Paiement</label>
-                    <select id="group-moyen">
-                        <option value="Espèce">Espèce</option>
-                        <option value="Wave">Wave</option>
-                        <option value="OM">OM</option>
-                        <option value="Chèque">Chèque</option>
-                        <option value="CB">CB</option>
-                    </select>
-                </div>
-                <p class="info-text">Cette action va solder (payer entièrement) tous les colis sélectionnés.</p>
-                <button type="button" class="btn-principal" onclick="validerPaiementGroupe()">Valider le paiement total</button>
-            </form>
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">Moyen de paiement</label>
+            <div class="payment-method-grid" style="margin-bottom:12px;">
+                <button type="button" class="payment-method-btn active" id="gpm-Espèce" onclick="selectGroupPaymentMethod('Espèce')">💵 Espèce</button>
+                <button type="button" class="payment-method-btn" id="gpm-Wave" onclick="selectGroupPaymentMethod('Wave')">📲 Wave</button>
+                <button type="button" class="payment-method-btn" id="gpm-OM" onclick="selectGroupPaymentMethod('OM')">📱 OM</button>
+                <button type="button" class="payment-method-btn" id="gpm-Chèque" onclick="selectGroupPaymentMethod('Chèque')">🏦 Chèque</button>
+                <button type="button" class="payment-method-btn" id="gpm-CB" onclick="selectGroupPaymentMethod('CB')">💳 CB</button>
+                <div></div>
+            </div>
+            <input type="hidden" id="group-moyen" value="Espèce">
+            <p class="info-text">Cette action va solder tous les colis sélectionnés.</p>
+            <button type="button" class="step-btn step-btn-green" onclick="validerPaiementGroupe()">✅ Valider le paiement total</button>
         </div>
     </div>
+
+    <!-- MODAL WHATSAPP GROUPÉ -->
     <div id="modal-whatsapp-groupe" class="modal-backdrop">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width:600px;">
             <span class="modal-close" onclick="fermerModalWhatsAppGroupe()">&times;</span>
-            <h3><i class="fab fa-whatsapp" style="color:#25D366;"></i> Message Groupé WhatsApp</h3>
+            <h3><i class="fab fa-whatsapp" style="color:#25D366;"></i> Message groupé WhatsApp</h3>
             <div class="form-group">
                 <label>Message (Variables : {nom}, {ref}, {colis}, {reste}, {bl})</label>
-                <textarea id="wa-message-template" rows="4" oninput="genererListeWhatsApp()" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family: sans-serif;">Bonjour {nom}, votre colis {ref} ({colis}) est arrivé à l'agence AMT Abidjan. {bl}Reste à payer: {reste} CFA. Merci de passer le récupérer.</textarea>
+                <textarea id="wa-message-template" rows="4" oninput="genererListeWhatsApp()"
+                    style="width:100%;padding:10px;border:1.5px solid #ccc;border-radius:8px;font-size:14px;font-family:sans-serif;">Bonjour {nom}, votre colis {ref} ({colis}) est arrivé à l'agence AMT Abidjan. {bl}Reste à payer: {reste} CFA. Merci de passer le récupérer.</textarea>
             </div>
-            <div id="wa-clients-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; background: #f9f9f9;">
-                <!-- Liste générée par JS -->
-            </div>
-            <p class="info-text">Cliquez sur "Envoyer" pour ouvrir la conversation WhatsApp avec le message pré-rempli.</p>
+            <div id="wa-clients-list" style="max-height:300px;overflow-y:auto;border:1px solid #eee;padding:10px;margin-bottom:10px;background:#f9f9f9;border-radius:8px;"></div>
+            <p class="info-text">Cliquez sur "Envoyer" pour ouvrir WhatsApp avec le message pré-rempli.</p>
         </div>
     </div>
 
