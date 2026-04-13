@@ -29,40 +29,49 @@ async function genererEtiquette() {
     // Création du document PDF en mode paysage ('l'), unité mm, taille personnalisée
     const doc = new jsPDF('l', 'mm', [100, 60]); 
     const logo = await chargerLogo();
-    // Dessin du cadre orange
-    doc.setDrawColor(255, 165, 0); doc.setLineWidth(1.5); doc.rect(2, 2, 96, 56); doc.setLineWidth(0.5); doc.rect(4, 4, 92, 52);
-    // Ajout du logo si chargé
-    if (logo) doc.addImage(logo, 'PNG', 6, 6, 12, 12);
-    // En-tête de l'étiquette
-    doc.setTextColor(255, 140, 0); doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.text("amt TRANSIT CARGO", 22, 10);
-    doc.setTextColor(0); doc.setFontSize(8); doc.text("+225 89 84 46 57", 22, 15); doc.setFontSize(24); doc.text("N", 88, 12);
-    // Lignes de séparation et détails
-    doc.setDrawColor(0); doc.setLineWidth(0.1);
-    let y = 22; const x = 6; const lineW = 88;
-    // Section Expéditeur
-    doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.text("EXPEDITEUR", x, y); y += 3;
-    doc.setFont("helvetica", "normal"); doc.text(`NOM ET PRENOM: ${currentEnvoi.expediteur || 'AMT TRANSIT CARGO'}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
-    doc.text(`NUMERO: ${currentEnvoi.telExpediteur || '+225 0703165050'}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 6;
-    // Section Destinataire
-    doc.setFont("helvetica", "bold"); doc.text("DESTINATAIRE", x, y); y += 3;
-    doc.setFont("helvetica", "normal"); doc.text(`NOM ET PRENOM: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
-    doc.text(`NUMERO: ${currentEnvoi.tel}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
-    // Infos Colis
-    let isAirLabel = (currentEnvoi.type || "").startsWith('aerien');
-    let pv = isAirLabel ? `${currentEnvoi.poidsEnvoye || 0} Kg` : `${currentEnvoi.volumeEnvoye || 0} CBM`;
-    doc.text(`${isAirLabel ? 'POIDS' : 'VOLUME'}: ${pv}  |  COLIS: ${currentEnvoi.quantiteEnvoyee}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
-    if(currentEnvoi.type === 'maritime' && currentEnvoi.numBL) {
-        doc.text(`BL / CONTENEUR: ${currentEnvoi.numBL}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
-    }
-    // Pied de page
-    doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("+8619515284352      +2250703165050", 50, 56, { align: 'center' });
     
+    const qte = parseInt(currentEnvoi.quantiteEnvoyee) || 1;
+    
+    let qrBase64 = null;
     try {
-        const qrBase64 = await genererQRCodeBase64(currentEnvoi.reference);
-        if (qrBase64) doc.addImage(qrBase64, 'PNG', 76, 34, 20, 20);
+        qrBase64 = await genererQRCodeBase64(currentEnvoi.reference);
     } catch(e) { console.error("Erreur QR Code:", e); }
+
+    for (let i = 1; i <= qte; i++) {
+        if (i > 1) doc.addPage([100, 60], 'l');
+        
+        // Dessin du cadre orange
+        doc.setDrawColor(255, 165, 0); doc.setLineWidth(1.5); doc.rect(2, 2, 96, 56); doc.setLineWidth(0.5); doc.rect(4, 4, 92, 52);
+        // Ajout du logo si chargé
+        if (logo) doc.addImage(logo, 'PNG', 6, 6, 12, 12);
+        // En-tête de l'étiquette
+        doc.setTextColor(255, 140, 0); doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.text("amt TRANSIT CARGO", 22, 10);
+        doc.setTextColor(0); doc.setFontSize(8); doc.text("+225 89 84 46 57", 22, 15); doc.setFontSize(24); doc.text("N", 88, 12);
+        // Lignes de séparation et détails
+        doc.setDrawColor(0); doc.setLineWidth(0.1);
+        let y = 22; const x = 6; const lineW = 88;
+        // Section Expéditeur
+        doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.text("EXPEDITEUR", x, y); y += 3;
+        doc.setFont("helvetica", "normal"); doc.text(`NOM ET PRENOM: ${currentEnvoi.expediteur || 'AMT TRANSIT CARGO'}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+        doc.text(`NUMERO: ${currentEnvoi.telExpediteur || '+225 0703165050'}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 6;
+        // Section Destinataire
+        doc.setFont("helvetica", "bold"); doc.text("DESTINATAIRE", x, y); y += 3;
+        doc.setFont("helvetica", "normal"); doc.text(`NOM ET PRENOM: ${currentEnvoi.prenom} ${currentEnvoi.nom}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+        doc.text(`NUMERO: ${currentEnvoi.tel}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+        // Infos Colis
+        let isAirLabel = (currentEnvoi.type || "").startsWith('aerien');
+        let pv = isAirLabel ? `${currentEnvoi.poidsEnvoye || 0} Kg` : `${currentEnvoi.volumeEnvoye || 0} CBM`;
+        doc.text(`${isAirLabel ? 'POIDS' : 'VOLUME'}: ${pv}  |  COLIS: ${i}/${qte}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+        if(currentEnvoi.type === 'maritime' && currentEnvoi.numBL) {
+            doc.text(`BL / CONTENEUR: ${currentEnvoi.numBL}`, x, y); doc.line(x, y + 1, x + lineW, y + 1); y += 5;
+        }
+        // Pied de page
+        doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("+8619515284352      +2250703165050", 50, 56, { align: 'center' });
+        
+        if (qrBase64) doc.addImage(qrBase64, 'PNG', 76, 34, 20, 20);
+    }
     
-    doc.save(`Etiquette_${currentEnvoi.nom}.pdf`);
+    doc.save(`Etiquettes_${currentEnvoi.reference}.pdf`);
 }
 
 // Génère la facture PDF principale (A4)

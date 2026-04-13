@@ -91,7 +91,7 @@ function updateReceptionView(searchQuery) {
 
         if (curGrp !== null && d.refGroupe !== curGrp) {
             const u = currentReceptionType.startsWith('aerien') ? 'Kg' : 'CBM';
-            html += `<tr class="subtotal-row"><td colspan="7">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;">${formatArgent(gP)} CFA</td><td></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="7" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(gP)} CFA</td><td data-label=""></td></tr>`;
             gQ = 0; gV = 0; gP = 0;
         }
         curGrp = d.refGroupe;
@@ -109,22 +109,22 @@ function updateReceptionView(searchQuery) {
         let resteColor = res > 0 ? '#c0392b' : '#27ae60';
 
         html += `<tr class="interactive-table-row" onclick='selectionnerClientViaData("${safe}")'>
-            <td>${checkbox}</td>
-            <td style="font-size:12px;">${d.reference}${recuIcon}</td>
-            <td style="font-size:12px;">${d.numBL || '-'}</td>
-            <td style="font-size:12px;white-space:nowrap;">${new Date(d.date).toLocaleDateString('fr-FR', {day:'2-digit',month:'short'})}</td>
-            <td><strong>${d.nom}</strong> ${d.prenom}</td>
-            <td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.description}</td>
-            <td style="font-size:11px;">${d.type}</td>
-            <td style="text-align:center;">${d.quantiteEnvoyee}</td>
-            <td style="text-align:center;">${pv}</td>
-            <td style="font-weight:700;color:${resteColor};text-align:right;white-space:nowrap;">${formatArgent(res)} CFA</td>
-            <td><span class="status-badge ${cl}" style="font-size:10px;">${(d.status || 'Attente').replace('Reçu - ', '')}</span></td>
+            <td data-label="Sélection">${checkbox}</td>
+            <td data-label="Réf." style="font-size:12px;">${d.reference}${recuIcon}</td>
+            <td data-label="Conteneur" style="font-size:12px;">${d.numBL || '-'}</td>
+            <td data-label="Date" style="font-size:12px;white-space:nowrap;">${new Date(d.date).toLocaleDateString('fr-FR', {day:'2-digit',month:'short'})}</td>
+            <td data-label="Client"><strong>${d.nom}</strong> ${d.prenom}</td>
+            <td data-label="Description" style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.description}</td>
+            <td data-label="Type" style="font-size:11px;">${d.type}</td>
+            <td data-label="Qté" style="text-align:center;">${d.quantiteEnvoyee}</td>
+            <td data-label="Kg/CBM" style="text-align:center;">${pv}</td>
+            <td data-label="Reste" style="font-weight:700;color:${resteColor};text-align:right;white-space:nowrap;">${formatArgent(res)} CFA</td>
+            <td data-label="Statut"><span class="status-badge ${cl}" style="font-size:10px;">${(d.status || 'Attente').replace('Reçu - ', '')}</span></td>
         </tr>`;
 
         if (idx === filtered.length - 1) {
             const u = isAir ? 'Kg' : 'CBM';
-            html += `<tr class="subtotal-row"><td colspan="7">TOTAL ${curGrp}</td><td>${gQ}</td><td>${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;">${formatArgent(gP)} CFA</td><td></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="7" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(gP)} CFA</td><td data-label=""></td></tr>`;
         }
     });
 

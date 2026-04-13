@@ -32,7 +32,7 @@ async function chargerCompta(type) {
         items.forEach((it, idx) => {
             if (curGrp !== null && it.grp !== curGrp && !curGrp.startsWith('ZZZ')) {
                 let benef = grpEntree - grpSortie; let colorBenef = benef >= 0 ? '#76ff03' : '#ff5252';
-            html += `<tr class="group-summary-row"><td colspan="5">TOTAL ${curGrp}</td><td style="white-space:nowrap;">${formatArgent(grpDu)}</td><td style="white-space:nowrap;">${formatArgent(grpReste)}</td><td style="white-space:nowrap;">${formatArgent(grpEntree)}</td><td style="white-space:nowrap;">${formatArgent(grpSortie)}</td><td style="color:${colorBenef}; font-weight:bold; white-space:nowrap;">${formatArgent(benef)}</td> </tr>`;
+            html += `<tr class="group-summary-row"><td colspan="5" data-label="Total">TOTAL ${curGrp}</td><td style="white-space:nowrap;" data-label="Dû">${formatArgent(grpDu)}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(grpReste)}</td><td style="white-space:nowrap;" data-label="Entrée">${formatArgent(grpEntree)}</td><td style="white-space:nowrap;" data-label="Sortie">${formatArgent(grpSortie)}</td><td style="color:${colorBenef}; font-weight:bold; white-space:nowrap;" data-label="Bénéfice">${formatArgent(benef)}</td> </tr>`;
                 grpDu = 0; grpReste = 0; grpEntree = 0; grpSortie = 0;
             }
             curGrp = it.grp;
@@ -41,7 +41,7 @@ async function chargerCompta(type) {
                 let m = parseFloat(it.montant) || 0; caisse -= m; grpSortie += m; let v = it.moyenPaiement || 'Espèce';
                 if (v.includes('Chèque')) outM.Chq += m; else if (v.includes('OM')) outM.OM += m; else if (v.includes('Wave')) outM.Wav += m; else if (v.includes('CB')) outM.CB += m; else outM.Esp += m;
                 const btnSuppr = (currentRole === 'spectateur') ? '' : `<button class="btn-suppr-small" onclick="supprimerDepense('${it.id}')">X</button>`;
-            html += `<tr class="${rowClass}"><td>${dS}</td><td>-</td><td>-</td><td>${it.motif}</td><td>Dépense</td><td>-</td><td>-</td><td>-</td><td class="text-red" style="white-space:nowrap;">${formatArgent(m)}</td><td>${btnSuppr}</td></tr>`;
+            html += `<tr class="${rowClass}"><td data-label="Date">${dS}</td><td data-label="Réf.">-</td><td data-label="Conteneur">-</td><td data-label="Description">${it.motif}</td><td data-label="Client">Dépense</td><td data-label="Dû">-</td><td data-label="Reste">-</td><td data-label="Entrée">-</td><td class="text-red" style="white-space:nowrap;" data-label="Sortie">${formatArgent(m)}</td><td data-label="Action">${btnSuppr}</td></tr>`;
             } else {
                 GT_Q += parseInt(it.quantiteEnvoyee)||0; GT_V += parseFloat(type.startsWith('aerien')?it.poidsEnvoye:it.volumeEnvoye)||0;
                 let pB = parseInt((it.prixEstime || "0").replace(/\D/g, '')) || 0; let du = pB + (it.fraisSupplementaires||0) - (it.remise || 0); let paye = 0;
@@ -49,10 +49,10 @@ async function chargerCompta(type) {
                 let r = du - paye; caisse += paye; if (r > 0) cred += r; let diff = paye - du; if (diff > 0) bonus += diff; else if (diff < 0 && Math.abs(diff) < 500) bonus += diff;
                 grpDu += du; grpReste += (r > 0 ? r : 0); grpEntree += paye;
                 let recuIcon = (it.quantiteRecue > 0 || it.estArrive) ? '<i class="fas fa-check-circle" style="color:#27ae60; margin-left:5px;" title="Reçu / Arrivé"></i>' : '';
-            html += `<tr class="${rowClass} interactive-table-row" onclick='voirHistoriquePaiementViaData("${encodeURIComponent(JSON.stringify({ id: it.id, nom: it.nom, reference: it.reference, history: it.hist }))}")'><td>${dS}</td><td>${it.reference}${recuIcon}</td><td>${it.numBL || '-'}</td><td>${it.description}</td><td>${it.nom} ${it.prenom}</td><td style="white-space:nowrap;">${formatArgent(du)}</td><td style="color:${r > 0 ? 'red' : 'green'}; white-space:nowrap;">${formatArgent(r)}</td><td class="text-green" style="white-space:nowrap;">${formatArgent(paye)}</td><td>-</td><td><i class="fas fa-eye"></i></td></tr>`;
+            html += `<tr class="${rowClass} interactive-table-row" onclick='voirHistoriquePaiementViaData("${encodeURIComponent(JSON.stringify({ id: it.id, nom: it.nom, reference: it.reference, history: it.hist }))}")'><td data-label="Date">${dS}</td><td data-label="Réf.">${it.reference}${recuIcon}</td><td data-label="Conteneur">${it.numBL || '-'}</td><td data-label="Description">${it.description}</td><td data-label="Client">${it.nom} ${it.prenom}</td><td style="white-space:nowrap;" data-label="Dû">${formatArgent(du)}</td><td style="color:${r > 0 ? 'red' : 'green'}; white-space:nowrap;" data-label="Reste">${formatArgent(r)}</td><td class="text-green" style="white-space:nowrap;" data-label="Entrée">${formatArgent(paye)}</td><td data-label="Sortie">-</td><td data-label="Action"><i class="fas fa-eye"></i></td></tr>`;
             }
         });
-    if (curGrp && !curGrp.startsWith('ZZZ')) { let benef = grpEntree - grpSortie; let colorBenef = benef >= 0 ? '#76ff03' : '#ff5252'; html += `<tr class="group-summary-row"><td colspan="5">TOTAL ${curGrp}</td><td style="white-space:nowrap;">${formatArgent(grpDu)}</td><td style="white-space:nowrap;">${formatArgent(grpReste)}</td><td style="white-space:nowrap;">${formatArgent(grpEntree)}</td><td style="white-space:nowrap;">${formatArgent(grpSortie)}</td><td style="color:${colorBenef}; font-weight:bold; white-space:nowrap;">${formatArgent(benef)}</td> </tr>`; }
+    if (curGrp && !curGrp.startsWith('ZZZ')) { let benef = grpEntree - grpSortie; let colorBenef = benef >= 0 ? '#76ff03' : '#ff5252'; html += `<tr class="group-summary-row"><td colspan="5" data-label="Total">TOTAL ${curGrp}</td><td style="white-space:nowrap;" data-label="Dû">${formatArgent(grpDu)}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(grpReste)}</td><td style="white-space:nowrap;" data-label="Entrée">${formatArgent(grpEntree)}</td><td style="white-space:nowrap;" data-label="Sortie">${formatArgent(grpSortie)}</td><td style="color:${colorBenef}; font-weight:bold; white-space:nowrap;" data-label="Bénéfice">${formatArgent(benef)}</td> </tr>`; }
         tbody.innerHTML = html;
         let u = type==='aerien'?'Kg':'CBM'; const footerRow = document.createElement('tr'); footerRow.style.cssText = "background-color:#000; color:cyan; font-weight:bold; font-size:1.1em; text-align:center;"; footerRow.innerHTML = `<td colspan="10">GRAND TOTAL (Tous Groupes) : ${GT_Q} Colis  |  ${GT_V.toFixed(2)} ${u}</td>`; tbody.appendChild(footerRow);
         document.getElementById('total-credit').innerText = formatArgent(cred) + ' CFA'; const elC = document.getElementById('total-caisse'); elC.innerText = formatArgent(caisse) + ' CFA'; elC.className = caisse >= 0 ? 'text-green' : 'text-red'; document.getElementById('total-bonus').innerText = formatArgent(bonus) + ' CFA';
@@ -75,11 +75,11 @@ function voirHistoriquePaiement(item) {
         item.history.forEach((h, index) => {
             let d = new Date(h.date.seconds * 1000).toLocaleDateString('fr-FR');
             if (h.deleted) {
-                html += `<tr style="background:#f9f9f9; color:#aaa; text-decoration:line-through;"><td>${d}</td><td style="white-space:nowrap;">${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td><td>${h.agent || '-'}</td><td>Annulé</td></tr>`;
+                html += `<tr style="background:#f9f9f9; color:#aaa; text-decoration:line-through;"><td data-label="Date">${d}</td><td style="white-space:nowrap;" data-label="Montant">${formatArgent(parseInt(h.montant))} CFA</td><td data-label="Moyen">${h.moyen}</td><td data-label="Agent">${h.agent || '-'}</td><td data-label="Action">Annulé</td></tr>`;
             } else {
                 let btnSuppr = '';
                 if (currentRole !== 'spectateur') { btnSuppr = `<button class="btn-suppr-small" onclick="supprimerPaiement(${index})" style="background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer;">X</button>`; }
-                html += `<tr><td>${d}</td><td class="text-green" style="white-space:nowrap;">${formatArgent(parseInt(h.montant))} CFA</td><td>${h.moyen}</td><td>${h.agent || '-'}</td><td>${btnSuppr}</td></tr>`;
+                html += `<tr><td data-label="Date">${d}</td><td class="text-green" style="white-space:nowrap;" data-label="Montant">${formatArgent(parseInt(h.montant))} CFA</td><td data-label="Moyen">${h.moyen}</td><td data-label="Agent">${h.agent || '-'}</td><td data-label="Action">${btnSuppr}</td></tr>`;
             }
         });
     } else { html = '<tr><td colspan="5" style="text-align:center">Aucun historique de paiement.</td></tr>'; }

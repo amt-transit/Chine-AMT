@@ -469,3 +469,81 @@ tr.group-summary-row td { color: cyan !important; font-weight: bold; text-align:
     .kpi-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
     .payment-method-grid { grid-template-columns: repeat(6, 1fr); }
 }
+/* ======================================================= */
+/* TRANSFORMATION DES TABLEAUX EN CARTES (MOBILE ONLY)     */
+/* ======================================================= */
+@media (max-width: 767px) {
+.table-container table,
+.table-container thead,
+.table-container tbody,
+.table-container th,
+.table-container td,
+.table-container tr {
+    display: block;
+    width: 100%;
+}
+
+/* 1. On cache l'en-tête classique du tableau */
+.table-container thead {
+    display: none;
+}
+
+/* 2. On transforme chaque ligne de données en Carte */
+.table-container tbody tr:not(.subtotal-row):not(.group-summary-row) {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    padding: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* 3. Style de chaque cellule (une ligne à l'intérieur de la carte) */
+.table-container tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f3f6;
+    border-right: none;
+    text-align: right;
+    font-size: 14px;
+}
+
+/* Enlève la ligne sous la dernière info de la carte */
+.table-container tbody td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* 4. LE SECRET : Affichage du titre de la colonne à gauche */
+.table-container tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-align: left;
+    padding-right: 15px;
+}
+
+/* 5. Gérer l'affichage spécifique des lignes de Totaux */
+.table-container tr.subtotal-row,
+.table-container tr.group-summary-row {
+    border-radius: 8px;
+    margin-bottom: 15px;
+    padding: 10px;
+}
+.table-container tr.subtotal-row td,
+.table-container tr.group-summary-row td {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    text-align: right;
+}
+.table-container tr.subtotal-row td::before,
+.table-container tr.group-summary-row td::before {
+    color: rgba(255,255,255,0.7); /* Labels en blanc transparent pour les totaux */
+}
+}
