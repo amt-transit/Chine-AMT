@@ -6,6 +6,22 @@
 // Fonction utilitaire pour charger le logo en tant qu'objet Image pour jsPDF
 function chargerLogo() { return new Promise(r => { const i = new Image(); i.src = '/logo_amt.png'; i.onload = () => r(i); i.onerror = () => r(null); }); }
 
+// Fonction utilitaire pour générer le QR Code en Base64
+function genererQRCodeBase64(text) {
+    return new Promise((resolve) => {
+        const tempDiv = document.createElement("div");
+        new QRCode(tempDiv, { text: text, width: 128, height: 128, correctLevel : QRCode.CorrectLevel.M });
+        setTimeout(() => {
+            const canvas = tempDiv.querySelector("canvas");
+            if (canvas) resolve(canvas.toDataURL("image/png"));
+            else {
+                const img = tempDiv.querySelector("img");
+                resolve(img ? img.src : null);
+            }
+        }, 50);
+    });
+}
+
 // Génère une étiquette PDF au format 100x60mm pour l'impression thermique
 async function genererEtiquette() {
     if (!currentEnvoi) return;
@@ -40,6 +56,12 @@ async function genererEtiquette() {
     }
     // Pied de page
     doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("+8619515284352      +2250703165050", 50, 56, { align: 'center' });
+    
+    try {
+        const qrBase64 = await genererQRCodeBase64(currentEnvoi.reference);
+        if (qrBase64) doc.addImage(qrBase64, 'PNG', 76, 34, 20, 20);
+    } catch(e) { console.error("Erreur QR Code:", e); }
+    
     doc.save(`Etiquette_${currentEnvoi.nom}.pdf`);
 }
 

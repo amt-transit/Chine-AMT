@@ -41,6 +41,14 @@ async function chargerClients() {
         });
         renderGroupFilter(allReceptionData, 'filter-container-rec', () => updateReceptionView(sIn ? sIn.value : ''));
         updateReceptionView(sIn ? sIn.value : '');
+        
+        // Ouverture automatique du client via le Scanner
+        const autoId = localStorage.getItem('autoOpenColisId');
+        if (autoId) {
+            const colis = allReceptionData.find(c => c.id === autoId);
+            if (colis) { selectionnerClient(colis); }
+            localStorage.removeItem('autoOpenColisId');
+        }
     } catch (e) { console.error(e); tb.innerHTML = '<tr><td colspan="11" style="text-align:center;color:red;">Erreur de chargement.</td></tr>'; }
 }
 

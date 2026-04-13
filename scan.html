@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMT - Scanner QR</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/logo_amt.png">
+    <style>
+        #reader { width: 100%; max-width: 500px; margin: 0 auto; border-radius: 12px; overflow: hidden; border: 2px solid #1C3A5E; }
+        #reader__scan_region { background: #f0f2f5; }
+        #reader button { background: #15609e; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container"><img src="logo_amt.png" alt="Logo AMT Transit" class="logo"></div>
+        <div class="header-info">
+            <span>Agence : <span id="agence-nom">Abidjan</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545;color:white;">Déconnexion</button>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
+        <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
+        <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
+        <a href="scan.html" class="nav-link active" id="nav-scan">📷 Scanner</a>
+    </nav>
+
+    <main>
+        <section class="page-content" style="display:block;">
+            <h2>📷 Scanner un Colis</h2>
+            
+            <div class="sub-nav-container">
+                <button class="sub-nav-link active" id="tab-chargement" onclick="setScanMode('chargement')">
+                    <i class="fas fa-truck-loading"></i> Chargement
+                </button>
+                <button class="sub-nav-link" id="tab-dechargement" onclick="setScanMode('dechargement')">
+                    <i class="fas fa-box-open"></i> Déchargement
+                </button>
+                <button class="sub-nav-link" id="tab-livraison" onclick="setScanMode('livraison')">
+                    <i class="fas fa-motorcycle"></i> Livraison
+                </button>
+                <button class="sub-nav-link" id="tab-livre" onclick="setScanMode('livre')">
+                    <i class="fas fa-check-circle"></i> Livré
+                </button>
+            </div>
+
+            <div class="card" style="text-align:center;">
+                <div id="reader"></div>
+                <p id="scan-status" style="margin-top:10px; font-weight:bold; color:#1C3A5E;"></p>
+                
+                <hr>
+                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+                    <input type="text" id="manual-ref" placeholder="Ou saisir Réf. manuellement" style="padding:10px; border-radius:8px; border:1px solid #ccc; max-width:250px; width:100%;">
+                    <button class="btn-principal" style="width:auto; margin-top:0;" onclick="rechercheManuelle()">Chercher</button>
+                </div>
+            </div>
+
+            <!-- Résultat du Scan -->
+            <div class="card" id="scan-result" style="display:none; border:2px solid #27ae60;">
+                <h3 style="color:#27ae60; margin-bottom:10px; text-align:center;">✅ Colis Trouvé !</h3>
+                <div style="background:#f8f9fa; border-radius:10px; padding:15px; font-size:15px; line-height:1.8;">
+                    <div>👤 Client : <strong id="res-client" style="font-size:1.1em;"></strong></div>
+                    <div>🏷️ Réf : <strong id="res-ref"></strong></div>
+                    <div>📞 Tél : <span id="res-tel"></span></div>
+                    <div>📦 Colis : <span id="res-desc"></span></div>
+                    <div>⚖️ Poids/Vol : <span id="res-pv"></span></div>
+                    <div>📝 Statut : <span id="res-statut" class="status-badge status-attente"></span></div>
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd; font-size:18px; color:#c0392b; font-weight:bold;">
+                        Reste à payer : <span id="res-reste"></span>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
+                    <button id="btn-action-scan" onclick="executerActionScan()" style="flex:1; background:#f39c12; color:white; padding:12px; font-size:15px;"><i class="fas fa-truck-loading"></i> Marquer au Chargement</button>
+                    <button onclick="allerPayerScan()" style="flex:1; background:#27ae60; color:white; padding:12px; font-size:15px;"><i class="fas fa-money-bill-wave"></i> Payer / Livrer</button>
+                </div>
+            </div>
+
+            <!-- Historique de la session de scan -->
+            <div class="card" id="session-scans-card" style="display:none; margin-top:20px;">
+                <h3 style="margin-top:0;">📋 Historique de la session</h3>
+                <div class="table-container">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th>Heure</th>
+                                <th>Action</th>
+                                <th>Réf.</th>
+                                <th>Client</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-session-scans"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="scan.js"></script>
+</body>
+</html>
