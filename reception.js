@@ -529,12 +529,15 @@ function _buildWaMessage(item) {
     let net = pB + (item.fraisSupplementaires || 0) - (item.remise || 0);
     let reste = net - (parseInt(item.montantPaye) || 0);
     let blInfo = item.numBL ? `BL: ${item.numBL}. ` : '';
+    let baseUrl = window.location.origin + window.location.pathname.replace('reception.html', '');
+    let trackingLink = `${baseUrl}tracking.html?ref=${encodeURIComponent(item.reference || '')}`;
     return template
         .replace(/{nom}/g,   `${item.prenom || ''} ${item.nom || ''}`.trim())
         .replace(/{ref}/g,   item.reference || '')
         .replace(/{colis}/g, item.description || '')
         .replace(/{reste}/g, formatArgent(reste))
-        .replace(/{bl}/g,    blInfo);
+        .replace(/{bl}/g,    blInfo)
+        .replace(/{tracking}/g, trackingLink);
 }
 
 function envoyerWaRow(id) {

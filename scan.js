@@ -32,6 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Instanciation du scanner
     html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+    updateOfflineBanner();
+    window.addEventListener('online', updateOfflineBanner);
+    window.addEventListener('offline', updateOfflineBanner);
 });
 
 // Fonction pour jouer un bip sonore court
@@ -191,37 +195,48 @@ async function executerActionScan() {
     document.getElementById('scan-status').innerText = "Enregistrement en cours...";
 
     const conf = scanModes[currentScanMode];
-    let updates = { 
-        status: conf.status,
-        dateModification: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    
-    if(currentScanMode === 'dechargement' || currentScanMode === 'livre') {
-        updates.estArrive = true;
-    }
-    
-    if (currentScannedColisIndex !== null) {
-        updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
-        updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
-    }
+    let isOfflineSaved = false;
 
-    // 1. Mise à jour de Firestore IMMÉDIATE (sans attendre les photos)
-    await db.collection('expeditions').doc(currentScannedColis.id).update(updates);
+    if (!navigator.onLine) {
+        // Sauvegarde locale si pas d'internet
+        sauvegarderScanHorsLigne(currentScannedColis.id, currentScanMode, currentScannedColisIndex, conf.status);
+        isOfflineSaved = true;
+    } else {
+        // Tentative d'envoi classique
+        let updates = { 
+            status: conf.status,
+            dateModification: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        if(currentScanMode === 'dechargement' || currentScanMode === 'livre') {
+            updates.estArrive = true;
+        }
+        if (currentScannedColisIndex !== null) {
+            updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
+            updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
+        }
 
-    // 2. Lancement de l'upload des photos en arrière-plan
-    if (compressedPhotos.length > 0) {
-        uploaderPhotosEnArrierePlan(currentScannedColis.id, currentScannedColis.reference, currentScanMode, compressedPhotos);
-        compressedPhotos = []; // Réinitialiser pour le prochain scan
+        try {
+            await db.collection('expeditions').doc(currentScannedColis.id).update(updates);
+            if (compressedPhotos.length > 0) {
+                uploaderPhotosEnArrierePlan(currentScannedColis.id, currentScannedColis.reference, currentScanMode, compressedPhotos);
+                compressedPhotos = []; 
+            }
+        } catch(err) {
+            console.warn("Erreur réseau Firestore, basculement en mode hors-ligne...", err);
+            sauvegarderScanHorsLigne(currentScannedColis.id, currentScanMode, currentScannedColisIndex, conf.status);
+            isOfflineSaved = true;
+        }
     }
     
     // Ajouter à l'historique de session
     sessionScans.unshift({
         heure: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        action: conf.label, actionColor: conf.color,
+        action: conf.label + (isOfflineSaved ? ' (Hors-ligne)' : ''), actionColor: conf.color,
         ref: currentScannedColis.reference, client: `${currentScannedColis.nom} ${currentScannedColis.prenom}`
     });
     
-    showCustomAlert(`Le colis a été marqué : ${conf.status} !`, 'success');
+    showCustomAlert(isOfflineSaved ? `✅ Scan enregistré hors-ligne ! (À synchroniser)` : `Le colis a été marqué : ${conf.status} !`, 'success');
     document.getElementById('scan-result').style.display = 'none';
     document.getElementById('scan-status').innerText = "Prêt à scanner.";
     document.getElementById('manual-ref').value = '';
@@ -304,5 +319,75 @@ async function uploaderPhotosEnArrierePlan(docId, reference, scanMode, photosToU
         let imgUpdates = { [`photos_${scanMode}`]: firebase.firestore.FieldValue.arrayUnion(...urls) };
         if (scanMode === 'chargement') imgUpdates.photosChargement = firebase.firestore.FieldValue.arrayUnion(...urls);
         await db.collection('expeditions').doc(docId).update(imgUpdates);
+    }
+}
+
+// ==========================================
+// MODE HORS-LIGNE (OFFLINE SYNC)
+// ==========================================
+
+function updateOfflineBanner() {
+    const offlineScans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
+    const banner = document.getElementById('offline-banner');
+    const countSpan = document.getElementById('offline-count');
+    if (banner && countSpan) {
+        if (offlineScans.length > 0) {
+            banner.style.display = 'block';
+            countSpan.innerText = offlineScans.length;
+            if (navigator.onLine) {
+                banner.style.background = '#27ae60'; // Vert: Prêt à synchroniser
+                banner.innerHTML = `<i class="fas fa-wifi"></i> Synchroniser les scans en attente (<span id="offline-count">${offlineScans.length}</span>)`;
+            } else {
+                banner.style.background = '#f39c12'; // Orange: Hors-ligne
+                banner.innerHTML = `<i class="fas fa-plane-slash"></i> Mode Hors-Ligne : ${offlineScans.length} scan(s) en attente`;
+            }
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+}
+
+function sauvegarderScanHorsLigne(id, scanMode, scannedIndex, status) {
+    let offlineScans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
+    offlineScans.push({ id: id, scanMode: scanMode, scannedIndex: scannedIndex, status: status, timestamp: Date.now() });
+    localStorage.setItem('amt_offline_scans', JSON.stringify(offlineScans));
+    updateOfflineBanner();
+}
+
+async function synchroniserScansHorsLigne() {
+    if (!navigator.onLine) {
+        showCustomAlert("Vous êtes toujours hors-ligne. Connectez-vous à Internet pour synchroniser.", 'warning');
+        return;
+    }
+    
+    let offlineScans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
+    if (offlineScans.length === 0) return;
+
+    const banner = document.getElementById('offline-banner');
+    banner.innerHTML = '⏳ Synchronisation en cours...';
+    banner.style.pointerEvents = 'none';
+
+    try {
+        const batch = db.batch();
+        offlineScans.forEach(scan => {
+            const docRef = db.collection('expeditions').doc(scan.id);
+            let updates = { status: scan.status, dateModification: firebase.firestore.FieldValue.serverTimestamp() };
+            if (scan.scanMode === 'dechargement' || scan.scanMode === 'livre') updates.estArrive = true;
+            if (scan.scannedIndex !== null) {
+                updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(scan.scannedIndex);
+                updates[`colisScannes_${scan.scanMode}`] = firebase.firestore.FieldValue.arrayUnion(scan.scannedIndex);
+            }
+            batch.update(docRef, updates);
+        });
+
+        await batch.commit();
+        localStorage.removeItem('amt_offline_scans');
+        showCustomAlert(`✅ ${offlineScans.length} scan(s) synchronisé(s) avec succès !`, 'success');
+    } catch (e) {
+        console.error("Erreur Sync:", e);
+        showCustomAlert("Erreur lors de la synchronisation : " + e.message, 'error');
+    } finally {
+        banner.style.pointerEvents = 'auto';
+        updateOfflineBanner();
     }
 }

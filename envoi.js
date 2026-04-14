@@ -351,18 +351,24 @@ function ajouterClientEtContinuer() {
 function renderClientsList() {
     const container = document.getElementById('clients-list-display');
     if (!container) return;
+
+    const typeEnvoi = document.getElementById('type-envoi') ? document.getElementById('type-envoi').value : '';
+    const isAirGlobal = typeEnvoi.startsWith('aerien');
+    let totalVolumePoids = 0;
+
     if (envoiEnCours.length === 0) {
         container.innerHTML = '<p style="text-align:center;color:#aaa;padding:20px;">Aucun client ajouté pour l\'instant.</p>';
+        majJaugeEnvoi(0, isAirGlobal);
         return;
     }
 
-    const typeEnvoi = document.getElementById('type-envoi') ? document.getElementById('type-envoi').value : '';
     let total = 0;
     let html = '';
 
     envoiEnCours.forEach((c, i) => {
         const isAir = (c.type || typeEnvoi || '').startsWith('aerien');
         const pv = isAir ? c.poidsEnvoye : c.volumeEnvoye;
+        totalVolumePoids += parseFloat(pv) || 0;
         const unit = isAir ? 'Kg' : 'CBM';
         const prixNum = parseInt((c.prixEstime || '0').replace(/\D/g, '')) || 0;
         total += prixNum;
@@ -389,6 +395,28 @@ function renderClientsList() {
     </div>`;
 
     container.innerHTML = html;
+    majJaugeEnvoi(totalVolumePoids, isAirGlobal);
+}
+
+function majJaugeEnvoi(total, isAir) {
+    const bar = document.getElementById('bar-jauge-envoi');
+    const textJauge = document.getElementById('text-jauge-envoi');
+    if (!bar || !textJauge) return;
+
+    const maxCap = isAir ? 5000 : 68; // 68 CBM par défaut, ou 5000 Kg pour l'aérien
+    const unit = isAir ? 'Kg' : 'CBM';
+
+    let pct = maxCap > 0 ? (total / maxCap) * 100 : 0;
+    textJauge.innerText = `${total.toFixed(2)} / ${maxCap} ${unit} (${pct.toFixed(1)}%)`;
+    bar.style.width = Math.min(pct, 100) + '%';
+    
+    if (maxCap > 0 && total > maxCap) {
+        bar.style.background = '#c0392b';
+        textJauge.style.color = '#c0392b';
+    } else {
+        bar.style.background = '#27ae60';
+        textJauge.style.color = '#1C3A5E';
+    }
 }
 
 function removeClientFromList(i) {

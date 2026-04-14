@@ -37,6 +37,11 @@
     </nav>
 
     <main>
+        <!-- Bannière Hors-Ligne -->
+        <div id="offline-banner" style="display:none; background:#f39c12; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="synchroniserScansHorsLigne()">
+            <i class="fas fa-sync-alt"></i> Synchroniser les scans en attente (<span id="offline-count">0</span>)
+        </div>
+
         <section class="page-content" style="display:block;">
             <h2>📷 Scanner un Colis</h2>
             

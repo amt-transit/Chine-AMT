@@ -382,6 +382,7 @@ function updateBLGroupSelect() {
         if(currentSelection.includes(g)) opt.selected = true;
         select.appendChild(opt);
     });
+    calculerRemplissageConteneur();
 }
 
 async function associerBLAuxGroupes() {
@@ -414,4 +415,38 @@ async function associerBLAuxGroupes() {
         }
         showCustomAlert(`Succès ! ${totalUpdated} colis mis à jour avec le BL ${bl}.`, "success"); chargerHistoriqueChine(); document.getElementById('input-bl-conteneur').value = ''; Array.from(select.options).forEach(opt => opt.selected = false);
     } catch(e) { console.error(e); showCustomAlert("Erreur : " + e.message, "error"); } finally { if(btn) { btn.disabled = false; btn.innerText = "💾 Enregistrer BL"; } }
+}
+
+function calculerRemplissageConteneur() {
+    const select = document.getElementById('select-bl-groupes');
+    const bar = document.getElementById('bar-jauge-remplissage');
+    const textJauge = document.getElementById('text-jauge-remplissage');
+    
+    if(!select || !bar || !textJauge) return;
+    
+    const maxCap = currentHistoriqueType === 'aerien' ? 5000 : 68; // 68 CBM par défaut en maritime
+    const selectedGroups = Array.from(select.selectedOptions).map(opt => opt.value);
+    
+    let total = 0;
+    allHistoriqueData.forEach(d => {
+        if (selectedGroups.includes(d.refGroupe)) {
+            let isAir = (d.type || "").startsWith('aerien');
+            let pv = isAir ? parseFloat(d.poidsEnvoye) : parseFloat(d.volumeEnvoye);
+            total += (pv || 0);
+        }
+    });
+    
+    let unit = currentHistoriqueType === 'aerien' ? 'Kg' : 'CBM';
+    
+    let pct = maxCap > 0 ? (total / maxCap) * 100 : 0;
+    textJauge.innerText = `${total.toFixed(2)} / ${maxCap} ${unit} (${pct.toFixed(1)}%)`;
+    bar.style.width = Math.min(pct, 100) + '%';
+    
+    if (maxCap > 0 && total > maxCap) {
+        bar.style.background = '#c0392b'; // Rouge (Dépassement)
+        textJauge.style.color = '#c0392b';
+    } else {
+        bar.style.background = '#27ae60'; // Vert (Conforme)
+        textJauge.style.color = '#15609e';
+    }
 }

@@ -228,6 +228,18 @@
                 <div class="big-label" style="font-size:18px; margin-bottom:14px;">
                     <span class="lbl-icon">📋</span> Liste des envois
                 </div>
+                
+                <!-- Jauge de progression du lot en cours -->
+                <div style="margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:8px; border:1px solid #e9ecef;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; margin-bottom:6px; color:#1C3A5E;">
+                        <span>Remplissage du lot (estimé) :</span>
+                        <span id="text-jauge-envoi">0 / 68 CBM (0%)</span>
+                    </div>
+                    <div style="width:100%; background:#e0e0e0; border-radius:6px; height:12px; overflow:hidden;">
+                        <div id="bar-jauge-envoi" style="width:0%; height:100%; background:#27ae60; transition:width 0.3s, background 0.3s;"></div>
+                    </div>
+                </div>
+
                 <div id="clients-list-display">
                     <p style="text-align:center; color:#aaa; padding:20px;">Aucun client ajouté pour l'instant.</p>
                 </div>
