@@ -52,6 +52,15 @@
         </div>
     </main>
 
+    <!-- Modal Détails complets du colis -->
+    <div id="modal-details-listing" class="modal-backdrop" onclick="fermerModalDetails(event)">
+        <div class="modal-content" style="max-width:550px; text-align:left;">
+            <span class="modal-close" onclick="fermerModalDetails(event)">&times;</span>
+            <h3 style="margin-bottom:15px; color:#15609e;"><i class="fas fa-box"></i> Détails de l'expédition</h3>
+            <div id="details-listing-content"></div>
+        </div>
+    </div>
+
     <!-- Modal pour voir les photos en grand -->
     <div id="modal-photo" class="modal-backdrop" onclick="fermerModalPhoto(event)">
         <div class="modal-content" style="text-align:center; padding:10px; background: transparent; box-shadow: none;">

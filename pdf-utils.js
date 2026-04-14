@@ -58,7 +58,7 @@ async function genererEtiquette() {
         // Génération et Affichage du QR Code en grand à droite
         let qrBase64 = null;
         try {
-            qrBase64 = await genererQRCodeBase64(`${currentEnvoi.reference}-${i}`);
+            qrBase64 = await genererQRCodeBase64(`${currentEnvoi.reference}_${i}`);
         } catch(e) { console.error("Erreur QR Code:", e); }
         if (qrBase64) doc.addImage(qrBase64, 'PNG', 68, 19, 26, 26);
         
@@ -75,7 +75,7 @@ async function genererEtiquette() {
         // Référence très visible (Bas Gauche)
         doc.setTextColor(0);
         doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("RÉFÉRENCE COLIS :", x, y); y += 5;
-        doc.setFontSize(15); doc.setFont("helvetica", "bold"); doc.text(`${currentEnvoi.reference}-${i}`, x, y);
+        doc.setFontSize(15); doc.setFont("helvetica", "bold"); doc.text(`${currentEnvoi.reference}_${i}`, x, y);
         
         // Ligne de séparation Footer
         doc.setDrawColor(200); doc.line(6, 51, 94, 51);

@@ -3,6 +3,7 @@ let currentScannedColis = null;
 let currentScanMode = 'chargement';
 let currentScannedColisIndex = null;
 let sessionScans = []; // Stocke les scans de la session active
+let compressedPhotos = []; // Stocke les photos redimensionnées avant upload
 
 const scanModes = {
     'chargement': { label: 'Chargement', status: 'Au chargement', color: '#f39c12', icon: 'fas fa-truck-loading' },
@@ -33,11 +34,29 @@ document.addEventListener('DOMContentLoaded', () => {
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 });
 
+// Fonction pour jouer un bip sonore court
+function jouerSonScan() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // Note La (A5)
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.1);
+        osc.stop(ctx.currentTime + 0.1);
+    } catch(e) { console.error("Erreur audio", e); }
+}
+
 function onScanSuccess(decodedText, decodedResult) {
     // Pause de la caméra pour éviter les scans multiples
     if(html5QrcodeScanner.getState() === 2) { // 2 = SCANNING
         html5QrcodeScanner.pause();
     }
+    jouerSonScan();
     document.getElementById('manual-ref').value = decodedText;
     rechercherColis(decodedText.trim());
 }
@@ -62,10 +81,10 @@ async function rechercherColis(ref) {
     try {
         let snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
         if (snap.empty) {
-            const lastDash = scanRef.lastIndexOf('-');
-            if (lastDash > 0) {
-                baseRef = scanRef.substring(0, lastDash);
-                cIdx = parseInt(scanRef.substring(lastDash + 1));
+            const lastUnderscore = scanRef.lastIndexOf('_');
+            if (lastUnderscore > 0) {
+                baseRef = scanRef.substring(0, lastUnderscore);
+                cIdx = parseInt(scanRef.substring(lastUnderscore + 1));
                 snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
             }
         }
@@ -140,21 +159,25 @@ function afficherResultat(c) {
             <div id="apercu-photos-scan" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
             </div>
         `;
-    document.getElementById('scan-photos').addEventListener('change', function() {
+    document.getElementById('scan-photos').addEventListener('change', async function() {
         const d = document.getElementById('apercu-photos-scan');
+        d.innerHTML = '<span style="font-size:12px;color:#888;font-weight:bold;">⏳ Compression en cours...</span>';
+        compressedPhotos = [];
+        
+        for (let file of this.files) {
+            if (file.type.startsWith('image/')) {
+                const compressedFile = await compresserImage(file);
+                compressedPhotos.push(compressedFile);
+            }
+        }
+        
             d.innerHTML = '';
-            Array.from(this.files).forEach(f => {
-                if (f.type.startsWith('image/')) {
-                    const r = new FileReader();
-                    r.onload = e => {
-                        const i = document.createElement('img');
-                        i.src = e.target.result;
-                        i.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #ddd;';
-                        d.appendChild(i);
-                    };
-                    r.readAsDataURL(f);
-                }
-            });
+        compressedPhotos.forEach(f => {
+            const i = document.createElement('img');
+            i.src = URL.createObjectURL(f);
+            i.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #ddd;';
+            d.appendChild(i);
+        });
         });
         photoUI.style.display = 'block';
 
@@ -168,7 +191,10 @@ async function executerActionScan() {
     document.getElementById('scan-status').innerText = "Enregistrement en cours...";
 
     const conf = scanModes[currentScanMode];
-    let updates = { status: conf.status };
+    let updates = { 
+        status: conf.status,
+        dateModification: firebase.firestore.FieldValue.serverTimestamp()
+    };
     
     if(currentScanMode === 'dechargement' || currentScanMode === 'livre') {
         updates.estArrive = true;
@@ -179,31 +205,14 @@ async function executerActionScan() {
         updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
     }
 
-    // Upload des photos dynamique selon l'étape
-    const photoInput = document.getElementById('scan-photos');
-    if (photoInput && photoInput.files.length > 0) {
-        document.getElementById('scan-status').innerText = "Téléchargement des photos en cours...";
-        const urls = [];
-        for (let file of photoInput.files) {
-            try {
-                const ref = storage.ref(`${currentScanMode}/${currentScannedColis.reference}/${Date.now()}_${file.name}`);
-                await ref.put(file);
-                const url = await ref.getDownloadURL();
-                urls.push(url);
-            } catch (err) {
-                console.error("Erreur upload photo:", err);
-            }
-        }
-        if (urls.length > 0) {
-            updates[`photos_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(...urls);
-            // Rétrocompatibilité avec l'ancien système
-            if (currentScanMode === 'chargement') {
-                updates.photosChargement = firebase.firestore.FieldValue.arrayUnion(...urls);
-            }
-        }
-    }
-
+    // 1. Mise à jour de Firestore IMMÉDIATE (sans attendre les photos)
     await db.collection('expeditions').doc(currentScannedColis.id).update(updates);
+
+    // 2. Lancement de l'upload des photos en arrière-plan
+    if (compressedPhotos.length > 0) {
+        uploaderPhotosEnArrierePlan(currentScannedColis.id, currentScannedColis.reference, currentScanMode, compressedPhotos);
+        compressedPhotos = []; // Réinitialiser pour le prochain scan
+    }
     
     // Ajouter à l'historique de session
     sessionScans.unshift({
@@ -242,4 +251,58 @@ function renderSessionScans() {
 function allerPayerScan() {
     localStorage.setItem('autoOpenColisId', currentScannedColis.id);
     window.location.href = 'reception.html';
+}
+
+// ==========================================
+// UTILITAIRES : COMPRESSION & UPLOAD ASYNC
+// ==========================================
+
+async function compresserImage(file, maxWidth = 1024) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg', lastModified: Date.now() });
+                    resolve(newFile);
+                }, 'image/jpeg', 0.7); // 70% de qualité
+            };
+        };
+    });
+}
+
+async function uploaderPhotosEnArrierePlan(docId, reference, scanMode, photosToUpload) {
+    const urls = [];
+    for (let file of photosToUpload) {
+        try {
+            const ref = storage.ref(`${scanMode}/${reference}/${Date.now()}_${file.name}`);
+            await ref.put(file);
+            const url = await ref.getDownloadURL();
+            urls.push(url);
+        } catch (err) {
+            console.error("Erreur d'upload en arrière-plan :", err);
+        }
+    }
+    if (urls.length > 0) {
+        let imgUpdates = { [`photos_${scanMode}`]: firebase.firestore.FieldValue.arrayUnion(...urls) };
+        if (scanMode === 'chargement') imgUpdates.photosChargement = firebase.firestore.FieldValue.arrayUnion(...urls);
+        await db.collection('expeditions').doc(docId).update(imgUpdates);
+    }
 }
