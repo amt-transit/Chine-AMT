@@ -91,7 +91,7 @@ function updateReceptionView(searchQuery) {
 
         if (curGrp !== null && d.refGroupe !== curGrp) {
             const u = currentReceptionType.startsWith('aerien') ? 'Kg' : 'CBM';
-            html += `<tr class="subtotal-row"><td colspan="7" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(gP)} CFA</td><td data-label=""></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="7" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(gP)} CFA</td><td data-label="Statut"></td></tr>`;
             gQ = 0; gV = 0; gP = 0;
         }
         curGrp = d.refGroupe;
@@ -106,7 +106,16 @@ function updateReceptionView(searchQuery) {
         const safe = encodeURIComponent(JSON.stringify({ id: d.id, ...d }));
         let checkbox = `<input type="checkbox" class="rec-check" value="${d.id}" onchange="gererSelectionReception('${d.id}')" onclick="event.stopPropagation()">`;
         let recuIcon = (d.quantiteRecue > 0 || d.estArrive) ? ' ✅' : '';
-        let resteColor = res > 0 ? '#c0392b' : '#27ae60';
+        let deja = parseInt(d.montantPaye) || 0;
+        
+        let resteHtml = '';
+        if (res <= 0 && pN > 0) {
+            resteHtml = `<span class="status-badge" style="background:#27ae60; font-size:10px;">✅ Payé</span>`;
+        } else if (deja > 0 && res > 0) {
+            resteHtml = `<span style="color:#e67e22;">${formatArgent(res)} CFA</span><br><span class="status-badge" style="background:#f39c12; font-size:9px; margin-top:2px; display:inline-block;">Acompte</span>`;
+        } else {
+            resteHtml = `<span style="color:#c0392b;">${formatArgent(res)} CFA</span>`;
+        }
 
         html += `<tr class="interactive-table-row" onclick='selectionnerClientViaData("${safe}")'>
             <td data-label="Sélection">${checkbox}</td>
@@ -118,13 +127,13 @@ function updateReceptionView(searchQuery) {
             <td data-label="Type" style="font-size:11px;">${d.type}</td>
             <td data-label="Qté" style="text-align:center;">${d.quantiteEnvoyee}</td>
             <td data-label="Kg/CBM" style="text-align:center;">${pv}</td>
-            <td data-label="Reste" style="font-weight:700;color:${resteColor};text-align:right;white-space:nowrap;">${formatArgent(res)} CFA</td>
+            <td data-label="Reste" style="font-weight:700;text-align:right;white-space:nowrap;">${resteHtml}</td>
             <td data-label="Statut"><span class="status-badge ${cl}" style="font-size:10px;">${(d.status || 'Attente').replace('Reçu - ', '')}</span></td>
         </tr>`;
 
         if (idx === filtered.length - 1) {
             const u = isAir ? 'Kg' : 'CBM';
-            html += `<tr class="subtotal-row"><td colspan="7" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(gP)} CFA</td><td data-label=""></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="7" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Reste">${formatArgent(gP)} CFA</td><td data-label="Statut"></td></tr>`;
         }
     });
 
@@ -337,7 +346,6 @@ async function enregistrerReception() {
             if (totalQteRecue >= (data.quantiteEnvoyee || 0)) nouveauStatut = 'Reçu - Conforme';
             else nouveauStatut = 'Reçu - Ecart';
         }
-        if (resteApres <= 0 && pN > 0) nouveauStatut = 'Reçu - Conforme';
 
         const updates = {
             montantPaye:  nouveauTotal,
@@ -457,8 +465,6 @@ async function validerPaiementGroupe() {
                 const ref = db.collection('expeditions').doc(id);
                 batch.update(ref, {
                     montantPaye: net,
-                    quantiteRecue: item.quantiteEnvoyee,
-                    status: 'Reçu - Conforme',
                     datePaiement: firebase.firestore.FieldValue.serverTimestamp(),
                     historiquePaiements: firebase.firestore.FieldValue.arrayUnion({
                         date: firebase.firestore.Timestamp.now(), montant: reste, moyen: moyen, agent: agent,

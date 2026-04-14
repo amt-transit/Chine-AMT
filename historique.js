@@ -76,7 +76,7 @@ function updateHistoriqueView(searchQuery) {
     filtered.forEach((d, idx) => {
         if(curGrp!==null && d.refGroupe!==curGrp) {
             let u = currentHistoriqueType==='aerien'?'Kg':'CBM';
-            html += `<tr class="subtotal-row"><td colspan="5" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Prix">${formatArgent(gP)} CFA</td><td colspan="2" data-label=""></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="5" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Prix">${formatArgent(gP)} CFA</td><td colspan="2" data-label="Action"></td></tr>`;
             gQ=0; gV=0; gP=0;
         }
         curGrp = d.refGroupe;
@@ -88,8 +88,15 @@ function updateHistoriqueView(searchQuery) {
         gP+=final; tP+=final;
         let dejaPaye = parseInt(d.montantPaye) || 0;
         let colorStyle = "";
-        if(dejaPaye >= final && final > 0) colorStyle = "color:#27ae60; font-weight:bold;";
-        else if(dejaPaye > 0) colorStyle = "color:#e67e22; font-weight:bold;";
+        let payeBadge = "";
+        if(dejaPaye >= final && final > 0) {
+            colorStyle = "color:#27ae60; font-weight:bold;";
+            payeBadge = '<br><span class="status-badge" style="background:#27ae60; font-size:9px; margin-top:2px; display:inline-block;">✅ PAYÉ</span>';
+        }
+        else if(dejaPaye > 0) {
+            colorStyle = "color:#e67e22; font-weight:bold;";
+            payeBadge = '<br><span class="status-badge" style="background:#f39c12; font-size:9px; margin-top:2px; display:inline-block;">ACOMPTE</span>';
+        }
         else colorStyle = "color:#c0392b; font-weight:bold;";
         let dateS = d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '-';
         let pvStr = pv + (isAir?' Kg':' CBM');
@@ -97,10 +104,10 @@ function updateHistoriqueView(searchQuery) {
         const j = JSON.stringify({id:d.id, ...d}).replace(/'/g, "&#39;");
         let checkbox = `<input type="checkbox" class="hist-check" value="${d.id}" onchange="gererSelectionHistorique('${d.id}')" onclick="event.stopPropagation()">`;
         let recuIcon = (d.quantiteRecue > 0 || d.estArrive) ? '<i class="fas fa-check-circle" style="color:#27ae60; margin-left:5px;" title="Reçu / Arrivé"></i>' : '';
-        html += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td data-label="Sélection">${checkbox}</td><td data-label="Réf.">${d.reference}${recuIcon}</td><td data-label="Conteneur">${d.numBL || '-'}</td><td data-label="Date">${dateS}</td><td data-label="Client">${d.nom} ${d.prenom}</td><td data-label="Qté">${d.quantiteEnvoyee}</td><td data-label="Kg/CBM">${pvStr}</td><td style="${colorStyle} white-space:nowrap;" data-label="Prix">${formatArgent(final)} CFA</td><td data-label="Modifié par">${mod}</td><td data-label="Action"><i class="fas fa-edit"></i></td></tr>`;
+        html += `<tr class="interactive-table-row" onclick='ouvrirModalModifViaData("${encodeURIComponent(j)}")'><td data-label="Sélection">${checkbox}</td><td data-label="Réf.">${d.reference}${recuIcon}</td><td data-label="Conteneur">${d.numBL || '-'}</td><td data-label="Date">${dateS}</td><td data-label="Client">${d.nom} ${d.prenom}</td><td data-label="Qté">${d.quantiteEnvoyee}</td><td data-label="Kg/CBM">${pvStr}</td><td style="${colorStyle} white-space:nowrap; text-align:right;" data-label="Prix">${formatArgent(final)} CFA${payeBadge}</td><td data-label="Modifié par">${mod}</td><td data-label="Action"><i class="fas fa-edit"></i></td></tr>`;
         if(idx === filtered.length-1) {
             let u = isAir?'Kg':'CBM';
-            html += `<tr class="subtotal-row"><td colspan="5" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Prix">${formatArgent(gP)} CFA</td><td colspan="2" data-label=""></td></tr>`;
+            html += `<tr class="subtotal-row"><td colspan="5" data-label="Total">TOTAL ${curGrp}</td><td data-label="Qté">${gQ}</td><td data-label="Kg/CBM">${gV.toFixed(2)} ${u}</td><td style="white-space:nowrap;" data-label="Prix">${formatArgent(gP)} CFA</td><td colspan="2" data-label="Action"></td></tr>`;
         }
     });
     tb.innerHTML = html;

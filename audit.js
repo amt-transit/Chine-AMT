@@ -200,15 +200,15 @@ function updateAuditView(search) {
         const soldeColor = t.solde >= 0 ? '#15609e' : '#c0392b';
 
         html += `<tr style="${rowStyle}">
-            <td style="white-space:nowrap;font-size:12px;">${dateStr}</td>
-            <td>${typeLabel}</td>
-            <td style="font-size:12px;">${t.ref}</td>
-            <td style="font-size:12px;">${t.tiers}</td>
-            <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.description}">${t.description}</td>
-            <td style="text-align:right;${amountStyle} white-space:nowrap;">${formatArgent(t.montant)} CFA</td>
-            <td style="text-align:right;font-weight:700;color:${soldeColor}; white-space:nowrap;">${formatArgent(t.solde)} CFA</td>
-            <td style="font-size:12px;">${t.moyen}</td>
-            <td style="font-size:12px;color:#888;">${t.agent}</td>
+            <td data-label="Date" style="white-space:nowrap;font-size:12px;">${dateStr}</td>
+            <td data-label="Type">${typeLabel}</td>
+            <td data-label="Référence" style="font-size:12px;">${t.ref}</td>
+            <td data-label="Client" style="font-size:12px;">${t.tiers}</td>
+            <td data-label="Description" style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.description}">${t.description}</td>
+            <td data-label="Montant" style="text-align:right;${amountStyle} white-space:nowrap;">${formatArgent(t.montant)} CFA</td>
+            <td data-label="Solde" style="text-align:right;font-weight:700;color:${soldeColor}; white-space:nowrap;">${formatArgent(t.solde)} CFA</td>
+            <td data-label="Moyen" style="font-size:12px;">${t.moyen}</td>
+            <td data-label="Agent" style="font-size:12px;color:#888;">${t.agent}</td>
         </tr>`;
     });
 

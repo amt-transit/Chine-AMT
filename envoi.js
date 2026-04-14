@@ -231,10 +231,10 @@ function _updateMultiTable() {
     sousColisList.forEach((item, i) => {
         totalQte += item.qte; totalVal += item.val;
         html += `<tr>
-            <td style="padding:6px;">${item.desc}</td>
-            <td style="text-align:center;padding:6px;">${item.qte}</td>
-            <td style="text-align:center;padding:6px;">${item.val}</td>
-            <td style="text-align:center;padding:6px;">
+            <td data-label="Desc" style="padding:6px;">${item.desc}</td>
+            <td data-label="Qté" style="text-align:center;padding:6px;">${item.qte}</td>
+            <td data-label="Poids/Vol" style="text-align:center;padding:6px;">${item.val}</td>
+            <td data-label="Action" style="text-align:center;padding:6px;">
                 <button onclick="sousColisList.splice(${i},1);_updateMultiTable();"
                     style="background:#dc3545;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;">X</button>
             </td>
