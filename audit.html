@@ -41,26 +41,32 @@
                 <button class="sub-nav-link" id="btn-audit-aerien" onclick="ouvrirSousOngletAudit('aerien')">
                     <i class="fas fa-plane"></i> Avion
                 </button>
+                <button class="sub-nav-link" id="btn-audit-alertes" onclick="ouvrirSousOngletAudit('alertes')">
+                    <i class="fas fa-exclamation-triangle"></i> Anomalies
+                </button>
             </div>
 
             <div class="card">
                 <!-- Recherche -->
-                <div style="position:relative; margin-bottom:12px;">
+                <div id="audit-search-container" style="position:relative; margin-bottom:12px;">
                     <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;">🔍</span>
                     <input type="text" id="search-audit" placeholder="Rechercher une transaction..."
                         style="padding:12px 14px 12px 42px;font-size:15px;border:2px solid #dee2e6;border-radius:10px;width:100%;">
                 </div>
 
                 <!-- Filtres rapides par période -->
-                <div class="quick-filter-bar" id="quick-filters">
+                <div class="quick-filter-bar" id="audit-quick-filters">
                     <button class="quick-filter-btn active" onclick="setDateFilter('all', this)">Tout</button>
                     <button class="quick-filter-btn" onclick="setDateFilter('today', this)">Aujourd'hui</button>
                     <button class="quick-filter-btn" onclick="setDateFilter('week', this)">Cette semaine</button>
                     <button class="quick-filter-btn" onclick="setDateFilter('month', this)">Ce mois</button>
                 </div>
+                
+                <!-- Section Alertes Fraudes -->
+                <div id="alertes-fraude" class="dashboard-grid" style="margin-bottom:15px; display:none; min-height:150px;"></div>
 
                 <!-- Tableau -->
-                <div class="table-container">
+                <div class="table-container" id="audit-table-container">
                     <table id="table-audit" style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
                             <tr>

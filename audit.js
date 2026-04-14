@@ -13,10 +13,33 @@ function ouvrirSousOngletAudit(type) {
     currentAuditType = type;
     const b1 = document.getElementById('btn-audit-maritime');
     const b2 = document.getElementById('btn-audit-aerien');
-    if (b1 && b2) {
-        if (type === 'maritime') { b1.classList.add('active'); b2.classList.remove('active'); }
-        else { b1.classList.remove('active'); b2.classList.add('active'); }
+    const b3 = document.getElementById('btn-audit-alertes');
+
+    if (b1) b1.classList.remove('active');
+    if (b2) b2.classList.remove('active');
+    if (b3) b3.classList.remove('active');
+
+    if (type === 'maritime' && b1) b1.classList.add('active');
+    if (type === 'aerien' && b2) b2.classList.add('active');
+    if (type === 'alertes' && b3) b3.classList.add('active');
+
+    const search = document.getElementById('audit-search-container');
+    const filters = document.getElementById('audit-quick-filters');
+    const table = document.getElementById('audit-table-container');
+    const alertes = document.getElementById('alertes-fraude');
+    
+    if (type === 'alertes') {
+        if (search) search.style.display = 'none';
+        if (filters) filters.style.display = 'none';
+        if (table) table.style.display = 'none';
+        if (alertes) alertes.style.display = 'grid';
+    } else {
+        if (search) search.style.display = 'block';
+        if (filters) filters.style.display = 'flex';
+        if (table) table.style.display = 'block';
+        if (alertes) alertes.style.display = 'none';
     }
+
     chargerAudit();
 }
 
@@ -63,8 +86,9 @@ async function chargerAudit() {
         snapExp.forEach(doc => {
             const d = doc.data();
             let isMatch = false;
-            if (currentAuditType === 'maritime' && d.type === 'maritime') isMatch = true;
-            if (currentAuditType === 'aerien' && (d.type || '').startsWith('aerien')) isMatch = true;
+            if (currentAuditType === 'alertes') isMatch = true; // Analyse globale pour l'onglet anomalies
+            else if (currentAuditType === 'maritime' && d.type === 'maritime') isMatch = true;
+            else if (currentAuditType === 'aerien' && (d.type || '').startsWith('aerien')) isMatch = true;
             if (!isMatch) return;
 
             // Historique détaillé
@@ -131,10 +155,19 @@ async function chargerAudit() {
         const snapDep = await db.collection('depenses').get();
         snapDep.forEach(doc => {
             const d = doc.data();
-            if (d.type !== currentAuditType) return;
+            if (currentAuditType !== 'alertes' && d.type !== currentAuditType) return;
             let dateD = d.date ? new Date(d.date) : null;
+                let dateC = null;
+                // Récupération de la date de création informatique (horodatage serveur)
+                if (d.creeLe) {
+                    if (d.creeLe.toDate) dateC = d.creeLe.toDate();
+                    else if (d.creeLe.seconds) dateC = new Date(d.creeLe.seconds * 1000);
+                    else dateC = new Date(d.creeLe);
+                } else {
+                    dateC = dateD;
+                }
             transactions.push({
-                date: dateD, type: 'Dépense',
+                    date: dateD, dateCreation: dateC, type: 'Dépense',
                 ref: 'DEPENSE', tiers: '-',
                 description: d.motif || 'Dépense diverse',
                 montant: (parseFloat(d.montant) || 0) * -1,
@@ -154,6 +187,7 @@ async function chargerAudit() {
 
         allAuditData = transactions;
         updateAuditView('');
+        detecterFraudes(allAuditData);
 
     } catch (e) {
         console.error(e);
@@ -217,4 +251,45 @@ function updateAuditView(search) {
     }
 
     tb.innerHTML = html;
+}
+
+// ─── Détection de Fraude ─────────────────────────────────
+function detecterFraudes(data) {
+    const container = document.getElementById('alertes-fraude');
+    if (!container) return;
+
+    let anomalies = [];
+
+    data.forEach(t => {
+        // 1. Paiement annulé (Encaissements)
+        if (t.isDeleted && t.type !== 'Dépense') {
+            anomalies.push({ titre: "Paiement Annulé", desc: `Annulation de ${formatArgent(Math.abs(t.montant))} CFA.`, date: t.date, agent: t.agent, ref: t.ref, color: "#c0392b" });
+        }
+        // 2. Modification de prix (Historique des modifications de facture)
+        else if (t.isModified) {
+            anomalies.push({ titre: "Facture Modifiée", desc: t.description, date: t.date, agent: t.agent, ref: t.ref, color: "#e67e22" });
+        }
+        // 3. Dépense antidatée (Écart de plus de 2 jours entre la date saisie et la date réelle d'enregistrement sur Firebase)
+        else if (t.type === 'Dépense' && t.date && t.dateCreation && !t.isDeleted) {
+            const diffTime = Math.abs(t.dateCreation - t.date);
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+            if (diffDays > 2) {
+                anomalies.push({ titre: "Dépense Suspecte (Antidatée)", desc: `Saisie le ${t.dateCreation.toLocaleDateString('fr-FR')} pour le ${t.date.toLocaleDateString('fr-FR')}.`, date: t.dateCreation, agent: "Inconnu", ref: "DEPENSE", color: "#8e44ad" });
+            }
+        }
+    });
+
+    if (anomalies.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding:40px; color:#27ae60; font-size:16px; font-weight:bold; background:#e8f5e9; border-radius:12px; border:2px dashed #a5d6a7;"><i class="fas fa-shield-alt fa-3x" style="margin-bottom:10px;"></i><br>Aucune anomalie détectée.<br><span style="font-size:13px; font-weight:normal; color:#555;">La comptabilité semble saine.</span></div>';
+        return;
+    }
+
+    let html = `<div style="grid-column: 1 / -1; font-size: 16px; font-weight: bold; color: #c0392b; margin-bottom: 5px;"><i class="fas fa-exclamation-triangle"></i> Détection d'anomalies potentielles (${anomalies.length})</div>`;
+
+    // Puisque c'est un onglet dédié, on affiche jusqu'aux 50 dernières alertes
+    anomalies.sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 50).forEach(a => {
+        const dateStr = a.date ? a.date.toLocaleDateString('fr-FR') + ' ' + a.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-';
+        html += `<div style="background: #fff; border-left: 4px solid ${a.color}; border-radius: 8px; padding: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><div style="font-size: 12px; color: ${a.color}; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">${a.titre}</div><div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 2px;">Réf: ${a.ref}</div><div style="font-size: 13px; color: #555; margin-bottom: 6px;">${a.desc}</div><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between;"><span>📅 ${dateStr}</span><span>👤 ${a.agent}</span></div></div>`;
+    });
+    container.innerHTML = html;
 }

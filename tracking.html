@@ -29,10 +29,12 @@
         .reste-badge.solde { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
 
         .timeline { position: relative; padding-left: 30px; margin-top: 20px; }
-        .timeline::before { content: ''; position: absolute; left: 11px; top: 5px; bottom: 5px; width: 2px; background: #e0e0e0; }
         
         .step { position: relative; margin-bottom: 25px; }
         .step:last-child { margin-bottom: 0; }
+        .step::after { content: ''; position: absolute; left: -19px; top: 24px; bottom: -25px; width: 2px; background: #e0e0e0; z-index: 1; transition: background 0.3s; }
+        .step.done::after { background: #217ff1; }
+        .step:last-child::after { display: none; }
         .step-icon { position: absolute; left: -30px; top: 0; width: 24px; height: 24px; border-radius: 50%; background: #e0e0e0; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; z-index: 2; transition: 0.3s; }
         
         .step.done .step-icon { background: #27ae60; }
@@ -53,6 +55,7 @@
     </div>
 
     <div class="tracking-container">
+        <p style="margin-bottom: 8px; font-weight: 600; color: #1C3A5E;">Insérer votre référence :</p>
         <form id="tracking-form" class="search-box">
             <input type="text" id="track-input" placeholder="N° de référence (ex: MRT-2405...)" required>
             <button type="submit"><i class="fas fa-search"></i></button>
@@ -76,6 +79,11 @@
 
             <div class="timeline" id="timeline-container">
                 <!-- Les étapes seront injectées ici par le JS -->
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 15px; border-top: 1px dashed #eee; font-size: 11px; color: #777; text-align: justify; line-height: 1.4;">
+                <strong style="color: #1C3A5E; font-size: 12px; display: block; margin-bottom: 5px; text-align: center;">CONDITIONS DE VENTE</strong>
+                Les délais de transport sont fournis à titre purement indicatif par AMT Transit. Les retards de navires ou de dédouanement ne sauraient engager la responsabilité de l'entreprise. Le stockage est gracieux durant 7 jours calendaires après l'arrivée. Passé ce délai, des frais de magasinage s'appliquent. Toute marchandise non retirée après un délai de 30 jours (1 mois) sera considérée comme abandonnée et pourra être mise au rebut. L'indemnisation en cas de dommages est strictement limitée au montant des frais de transport, sauf en cas de souscription à une assurance spécifique préalable. Le règlement intégral est exigé avant tout retrait de marchandise. Toute contestation doit impérativement être signalée dès réception de la facture, faute de quoi les conditions sont considérées comme acceptées sans réserve.
             </div>
         </div>
     </div>
