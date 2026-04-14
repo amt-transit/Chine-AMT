@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMT - Listing Chargement</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/logo_amt.png">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <button class="hamburger-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+            <img src="logo_amt.png" alt="Logo AMT Transit" class="logo">
+        </div>
+        <div class="header-info">
+            <span id="agence-nom-display">Chine</span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545; color:white;">Déconnexion</button>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
+        <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
+        <a href="scan.html" class="nav-link" id="nav-scan">📷 Scanner</a>
+        <a href="listing.html" class="nav-link active" id="nav-listing">📋 Listing</a>
+        <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
+    </nav>
+
+    <main>
+        <div class="card">
+            <h2><i class="fas fa-images"></i> Listing des Scans & Photos (Concordance)</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Référence</th>
+                            <th>Conteneur</th>
+                            <th>Client</th>
+                            <th>Statut</th>
+                            <th>Photos</th>
+                            <th>Concordance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-listing"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal pour voir les photos en grand -->
+    <div id="modal-photo" class="modal-backdrop" onclick="fermerModalPhoto(event)">
+        <div class="modal-content" style="text-align:center; padding:10px; background: transparent; box-shadow: none;">
+            <span class="modal-close" style="color:white; top:-20px; right:0;">&times;</span>
+            <img id="image-en-grand" src="" style="max-width:100%; max-height:80vh; border-radius:8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="listing.js"></script>
+</body>
+</html>

@@ -84,7 +84,7 @@ async function genererEtiquette() {
         let isAirLabel = (currentEnvoi.type || "").startsWith('aerien');
         let pv = isAirLabel ? `${currentEnvoi.poidsEnvoye || 0} Kg` : `${currentEnvoi.volumeEnvoye || 0} CBM`;
         doc.setFontSize(7); doc.setFont("helvetica", "bold");
-        let footerText = `${isAirLabel ? 'POIDS' : 'VOLUME'} : ${pv}`;
+        let footerText = `${isAirLabel ? 'POIDS TOTAL' : 'VOLUME TOTAL'} : ${pv}`;
         if(currentEnvoi.type === 'maritime' && currentEnvoi.numBL) {
             footerText += `   |   CONTENEUR : ${currentEnvoi.numBL}`;
         }

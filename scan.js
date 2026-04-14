@@ -101,7 +101,11 @@ function afficherResultat(c) {
     document.getElementById('res-reste').innerText = formatArgent(reste) + " CFA";
 
     // Génération de la checklist des sous-colis
-    let scannes = c.colisScannes || [];
+    // On vérifie la checklist propre à l'étape en cours
+    let scannes = c[`colisScannes_${currentScanMode}`] || [];
+    // Rétrocompatibilité : si aucun chargement trouvé et qu'on est en mode chargement, regarder l'ancienne variable
+    if (currentScanMode === 'chargement' && scannes.length === 0) scannes = c.colisScannes || [];
+    
     let qte = parseInt(c.quantiteEnvoyee) || 1;
     let chkHtml = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid #ddd;"><strong>Détail des colis :</strong><div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">';
     for(let i=1; i<=qte; i++) {
@@ -120,11 +124,49 @@ function afficherResultat(c) {
     chkHtml += '</div></div>';
     document.getElementById('res-checklist').innerHTML = chkHtml;
 
+    // Injection de l'interface de capture photo pour le chargement
+    let photoUI = document.getElementById('photo-capture-ui');
+    if (!photoUI) {
+        photoUI = document.createElement('div');
+        photoUI.id = 'photo-capture-ui';
+        document.getElementById('res-checklist').after(photoUI);
+    }
+    
+    let modeLabel = scanModes[currentScanMode].label;
+        photoUI.innerHTML = `
+            <div style="margin-top:12px; padding-top:12px; border-top:1px solid #ddd;">
+            <strong>📸 Photos du ${modeLabel.toLowerCase()} (Optionnel) :</strong>
+            <input type="file" id="scan-photos" accept="image/*" capture="environment" multiple style="margin-top:8px; width:100%; font-size:14px; padding:8px; border:1.5px dashed #ccc; border-radius:8px;">
+            <div id="apercu-photos-scan" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+            </div>
+        `;
+    document.getElementById('scan-photos').addEventListener('change', function() {
+        const d = document.getElementById('apercu-photos-scan');
+            d.innerHTML = '';
+            Array.from(this.files).forEach(f => {
+                if (f.type.startsWith('image/')) {
+                    const r = new FileReader();
+                    r.onload = e => {
+                        const i = document.createElement('img');
+                        i.src = e.target.result;
+                        i.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #ddd;';
+                        d.appendChild(i);
+                    };
+                    r.readAsDataURL(f);
+                }
+            });
+        });
+        photoUI.style.display = 'block';
+
     document.getElementById('scan-result').style.display = 'block';
 }
 
 async function executerActionScan() {
     if(!currentScannedColis) return;
+    const actionBtn = document.getElementById('btn-action-scan');
+    if(actionBtn) { actionBtn.disabled = true; actionBtn.style.opacity = '0.6'; }
+    document.getElementById('scan-status').innerText = "Enregistrement en cours...";
+
     const conf = scanModes[currentScanMode];
     let updates = { status: conf.status };
     
@@ -134,6 +176,31 @@ async function executerActionScan() {
     
     if (currentScannedColisIndex !== null) {
         updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
+        updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
+    }
+
+    // Upload des photos dynamique selon l'étape
+    const photoInput = document.getElementById('scan-photos');
+    if (photoInput && photoInput.files.length > 0) {
+        document.getElementById('scan-status').innerText = "Téléchargement des photos en cours...";
+        const urls = [];
+        for (let file of photoInput.files) {
+            try {
+                const ref = storage.ref(`${currentScanMode}/${currentScannedColis.reference}/${Date.now()}_${file.name}`);
+                await ref.put(file);
+                const url = await ref.getDownloadURL();
+                urls.push(url);
+            } catch (err) {
+                console.error("Erreur upload photo:", err);
+            }
+        }
+        if (urls.length > 0) {
+            updates[`photos_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(...urls);
+            // Rétrocompatibilité avec l'ancien système
+            if (currentScanMode === 'chargement') {
+                updates.photosChargement = firebase.firestore.FieldValue.arrayUnion(...urls);
+            }
+        }
     }
 
     await db.collection('expeditions').doc(currentScannedColis.id).update(updates);
@@ -150,6 +217,7 @@ async function executerActionScan() {
     document.getElementById('scan-status').innerText = "Prêt à scanner.";
     document.getElementById('manual-ref').value = '';
     renderSessionScans();
+    if(actionBtn) { actionBtn.disabled = false; actionBtn.style.opacity = '1'; }
     if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
 }
 

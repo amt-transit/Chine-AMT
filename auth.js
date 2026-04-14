@@ -47,16 +47,19 @@ auth.onAuthStateChanged(user => {
             const navRec = document.getElementById('nav-reception'); if(navRec) navRec.style.display='none';
             const navCompta = document.getElementById('nav-compta'); if(navCompta) navCompta.style.display='none';
             const navAudit = document.getElementById('nav-audit'); if(navAudit) navAudit.style.display='none';
+            const navListing = document.getElementById('nav-listing'); if(navListing) navListing.style.display='inline-flex';
         } else if (currentRole === 'spectateur') {
             const navEnv = document.getElementById('nav-envoi'); if(navEnv) navEnv.style.display='none';
             const navHist = document.getElementById('nav-historique'); if(navHist) navHist.style.display='none';
             const navRec = document.getElementById('nav-reception'); if(navRec) navRec.style.display='none';
             const btnAjout = document.getElementById('btn-ajout-depense'); if(btnAjout) btnAjout.style.display = 'none';
+            const navListing = document.getElementById('nav-listing'); if(navListing) navListing.style.display='inline-flex';
         } else {
             // Abidjan
             const navRec = document.getElementById('nav-reception'); if(navRec) navRec.style.display='inline-flex';
             const navCompta = document.getElementById('nav-compta'); if(navCompta) navCompta.style.display='inline-flex';
             const navAudit = document.getElementById('nav-audit'); if(navAudit) navAudit.style.display='inline-flex';
+            const navListing = document.getElementById('nav-listing'); if(navListing) navListing.style.display='inline-flex';
             const btnAjout = document.getElementById('btn-ajout-depense');
             if(btnAjout) btnAjout.style.display = 'inline-block';
         }
