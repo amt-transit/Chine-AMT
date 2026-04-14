@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMT - Administration</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/logo_amt.png">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <button class="hamburger-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+            <img src="logo_amt.png" alt="Logo AMT Transit" class="logo">
+        </div>
+        <div class="header-info">
+            <span>Agence : <span id="agence-nom">Super Admin</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545;color:white;">Déconnexion</button>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
+        <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
+        <a href="scan.html" class="nav-link" id="nav-scan">📷 Scanner</a>
+        <a href="listing.html" class="nav-link" id="nav-listing">📋 Listing</a>
+        <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
+        <a href="admin.html" class="nav-link active" id="nav-admin" style="background:#8e44ad;">👑 ADMIN</a>
+    </nav>
+
+    <main>
+        <section id="Admin" class="page-content" style="display:block;">
+            <h2>👑 Administration & Gestion des Utilisateurs</h2>
+
+            <!-- Section 1 : Formulaire de création -->
+            <div class="card">
+                <h3 style="margin-top:0;"><i class="fas fa-user-plus"></i> Créer un nouvel utilisateur</h3>
+                <form id="form-create-user">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px; align-items:end;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Email</label>
+                            <input type="email" id="new-user-email" placeholder="exemple@amt.com" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Mot de passe</label>
+                            <input type="password" id="new-user-password" placeholder="••••••••" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Rôle</label>
+                            <select id="new-user-role" required>
+                                <option value="chine">Agence Chine</option>
+                                <option value="abidjan">Agence Abidjan</option>
+                                <option value="spectateur">Auditeur (Spectateur)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-principal" style="margin-top:15px; width:auto; background:#8e44ad;">
+                        <i class="fas fa-check"></i> Créer l'utilisateur
+                    </button>
+                </form>
+            </div>
+
+            <!-- Section 2 : Tableau des utilisateurs -->
+            <div class="card">
+                <h3 style="margin-top:0;"><i class="fas fa-users"></i> Liste des utilisateurs</h3>
+                <div class="table-container">
+                    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Rôle</th>
+                                <th>Mot de passe</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-users">
+                            <tr><td colspan="4" style="text-align:center; padding:20px;">Chargement des utilisateurs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
