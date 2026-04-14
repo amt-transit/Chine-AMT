@@ -1,7 +1,7 @@
 let html5QrcodeScanner;
-let currentScannedColis = null;
 let currentScanMode = 'chargement';
-let currentScannedColisIndex = null;
+let currentBatchClientData = null; // Verrouille le client en cours
+let batchScannedIndices = []; // Stocke les colis (1, 2, 3...) scannés à la volée
 let sessionScans = []; // Stocke les scans de la session active
 let compressedPhotos = []; // Stocke les photos redimensionnées avant upload
 
@@ -62,7 +62,7 @@ function onScanSuccess(decodedText, decodedResult) {
     }
     jouerSonScan();
     document.getElementById('manual-ref').value = decodedText;
-    rechercherColis(decodedText.trim());
+    traiterScanRafale(decodedText.trim());
 }
 
 function onScanFailure(error) {
@@ -71,38 +71,65 @@ function onScanFailure(error) {
 
 function rechercheManuelle() {
     const ref = document.getElementById('manual-ref').value.trim();
-    if (ref) rechercherColis(ref);
+    if (ref) traiterScanRafale(ref);
 }
 
-async function rechercherColis(ref) {
-    document.getElementById('scan-status').innerText = `Recherche de la référence : ${ref}...`;
-    document.getElementById('scan-result').style.display = 'none';
-    
+async function traiterScanRafale(scanRef) {
     let scanRef = ref.trim();
     let baseRef = scanRef;
     let cIdx = null;
 
-    try {
-        let snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
-        if (snap.empty) {
-            const lastUnderscore = scanRef.lastIndexOf('_');
-            if (lastUnderscore > 0) {
-                baseRef = scanRef.substring(0, lastUnderscore);
-                cIdx = parseInt(scanRef.substring(lastUnderscore + 1));
-                snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
-            }
+    // Découpage intelligent de la référence (supporte MRT-XXX_1 et MRT-XXX-1)
+    const lastUnderscore = scanRef.lastIndexOf('_');
+    if (lastUnderscore > 0) {
+        baseRef = scanRef.substring(0, lastUnderscore);
+        cIdx = parseInt(scanRef.substring(lastUnderscore + 1));
+    } else {
+        const lastDash = scanRef.lastIndexOf('-');
+        if (lastDash > 0 && !isNaN(parseInt(scanRef.substring(lastDash + 1)))) {
+            baseRef = scanRef.substring(0, lastDash);
+            cIdx = parseInt(scanRef.substring(lastDash + 1));
         }
-        if (snap.empty) {
-            showCustomAlert(`Colis introuvable pour la référence : ${scanRef}`, 'error');
-            document.getElementById('scan-status').innerText = "Prêt à scanner.";
-            if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume(); // 3 = PAUSED
+    }
+
+    // VERROUILLAGE : Si un lot est déjà en cours
+    if (currentBatchClientData) {
+        if (currentBatchClientData.reference !== baseRef) {
+            // ERREUR: Collision de client !
+            if(html5QrcodeScanner.getState() === 2) html5QrcodeScanner.pause();
+            showCustomAlert(`⚠️ COLLISION DE CLIENTS !\n\nCe colis appartient à un autre client.\n\nVous pouvez soit continuer à scanner les colis restants de ${currentBatchClientData.nom}, soit appuyer sur "Suivant" pour terminer son lot.`, 'warning').then(() => {
+                if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
+            });
             return;
         }
         
-        currentScannedColis = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        currentScannedColisIndex = cIdx;
-        afficherResultat(currentScannedColis);
-        document.getElementById('scan-status').innerText = "Colis identifié.";
+        // Le client correspond -> Ajout dans le panier rafale
+        if (cIdx && !batchScannedIndices.includes(cIdx)) {
+            batchScannedIndices.push(cIdx);
+        }
+        updateBatchUI();
+        if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
+        return;
+    }
+
+    // INITIALISATION : 1er scan du lot, on charge le client
+    document.getElementById('scan-status').innerText = `Recherche de la référence : ${baseRef}...`;
+    try {
+        let snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
+        if (snap.empty) {
+            showCustomAlert(`Colis introuvable pour la référence : ${baseRef}`, 'error');
+            document.getElementById('scan-status').innerText = "Prêt à scanner.";
+            if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
+            return;
+        }
+        
+        currentBatchClientData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        batchScannedIndices = [];
+        if (cIdx) batchScannedIndices.push(cIdx);
+        
+        updateBatchUI();
+        document.getElementById('scan-status').innerText = "Mode Rafale : Scannez le reste des colis de ce client.";
+        if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
     } catch(e) {
         console.error(e);
         showCustomAlert("Erreur réseau lors de la recherche.", 'error');
@@ -110,7 +137,35 @@ async function rechercherColis(ref) {
     }
 }
 
-function afficherResultat(c) {
+function updateBatchUI() {
+    if (!currentBatchClientData) {
+        document.getElementById('batch-banner').style.display = 'none';
+        return;
+    }
+    document.getElementById('batch-banner').style.display = 'block';
+    document.getElementById('batch-client-name').innerText = `${currentBatchClientData.nom} ${currentBatchClientData.prenom}`;
+    document.getElementById('batch-count').innerText = `✅ ${batchScannedIndices.length} colis scanné(s) / ${currentBatchClientData.quantiteEnvoyee || 1}`;
+}
+
+function passerEtapeValidation() {
+    if (html5QrcodeScanner.getState() === 2) html5QrcodeScanner.pause();
+    document.getElementById('scanner-container').style.display = 'none';
+    document.getElementById('batch-banner').style.display = 'none';
+    afficherResultatValidation();
+}
+
+function annulerRafale() {
+    currentBatchClientData = null;
+    batchScannedIndices = [];
+    updateBatchUI();
+    document.getElementById('scan-result').style.display = 'none';
+    document.getElementById('scanner-container').style.display = 'block';
+    document.getElementById('scan-status').innerText = "Scan annulé. Prêt à scanner.";
+    if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
+}
+
+function afficherResultatValidation() {
+    const c = currentBatchClientData;
     document.getElementById('res-client').innerText = `${c.nom} ${c.prenom}`;
     document.getElementById('res-ref').innerText = c.reference;
     document.getElementById('res-tel').innerText = c.tel;
@@ -132,22 +187,29 @@ function afficherResultat(c) {
     let qte = parseInt(c.quantiteEnvoyee) || 1;
     let chkHtml = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid #ddd;"><strong>Détail des colis :</strong><div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">';
     for(let i=1; i<=qte; i++) {
-        let isCurrent = (i === currentScannedColisIndex);
-        let isScanned = scannes.includes(i) || isCurrent;
-        let icon = isScanned ? '✅' : '❌';
-        let color = isScanned ? '#27ae60' : '#c0392b';
-        let bg = isCurrent ? '#e8f5e9' : '#fff';
-        let border = isCurrent ? '2px solid #27ae60' : '1px solid #eee';
-        let fw = isCurrent ? 'bold' : 'normal';
-        let txt = isCurrent ? 'Scanné' : (scannes.includes(i) ? 'Pointé' : 'Attente');
-        chkHtml += `<div style="background:${bg}; border:${border}; border-radius:6px; padding:6px; font-size:12px; font-weight:${fw};">
-            ${icon} Colis ${i}/${qte} <span style="float:right; color:${color}">${txt}</span>
+        let isJustScanned = batchScannedIndices.includes(i);
+        let isAlreadyScanned = scannes.includes(i);
+        let icon = (isJustScanned || isAlreadyScanned) ? '✅' : '❌';
+        let color = (isJustScanned || isAlreadyScanned) ? '#27ae60' : '#c0392b';
+        let bg = isJustScanned ? '#e8f5e9' : '#fff';
+        let border = isJustScanned ? '2px solid #27ae60' : '1px solid #eee';
+        let fw = isJustScanned ? 'bold' : 'normal';
+        let txt = isJustScanned ? 'Nouveau Scan' : (isAlreadyScanned ? 'Déjà Pointé' : 'Attente');
+        
+        chkHtml += `<div style="background:${bg}; border:${border}; border-radius:6px; padding:6px; font-size:12px; font-weight:${fw}; line-height:1.2;">
+            ${icon} Colis ${i}/${qte} <div style="font-size:10px; color:${color}; margin-top:3px;">${txt}</div>
         </div>`;
     }
     chkHtml += '</div></div>';
     document.getElementById('res-checklist').innerHTML = chkHtml;
 
-    // Injection de l'interface de capture photo pour le chargement
+    // Réinitialisation des photos
+    const dApercu = document.getElementById('apercu-photos-scan');
+    if(dApercu) dApercu.innerHTML = '';
+    const pInput = document.getElementById('scan-photos');
+    if(pInput) pInput.value = '';
+    compressedPhotos = [];
+
     let photoUI = document.getElementById('photo-capture-ui');
     if (!photoUI) {
         photoUI = document.createElement('div');
@@ -189,7 +251,7 @@ function afficherResultat(c) {
 }
 
 async function executerActionScan() {
-    if(!currentScannedColis) return;
+    if(!currentBatchClientData) return;
     const actionBtn = document.getElementById('btn-action-scan');
     if(actionBtn) { actionBtn.disabled = true; actionBtn.style.opacity = '0.6'; }
     document.getElementById('scan-status').innerText = "Enregistrement en cours...";
@@ -199,7 +261,7 @@ async function executerActionScan() {
 
     if (!navigator.onLine) {
         // Sauvegarde locale si pas d'internet
-        sauvegarderScanHorsLigne(currentScannedColis.id, currentScanMode, currentScannedColisIndex, conf.status);
+        sauvegarderScanHorsLigne(currentBatchClientData.id, currentScanMode, batchScannedIndices, conf.status);
         isOfflineSaved = true;
     } else {
         // Tentative d'envoi classique
@@ -211,20 +273,20 @@ async function executerActionScan() {
         if(currentScanMode === 'dechargement' || currentScanMode === 'livre') {
             updates.estArrive = true;
         }
-        if (currentScannedColisIndex !== null) {
-            updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
-            updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(currentScannedColisIndex);
+        if (batchScannedIndices.length > 0) {
+            updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
+            updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
         }
 
         try {
-            await db.collection('expeditions').doc(currentScannedColis.id).update(updates);
+            await db.collection('expeditions').doc(currentBatchClientData.id).update(updates);
             if (compressedPhotos.length > 0) {
-                uploaderPhotosEnArrierePlan(currentScannedColis.id, currentScannedColis.reference, currentScanMode, compressedPhotos);
+                uploaderPhotosEnArrierePlan(currentBatchClientData.id, currentBatchClientData.reference, currentScanMode, compressedPhotos);
                 compressedPhotos = []; 
             }
         } catch(err) {
             console.warn("Erreur réseau Firestore, basculement en mode hors-ligne...", err);
-            sauvegarderScanHorsLigne(currentScannedColis.id, currentScanMode, currentScannedColisIndex, conf.status);
+            sauvegarderScanHorsLigne(currentBatchClientData.id, currentScanMode, batchScannedIndices, conf.status);
             isOfflineSaved = true;
         }
     }
@@ -233,11 +295,18 @@ async function executerActionScan() {
     sessionScans.unshift({
         heure: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         action: conf.label + (isOfflineSaved ? ' (Hors-ligne)' : ''), actionColor: conf.color,
-        ref: currentScannedColis.reference, client: `${currentScannedColis.nom} ${currentScannedColis.prenom}`
+        ref: currentBatchClientData.reference, client: `${currentBatchClientData.nom} ${currentBatchClientData.prenom}`
     });
     
-    showCustomAlert(isOfflineSaved ? `✅ Scan enregistré hors-ligne ! (À synchroniser)` : `Le colis a été marqué : ${conf.status} !`, 'success');
+    showCustomAlert(isOfflineSaved ? `✅ Lot enregistré hors-ligne ! (À synchroniser)` : `✅ Lot validé avec succès !`, 'success');
+    
+    // RESET RAFALE
+    currentBatchClientData = null;
+    batchScannedIndices = [];
+    updateBatchUI();
+    
     document.getElementById('scan-result').style.display = 'none';
+    document.getElementById('scanner-container').style.display = 'block';
     document.getElementById('scan-status').innerText = "Prêt à scanner.";
     document.getElementById('manual-ref').value = '';
     renderSessionScans();
@@ -264,7 +333,8 @@ function renderSessionScans() {
 }
 
 function allerPayerScan() {
-    localStorage.setItem('autoOpenColisId', currentScannedColis.id);
+    if(!currentBatchClientData) return;
+    localStorage.setItem('autoOpenColisId', currentBatchClientData.id);
     window.location.href = 'reception.html';
 }
 
@@ -347,9 +417,9 @@ function updateOfflineBanner() {
     }
 }
 
-function sauvegarderScanHorsLigne(id, scanMode, scannedIndex, status) {
+function sauvegarderScanHorsLigne(id, scanMode, scannedIndices, status) {
     let offlineScans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
-    offlineScans.push({ id: id, scanMode: scanMode, scannedIndex: scannedIndex, status: status, timestamp: Date.now() });
+    offlineScans.push({ id: id, scanMode: scanMode, scannedIndices: scannedIndices, status: status, timestamp: Date.now() });
     localStorage.setItem('amt_offline_scans', JSON.stringify(offlineScans));
     updateOfflineBanner();
 }
@@ -373,9 +443,9 @@ async function synchroniserScansHorsLigne() {
             const docRef = db.collection('expeditions').doc(scan.id);
             let updates = { status: scan.status, dateModification: firebase.firestore.FieldValue.serverTimestamp() };
             if (scan.scanMode === 'dechargement' || scan.scanMode === 'livre') updates.estArrive = true;
-            if (scan.scannedIndex !== null) {
-                updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(scan.scannedIndex);
-                updates[`colisScannes_${scan.scanMode}`] = firebase.firestore.FieldValue.arrayUnion(scan.scannedIndex);
+            if (scan.scannedIndices && scan.scannedIndices.length > 0) {
+                updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(...scan.scannedIndices);
+                updates[`colisScannes_${scan.scanMode}`] = firebase.firestore.FieldValue.arrayUnion(...scan.scannedIndices);
             }
             batch.update(docRef, updates);
         });

@@ -61,7 +61,7 @@
                 </button>
             </div>
 
-            <div class="card" style="text-align:center;">
+            <div class="card" style="text-align:center;" id="scanner-container">
                 <div id="reader"></div>
                 <p id="scan-status" style="margin-top:10px; font-weight:bold; color:#1C3A5E;"></p>
                 
@@ -69,6 +69,18 @@
                 <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
                     <input type="text" id="manual-ref" placeholder="Ou saisir Réf. manuellement" style="padding:10px; border-radius:8px; border:1px solid #ccc; max-width:250px; width:100%;">
                     <button class="btn-principal" style="width:auto; margin-top:0;" onclick="rechercheManuelle()">Chercher</button>
+                </div>
+            </div>
+
+            <!-- BANNIERE RAFALE (PANIER) -->
+            <div id="batch-banner" class="card" style="display:none; background:#e8f4fd; border:2px solid #15609e; margin-top:15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="text-align:left;">
+                        <div style="font-size:11px; color:#555; font-weight:bold; letter-spacing:1px;">📦 SCAN EN RAFALE</div>
+                        <div id="batch-client-name" style="font-size:16px; font-weight:900; color:#1C3A5E; margin:2px 0;">Client</div>
+                        <div id="batch-count" style="font-size:14px; font-weight:bold; color:#e67e22;">0 colis scannés</div>
+                    </div>
+                    <button class="step-btn step-btn-primary" style="width:auto; padding:12px 20px; margin:0;" onclick="passerEtapeValidation()">Suivant <i class="fas fa-arrow-right"></i></button>
                 </div>
             </div>
 
@@ -89,7 +101,8 @@
                 </div>
 
                 <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
-                    <button id="btn-action-scan" onclick="executerActionScan()" style="flex:1; background:#f39c12; color:white; padding:12px; font-size:15px;"><i class="fas fa-truck-loading"></i> Marquer au Chargement</button>
+                    <button onclick="annulerRafale()" style="flex:1; background:#f0f2f5; color:#c0392b; border:1px solid #c0392b; padding:12px; font-size:15px; font-weight:bold;">✕ Annuler le Lot</button>
+                    <button id="btn-action-scan" onclick="executerActionScan()" style="flex:2; background:#f39c12; color:white; padding:12px; font-size:15px;"><i class="fas fa-truck-loading"></i> Valider le Lot</button>
                     <button onclick="allerPayerScan()" style="flex:1; background:#27ae60; color:white; padding:12px; font-size:15px;"><i class="fas fa-money-bill-wave"></i> Payer / Livrer</button>
                 </div>
             </div>
