@@ -224,7 +224,7 @@ function partagerWhatsApp() {
         `💰 Reste : *${reste > 0 ? formatArgent(reste) + ' CFA' : '✅ Soldé'}*\n\n` +
         `🔗 Suivre votre colis : ${url}`;
 
-    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank');
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 
 function copierLien() {

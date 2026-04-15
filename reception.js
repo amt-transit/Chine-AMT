@@ -548,7 +548,7 @@ function envoyerWaRow(id) {
     if (numClean.startsWith('00')) numClean = numClean.substring(2);
     if (numClean.length === 10 && !numClean.startsWith('225')) numClean = '225' + numClean;
     const msg = _buildWaMessage(item);
-    window.open(`https://api.whatsapp.com/send?phone=${numClean}&text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${numClean}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function envoyerWhatsAppIndividuel() {
@@ -559,11 +559,11 @@ function envoyerWhatsAppIndividuel() {
     if (numClean.startsWith('00')) numClean = numClean.substring(2);
     if (numClean.length === 10 && !numClean.startsWith('225')) numClean = '225' + numClean;
     const msg = _buildWaMessage(currentEnvoi);
-    window.open(`https://api.whatsapp.com/send?phone=${numClean}&text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${numClean}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function partagerWhatsAppIndividuel() {
     if (!currentEnvoi) return;
     const msg = _buildWaMessage(currentEnvoi);
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
