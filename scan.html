@@ -8,9 +8,94 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/png" href="/logo_amt.png">
     <style>
-        #reader { width: 100%; max-width: 500px; margin: 0 auto; border-radius: 12px; overflow: hidden; border: 2px solid #1C3A5E; }
+        /* ── Scanner ── */
+        #reader { width: 100%; max-width: 480px; margin: 0 auto; border-radius: 14px; overflow: hidden; border: 3px solid #1C3A5E; }
         #reader__scan_region { background: #f0f2f5; }
         #reader button { background: #15609e; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+
+        /* ── Modes de scan (grandes cartes tactiles) ── */
+        .scan-mode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+        .scan-mode-card {
+            border: 2.5px solid #e0e0e0; border-radius: 14px; padding: 14px 10px;
+            text-align: center; cursor: pointer; background: #fff;
+            transition: all 0.18s; display: flex; flex-direction: column; align-items: center; gap: 6px;
+        }
+        .scan-mode-card:hover { border-color: #15609e; transform: translateY(-2px); }
+        .scan-mode-card.selected { border-width: 3px; box-shadow: 0 0 0 3px rgba(21,96,158,0.15); }
+        .scan-mode-card .mode-icon { font-size: 30px; line-height: 1; }
+        .scan-mode-card .mode-name { font-size: 13px; font-weight: 700; }
+        .scan-mode-card .mode-desc { font-size: 11px; color: #888; }
+
+        /* ── Mode auto-valider ── */
+        .toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f8f9fa; border-radius: 10px; margin-bottom: 14px; }
+        .toggle-track { position: relative; width: 44px; height: 24px; background: #ccc; border-radius: 12px; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+        .toggle-track.on { background: #27ae60; }
+        .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .toggle-track.on .toggle-thumb { left: 23px; }
+        .toggle-label { font-size: 13px; font-weight: 600; flex: 1; }
+        .toggle-sublabel { font-size: 11px; color: #888; }
+
+        /* ── Bandeau rafale ── */
+        .batch-banner {
+            background: linear-gradient(135deg, #1C3A5E, #15609e);
+            border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        }
+        .batch-banner-info { flex: 1; }
+        .batch-label { font-size: 10px; color: rgba(255,255,255,0.65); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .batch-name { font-size: 18px; font-weight: 900; color: #fff; line-height: 1.2; }
+        .batch-progress { margin-top: 8px; }
+        .batch-bar-track { height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; }
+        .batch-bar-fill { height: 100%; background: #F5A623; border-radius: 3px; transition: width .3s; }
+        .batch-count-text { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+        .batch-dots { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; max-width: 280px; }
+        .batch-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; transition: all .2s; }
+        .batch-dot.done { background: #27ae60; color: white; }
+        .batch-dot.todo { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); border: 1px dashed rgba(255,255,255,0.3); }
+        .batch-dot.new { animation: dotPop .3s ease; }
+        @keyframes dotPop { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        /* ── Résultat scan ── */
+        .result-card { border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+        .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .result-avatar { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; flex-shrink: 0; }
+        .result-name { font-size: 18px; font-weight: 800; color: #1C3A5E; }
+        .result-ref  { font-size: 13px; color: #888; }
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .result-item { background: #f8f9fa; border-radius: 8px; padding: 8px 10px; }
+        .result-item-label { font-size: 10px; color: #888; font-weight: 700; text-transform: uppercase; }
+        .result-item-value { font-size: 14px; font-weight: 700; color: #1C3A5E; margin-top: 2px; }
+        .reste-big { background: #1C3A5E; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .reste-big-label { color: rgba(255,255,255,.65); font-size: 13px; }
+        .reste-big-val { color: #F5A623; font-size: 22px; font-weight: 800; }
+
+        /* ── Historique session ── */
+        .session-item { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+        .session-item:last-child { border-bottom: none; }
+        .session-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .session-ref  { font-size: 13px; font-weight: 700; color: #1C3A5E; flex: 1; }
+        .session-meta { font-size: 11px; color: #888; }
+        .session-time { font-size: 11px; color: #aaa; white-space: nowrap; }
+
+        /* ── Compteur session (épinglé en haut) ── */
+        .session-counter { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.8); }
+        .session-counter-num { background: #F5A623; color: #1C3A5E; border-radius: 12px; padding: 2px 10px; font-weight: 800; font-size: 14px; }
+
+        /* ── Bannière offline ── */
+        .offline-banner {
+            display: none; border-radius: 10px; padding: 12px 16px;
+            text-align: center; font-weight: 700; cursor: pointer;
+            margin-bottom: 14px; font-size: 14px;
+        }
+        .offline-banner.pending { background: #f39c12; color: white; }
+        .offline-banner.ready   { background: #27ae60; color: white; }
+
+        /* ── Boutons action ── */
+        .action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+        .action-btn { flex: 1; min-width: 80px; padding: 13px 10px; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .15s; }
+        .action-btn:active { transform: scale(0.96); }
+
+        @media (min-width: 600px) { .scan-mode-grid { grid-template-columns: repeat(4, 1fr); } }
     </style>
 </head>
 <body>
@@ -21,110 +106,174 @@
         </div>
         <div class="header-info">
             <span>Agence : <span id="agence-nom">Abidjan</span></span>
+            <!-- Compteur session -->
+            <div class="session-counter">
+                <span>Session :</span>
+                <span class="session-counter-num" id="session-counter-num">0</span>
+            </div>
             <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545;color:white;">Déconnexion</button>
         </div>
     </header>
 
     <nav class="main-nav">
-        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
-        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
-        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
+        <a href="envoi.html"        class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html"   class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html"    class="nav-link" id="nav-reception">📥 Réception</a>
         <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
-        <a href="scan.html" class="nav-link active" id="nav-scan">📷 Scanner</a>
-        <a href="listing.html" class="nav-link" id="nav-listing">📋 Listing</a>
-        <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
-        <a href="admin.html" class="nav-link" id="nav-admin" style="display:none; background:#8e44ad;">👑 ADMIN</a>
-        
+        <a href="scan.html"         class="nav-link active" id="nav-scan">📷 Scanner</a>
+        <a href="listing.html"      class="nav-link" id="nav-listing">📋 Listing</a>
+        <a href="audit.html"        class="nav-link" id="nav-audit">📊 Audit</a>
+        <a href="admin.html"        class="nav-link" id="nav-admin" style="display:none; background:#8e44ad;">👑 ADMIN</a>
     </nav>
 
     <main>
-        <!-- Bannière Hors-Ligne -->
-        <div id="offline-banner" style="display:none; background:#f39c12; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="synchroniserScansHorsLigne()">
-            <i class="fas fa-sync-alt"></i> Synchroniser les scans en attente (<span id="offline-count">0</span>)
+        <!-- Bannière hors-ligne -->
+        <div id="offline-banner" class="offline-banner" onclick="synchroniserScansHorsLigne()">
+            <i class="fas fa-wifi"></i> <span id="offline-label">0 scans en attente de synchronisation</span>
         </div>
 
-        <section class="page-content" style="display:block;">
-            <h2>📷 Scanner un Colis</h2>
-            
-            <div class="sub-nav-container">
-                <button class="sub-nav-link active" id="tab-chargement" onclick="setScanMode('chargement')">
-                    <i class="fas fa-truck-loading"></i> Chargement
-                </button>
-                <button class="sub-nav-link" id="tab-dechargement" onclick="setScanMode('dechargement')">
-                    <i class="fas fa-box-open"></i> Déchargement
-                </button>
-                <button class="sub-nav-link" id="tab-livraison" onclick="setScanMode('livraison')">
-                    <i class="fas fa-motorcycle"></i> Livraison
-                </button>
-                <button class="sub-nav-link" id="tab-livre" onclick="setScanMode('livre')">
-                    <i class="fas fa-check-circle"></i> Livré
-                </button>
-            </div>
-
-            <div class="card" style="text-align:center;" id="scanner-container">
-                <div id="reader"></div>
-                <p id="scan-status" style="margin-top:10px; font-weight:bold; color:#1C3A5E;"></p>
-                
-                <hr>
-                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <input type="text" id="manual-ref" placeholder="Ou saisir Réf. manuellement" style="padding:10px; border-radius:8px; border:1px solid #ccc; max-width:250px; width:100%;">
-                    <button class="btn-principal" style="width:auto; margin-top:0;" onclick="rechercheManuelle()">Chercher</button>
+        <!-- ① Choix du mode (grandes cartes) -->
+        <div class="card">
+            <div style="font-size:14px; font-weight:700; color:#555; margin-bottom:12px; text-transform:uppercase; letter-spacing:.05em;">Étape 1 — Que faites-vous ?</div>
+            <div class="scan-mode-grid" id="mode-grid">
+                <div class="scan-mode-card selected" id="card-chargement" onclick="setScanMode('chargement', this)" style="border-color:#f39c12;">
+                    <div class="mode-icon">🚢</div>
+                    <div class="mode-name" style="color:#f39c12;">Chargement</div>
+                    <div class="mode-desc">Entrepôt Chine</div>
+                </div>
+                <div class="scan-mode-card" id="card-dechargement" onclick="setScanMode('dechargement', this)" style="">
+                    <div class="mode-icon">📦</div>
+                    <div class="mode-name">Déchargement</div>
+                    <div class="mode-desc">Arrivée Abidjan</div>
+                </div>
+                <div class="scan-mode-card" id="card-livraison" onclick="setScanMode('livraison', this)">
+                    <div class="mode-icon">🛵</div>
+                    <div class="mode-name">Livraison</div>
+                    <div class="mode-desc">En route client</div>
+                </div>
+                <div class="scan-mode-card" id="card-livre" onclick="setScanMode('livre', this)">
+                    <div class="mode-icon">✅</div>
+                    <div class="mode-name">Livré</div>
+                    <div class="mode-desc">Remis au client</div>
                 </div>
             </div>
 
-            <!-- BANNIERE RAFALE (PANIER) -->
-            <div id="batch-banner" class="card" style="display:none; background:#e8f4fd; border:2px solid #15609e; margin-top:15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="text-align:left;">
-                        <div style="font-size:11px; color:#555; font-weight:bold; letter-spacing:1px;">📦 SCAN EN RAFALE</div>
-                        <div id="batch-client-name" style="font-size:16px; font-weight:900; color:#1C3A5E; margin:2px 0;">Client</div>
-                        <div id="batch-count" style="font-size:14px; font-weight:bold; color:#e67e22;">0 colis scannés</div>
+            <!-- Toggle auto-valider -->
+            <div class="toggle-row">
+                <div class="toggle-track" id="auto-toggle" onclick="toggleAutoValider()">
+                    <div class="toggle-thumb"></div>
+                </div>
+                <div>
+                    <div class="toggle-label">Mode rafale (auto-valider)</div>
+                    <div class="toggle-sublabel">Valide automatiquement chaque scan sans confirmation</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ② Scanner + saisie manuelle -->
+        <div class="card" id="scanner-container" style="text-align:center;">
+            <div style="font-size:14px; font-weight:700; color:#555; margin-bottom:12px; text-align:left; text-transform:uppercase; letter-spacing:.05em;">Étape 2 — Scanner le QR Code</div>
+            <div id="reader"></div>
+            <p id="scan-status" style="margin-top:10px; font-weight:700; color:#1C3A5E; font-size:15px; min-height:22px;"></p>
+            <hr style="margin:12px 0;">
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <input type="text" id="manual-ref" placeholder="Ou taper la référence manuellement…"
+                    style="padding:12px 14px; border-radius:10px; border:2px solid #dee2e6; font-size:15px; flex:1; max-width:300px;"
+                    onkeydown="if(event.key==='Enter') rechercheManuelle()">
+                <button onclick="rechercheManuelle()" style="background:#15609e; color:white; padding:12px 18px; border:none; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer;">🔍</button>
+            </div>
+        </div>
+
+        <!-- ③ Bandeau rafale (colis en cours de scan) -->
+        <div class="batch-banner" id="batch-banner" style="display:none;">
+            <div class="batch-banner-info">
+                <div class="batch-label">📦 Lot en cours</div>
+                <div class="batch-name" id="batch-client-name">—</div>
+                <div class="batch-progress">
+                    <div class="batch-bar-track"><div class="batch-bar-fill" id="batch-bar" style="width:0%"></div></div>
+                    <div class="batch-count-text" id="batch-count">0 / 0 colis</div>
+                </div>
+                <div class="batch-dots" id="batch-dots"></div>
+            </div>
+            <button onclick="passerEtapeValidation()"
+                style="flex-shrink:0; background:#F5A623; color:#1C3A5E; border:none; border-radius:10px; padding:12px 16px; font-weight:800; font-size:14px; cursor:pointer; white-space:nowrap;">
+                Valider →
+            </button>
+        </div>
+
+        <!-- ④ Résultat / Validation du lot -->
+        <div id="scan-result" style="display:none;">
+            <div class="card result-card" style="border:2px solid #27ae60;">
+                <div class="result-header">
+                    <div class="result-avatar" id="res-avatar" style="background:#15609e;">CL</div>
+                    <div>
+                        <div class="result-name" id="res-client">—</div>
+                        <div class="result-ref" id="res-ref">—</div>
                     </div>
-                    <button class="step-btn step-btn-primary" style="width:auto; padding:12px 20px; margin:0;" onclick="passerEtapeValidation()">Suivant <i class="fas fa-arrow-right"></i></button>
                 </div>
-            </div>
-
-            <!-- Résultat du Scan -->
-            <div class="card" id="scan-result" style="display:none; border:2px solid #27ae60;">
-                <h3 style="color:#27ae60; margin-bottom:10px; text-align:center;">✅ Colis Trouvé !</h3>
-                <div style="background:#f8f9fa; border-radius:10px; padding:15px; font-size:15px; line-height:1.8;">
-                    <div>👤 Client : <strong id="res-client" style="font-size:1.1em;"></strong></div>
-                    <div>🏷️ Réf : <strong id="res-ref"></strong></div>
-                    <div>📞 Tél : <span id="res-tel"></span></div>
-                    <div>📦 Colis : <span id="res-desc"></span></div>
-                    <div>⚖️ Poids/Vol : <span id="res-pv"></span></div>
-                    <div>📝 Statut : <span id="res-statut" class="status-badge status-attente"></span></div>
-                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ddd; font-size:18px; color:#c0392b; font-weight:bold;">
-                        Reste à payer : <span id="res-reste"></span>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div class="result-item-label">📞 Téléphone</div>
+                        <div class="result-item-value" id="res-tel">—</div>
                     </div>
-                    <div id="res-checklist"></div>
+                    <div class="result-item">
+                        <div class="result-item-label">📦 Colis</div>
+                        <div class="result-item-value" id="res-desc">—</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-item-label">⚖️ Poids / Vol</div>
+                        <div class="result-item-value" id="res-pv">—</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-item-label">📋 Statut actuel</div>
+                        <div class="result-item-value" id="res-statut">—</div>
+                    </div>
                 </div>
+                <div class="reste-big">
+                    <div>
+                        <div class="reste-big-label">Reste à payer</div>
+                        <div class="reste-big-val" id="res-reste">—</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="reste-big-label" id="res-mode-label">Mode</div>
+                        <div style="color:#fff; font-size:16px; font-weight:700;" id="res-mode-val">—</div>
+                    </div>
+                </div>
+                <div id="res-checklist"></div>
 
-                <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
-                    <button onclick="annulerRafale()" style="flex:1; background:#f0f2f5; color:#c0392b; border:1px solid #c0392b; padding:12px; font-size:15px; font-weight:bold;">✕ Annuler le Lot</button>
-                    <button id="btn-action-scan" onclick="executerActionScan()" style="flex:2; background:#f39c12; color:white; padding:12px; font-size:15px;"><i class="fas fa-truck-loading"></i> Valider le Lot</button>
-                    <button onclick="allerPayerScan()" style="flex:1; background:#27ae60; color:white; padding:12px; font-size:15px;"><i class="fas fa-money-bill-wave"></i> Payer / Livrer</button>
+                <!-- Photos du chargement -->
+                <div id="photo-capture-section" style="margin-top:12px;">
+                    <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:6px;">📷 Photos (optionnel)</div>
+                    <input type="file" id="scan-photos" accept="image/*" capture="environment" multiple
+                        style="font-size:13px; padding:8px; border:1.5px dashed #ccc; border-radius:8px; width:100%; background:#fafafa;">
+                    <div id="apercu-photos-scan" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
                 </div>
             </div>
 
-            <!-- Historique de la session de scan -->
-            <div class="card" id="session-scans-card" style="display:none; margin-top:20px;">
-                <h3 style="margin-top:0;">📋 Historique de la session</h3>
-                <div class="table-container">
-                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
-                        <thead>
-                            <tr>
-                                <th>Heure</th>
-                                <th>Action</th>
-                                <th>Réf.</th>
-                                <th>Client</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-session-scans"></tbody>
-                    </table>
-                </div>
+            <div class="action-row">
+                <button class="action-btn" onclick="annulerRafale()"
+                    style="background:#fee2e2; color:#c0392b; border:1.5px solid #f5c6c6;">
+                    ✕ Annuler
+                </button>
+                <button class="action-btn" id="btn-action-scan" onclick="executerActionScan()"
+                    style="background:#f39c12; color:white; flex:2;">
+                    <i class="fas fa-truck-loading"></i> <span id="btn-action-label">Valider le lot</span>
+                </button>
+                <button class="action-btn" onclick="allerPayerScan()"
+                    style="background:#27ae60; color:white;">
+                    💰 Payer
+                </button>
             </div>
-        </section>
+        </div>
+
+        <!-- ⑤ Historique de la session -->
+        <div class="card" id="session-scans-card" style="display:none;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="font-size:14px; font-weight:700; color:#1C3A5E;">📋 Session de scan</div>
+                <button onclick="viderSession()" style="background:none; border:none; color:#aaa; font-size:12px; cursor:pointer;">Effacer</button>
+            </div>
+            <div id="session-list"></div>
+        </div>
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>

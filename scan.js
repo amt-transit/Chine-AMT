@@ -1,152 +1,236 @@
+// scan.js — Logique Scanner QR (Version améliorée)
+
 let html5QrcodeScanner;
 let currentScanMode = 'chargement';
-let currentBatchClientData = null; // Verrouille le client en cours
-let batchScannedIndices = []; // Stocke les colis (1, 2, 3...) scannés à la volée
-let sessionScans = []; // Stocke les scans de la session active
-let compressedPhotos = []; // Stocke les photos redimensionnées avant upload
+let autoValiderMode = false;
+let currentBatchClientData = null;
+let batchScannedIndices = [];
+let sessionScans = [];
+let compressedPhotos = [];
 
 const scanModes = {
-    'chargement': { label: 'Chargement', status: 'Au chargement', color: '#f39c12', icon: 'fas fa-truck-loading' },
-    'dechargement': { label: 'Déchargement', status: 'Au déchargement', color: '#17a2b8', icon: 'fas fa-box-open' },
-    'livraison': { label: 'Livraison', status: 'En livraison', color: '#8e44ad', icon: 'fas fa-motorcycle' },
-    'livre': { label: 'Livré', status: 'Livré', color: '#27ae60', icon: 'fas fa-check-circle' }
+    'chargement':  { label: 'Chargement',  status: 'Au chargement',   color: '#f39c12', icon: 'fas fa-truck-loading', emoji: '🚢' },
+    'dechargement':{ label: 'Déchargement',status: 'Au déchargement', color: '#17a2b8', icon: 'fas fa-box-open',      emoji: '📦' },
+    'livraison':   { label: 'Livraison',   status: 'En livraison',    color: '#8e44ad', icon: 'fas fa-motorcycle',    emoji: '🛵' },
+    'livre':       { label: 'Livré',       status: 'Livré',           color: '#27ae60', icon: 'fas fa-check-circle',  emoji: '✅' },
 };
 
-function setScanMode(mode) {
-    currentScanMode = mode;
-    // Mettre à jour l'UI des onglets
-    document.querySelectorAll('.sub-nav-link').forEach(btn => btn.classList.remove('active'));
-    const activeTab = document.getElementById('tab-' + mode);
-    if (activeTab) activeTab.classList.add('active');
-    
-    // Mettre à jour le bouton d'action du scan
-    const btn = document.getElementById('btn-action-scan');
-    if(btn) {
-        const conf = scanModes[mode];
-        btn.innerHTML = `<i class="${conf.icon}"></i> ${conf.label}`;
-        btn.style.backgroundColor = conf.color;
-    }
-}
-
+// ─── Init ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    // Instanciation du scanner
-    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+    html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        false
+    );
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 
+    // Photos
+    document.getElementById('scan-photos').addEventListener('change', async function () {
+        const preview = document.getElementById('apercu-photos-scan');
+        preview.innerHTML = '<span style="font-size:12px;color:#888;">⏳ Compression...</span>';
+        compressedPhotos = [];
+        for (const file of this.files) {
+            if (file.type.startsWith('image/')) {
+                const c = await compresserImage(file);
+                compressedPhotos.push(c);
+            }
+        }
+        preview.innerHTML = '';
+        compressedPhotos.forEach(f => {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(f);
+            img.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #ddd;';
+            preview.appendChild(img);
+        });
+    });
+
     updateOfflineBanner();
-    window.addEventListener('online', updateOfflineBanner);
+    window.addEventListener('online',  updateOfflineBanner);
     window.addEventListener('offline', updateOfflineBanner);
 });
 
-// Fonction pour jouer un bip sonore court
-function jouerSonScan() {
+// ─── Mode sélection ─────────────────────────────────────
+function setScanMode(mode, cardEl) {
+    currentScanMode = mode;
+    const conf = scanModes[mode];
+
+    // Mettre à jour les cartes
+    document.querySelectorAll('.scan-mode-card').forEach(c => {
+        c.classList.remove('selected');
+        c.style.borderColor = '#e0e0e0';
+        c.querySelector('.mode-name').style.color = '';
+    });
+    if (cardEl) {
+        cardEl.classList.add('selected');
+        cardEl.style.borderColor = conf.color;
+        cardEl.querySelector('.mode-name').style.color = conf.color;
+    }
+
+    // Mettre à jour le bouton de validation
+    const btn = document.getElementById('btn-action-scan');
+    const lbl = document.getElementById('btn-action-label');
+    if (btn) btn.style.background = conf.color;
+    if (lbl) lbl.textContent = `${conf.emoji} Valider — ${conf.label}`;
+
+    // Statut
+    document.getElementById('scan-status').textContent = `Mode : ${conf.label} — Prêt à scanner`;
+}
+
+// ─── Auto-valider ────────────────────────────────────────
+function toggleAutoValider() {
+    autoValiderMode = !autoValiderMode;
+    const track = document.getElementById('auto-toggle');
+    track.classList.toggle('on', autoValiderMode);
+}
+
+// ─── Sons & vibration ────────────────────────────────────
+function jouerSonScan(success = true) {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        osc.connect(gain); gain.connect(ctx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime); // Note La (A5)
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.frequency.setValueAtTime(success ? 880 : 330, ctx.currentTime);
+        if (!success) osc.frequency.setValueAtTime(220, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
         osc.start();
-        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.1);
-        osc.stop(ctx.currentTime + 0.1);
-    } catch(e) { console.error("Erreur audio", e); }
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + (success ? 0.12 : 0.3));
+        osc.stop(ctx.currentTime + (success ? 0.12 : 0.3));
+    } catch (e) { /* silencieux */ }
 }
 
-function onScanSuccess(decodedText, decodedResult) {
-    // Pause de la caméra pour éviter les scans multiples
-    if(html5QrcodeScanner.getState() === 2) { // 2 = SCANNING
-        html5QrcodeScanner.pause();
-    }
-    jouerSonScan();
+function vibrer(pattern = [60]) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+// ─── Callbacks scanner ───────────────────────────────────
+function onScanSuccess(decodedText) {
+    if (html5QrcodeScanner.getState() === 2) html5QrcodeScanner.pause();
+    jouerSonScan(true);
+    vibrer([60]);
     document.getElementById('manual-ref').value = decodedText;
     traiterScanRafale(decodedText.trim());
 }
-
-function onScanFailure(error) {
-    // Erreurs ignorées (le scanner lit constamment la vidéo)
-}
+function onScanFailure() { /* ignoré */ }
 
 function rechercheManuelle() {
     const ref = document.getElementById('manual-ref').value.trim();
     if (ref) traiterScanRafale(ref);
 }
 
+// ─── Logique rafale ──────────────────────────────────────
 async function traiterScanRafale(scanRef) {
     scanRef = scanRef.trim();
     let baseRef = scanRef;
     let cIdx = null;
 
-    // Découpage intelligent de la référence (supporte MRT-XXX_1 et MRT-XXX-1)
-    const lastUnderscore = scanRef.lastIndexOf('_');
-    if (lastUnderscore > 0) {
-        baseRef = scanRef.substring(0, lastUnderscore);
-        cIdx = parseInt(scanRef.substring(lastUnderscore + 1));
+    // Découpage ref: supporte MRT-XXX_1 et MRT-XXX-1
+    const lu = scanRef.lastIndexOf('_');
+    if (lu > 0) {
+        baseRef = scanRef.substring(0, lu);
+        cIdx = parseInt(scanRef.substring(lu + 1));
     } else {
-        const lastDash = scanRef.lastIndexOf('-');
-        if (lastDash > 0 && !isNaN(parseInt(scanRef.substring(lastDash + 1)))) {
-            baseRef = scanRef.substring(0, lastDash);
-            cIdx = parseInt(scanRef.substring(lastDash + 1));
+        const ld = scanRef.lastIndexOf('-');
+        if (ld > 0 && !isNaN(parseInt(scanRef.substring(ld + 1)))) {
+            baseRef = scanRef.substring(0, ld);
+            cIdx = parseInt(scanRef.substring(ld + 1));
         }
     }
 
-    // VERROUILLAGE : Si un lot est déjà en cours
+    // Lot en cours — vérification de collision
     if (currentBatchClientData) {
         if (currentBatchClientData.reference !== baseRef) {
-            // ERREUR: Collision de client !
-            if(html5QrcodeScanner.getState() === 2) html5QrcodeScanner.pause();
-            showCustomAlert(`⚠️ COLLISION DE CLIENTS !\n\nCe colis appartient à un autre client.\n\nVous pouvez soit continuer à scanner les colis restants de ${currentBatchClientData.nom}, soit appuyer sur "Suivant" pour terminer son lot.`, 'warning').then(() => {
-                if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
-            });
+            jouerSonScan(false);
+            vibrer([100, 50, 100]);
+            showCustomAlert(
+                `⚠️ MAUVAIS CLIENT !\n\nCe colis appartient à un autre dossier.\nTerminez d'abord le lot de ${currentBatchClientData.nom} ou annulez-le.`,
+                'warning'
+            ).then(() => { if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume(); });
             return;
         }
-        
-        // Le client correspond -> Ajout dans le panier rafale
+        // Même client — ajouter au lot
         if (cIdx && !batchScannedIndices.includes(cIdx)) {
             batchScannedIndices.push(cIdx);
+            jouerSonScan(true);
+            vibrer([40]);
         }
         updateBatchUI();
+
+        // Auto-valider si le lot est complet
+        if (autoValiderMode && batchScannedIndices.length >= (currentBatchClientData.quantiteEnvoyee || 1)) {
+            passerEtapeValidation();
+            setTimeout(() => executerActionScan(), 300);
+            return;
+        }
         if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
         return;
     }
 
-    // INITIALISATION : 1er scan du lot, on charge le client
-    document.getElementById('scan-status').innerText = `Recherche de la référence : ${baseRef}...`;
+    // 1er scan du lot — charger les données
+    document.getElementById('scan-status').textContent = `Recherche : ${baseRef}…`;
     try {
-        let snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
+        const snap = await db.collection('expeditions').where('reference', '==', baseRef).limit(1).get();
         if (snap.empty) {
-            showCustomAlert(`Colis introuvable pour la référence : ${baseRef}`, 'error');
-            document.getElementById('scan-status').innerText = "Prêt à scanner.";
+            jouerSonScan(false);
+            vibrer([200, 100, 200]);
+            showCustomAlert(`❌ Colis introuvable : ${baseRef}`, 'error');
+            document.getElementById('scan-status').textContent = 'Prêt à scanner.';
             if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
             return;
         }
-        
         currentBatchClientData = { id: snap.docs[0].id, ...snap.docs[0].data() };
         batchScannedIndices = [];
         if (cIdx) batchScannedIndices.push(cIdx);
-        
+
         updateBatchUI();
-        document.getElementById('scan-status').innerText = "Mode Rafale : Scannez le reste des colis de ce client.";
+        const total = currentBatchClientData.quantiteEnvoyee || 1;
+        document.getElementById('scan-status').textContent =
+            `Lot ouvert — Scannez les ${total} colis de ${currentBatchClientData.nom}`;
+
+        // Auto-valider immédiatement si 1 seul colis
+        if (autoValiderMode && total === 1) {
+            passerEtapeValidation();
+            setTimeout(() => executerActionScan(), 300);
+            return;
+        }
         if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
-    } catch(e) {
+    } catch (e) {
         console.error(e);
-        showCustomAlert("Erreur réseau lors de la recherche.", 'error');
+        jouerSonScan(false);
+        showCustomAlert('Erreur réseau.', 'error');
         if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
     }
 }
 
+// ─── UI Rafale ───────────────────────────────────────────
 function updateBatchUI() {
     if (!currentBatchClientData) {
         document.getElementById('batch-banner').style.display = 'none';
         return;
     }
-    document.getElementById('batch-banner').style.display = 'block';
-    document.getElementById('batch-client-name').innerText = `${currentBatchClientData.nom} ${currentBatchClientData.prenom}`;
-    document.getElementById('batch-count').innerText = `✅ ${batchScannedIndices.length} colis scanné(s) / ${currentBatchClientData.quantiteEnvoyee || 1}`;
+    const total = parseInt(currentBatchClientData.quantiteEnvoyee) || 1;
+    const done  = batchScannedIndices.length;
+    const pct   = Math.round((done / total) * 100);
+
+    document.getElementById('batch-banner').style.display = 'flex';
+    document.getElementById('batch-client-name').textContent =
+        `${currentBatchClientData.nom} ${currentBatchClientData.prenom}`;
+    document.getElementById('batch-bar').style.width = pct + '%';
+    document.getElementById('batch-count').textContent = `${done} / ${total} colis — ${pct}%`;
+
+    // Points visuels
+    let dotsHtml = '';
+    for (let i = 1; i <= Math.min(total, 20); i++) {
+        const isDone = batchScannedIndices.includes(i);
+        const isNew  = isDone && batchScannedIndices[batchScannedIndices.length - 1] === i;
+        dotsHtml += `<div class="batch-dot ${isDone ? 'done' : 'todo'} ${isNew ? 'new' : ''}">${i}</div>`;
+    }
+    if (total > 20) dotsHtml += `<div class="batch-dot todo" style="font-size:9px;">+${total-20}</div>`;
+    document.getElementById('batch-dots').innerHTML = dotsHtml;
 }
 
+// ─── Validation ──────────────────────────────────────────
 function passerEtapeValidation() {
     if (html5QrcodeScanner.getState() === 2) html5QrcodeScanner.pause();
     document.getElementById('scanner-container').style.display = 'none';
@@ -154,323 +238,294 @@ function passerEtapeValidation() {
     afficherResultatValidation();
 }
 
-function annulerRafale() {
-    currentBatchClientData = null;
-    batchScannedIndices = [];
-    updateBatchUI();
-    document.getElementById('scan-result').style.display = 'none';
-    document.getElementById('scanner-container').style.display = 'block';
-    document.getElementById('scan-status').innerText = "Scan annulé. Prêt à scanner.";
-    if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
-}
-
 function afficherResultatValidation() {
     const c = currentBatchClientData;
-    document.getElementById('res-client').innerText = `${c.nom} ${c.prenom}`;
-    document.getElementById('res-ref').innerText = c.reference;
-    document.getElementById('res-tel').innerText = c.tel;
-    document.getElementById('res-desc').innerText = `${c.quantiteEnvoyee} colis - ${c.description}`;
-    document.getElementById('res-pv').innerText = c.type.startsWith('aerien') ? `${c.poidsEnvoye || 0} Kg` : `${c.volumeEnvoye || 0} CBM`;
-    document.getElementById('res-statut').innerText = c.status || 'En attente';
-    
-    let pB = parseInt((c.prixEstime || '0').replace(/\D/g, '')) || 0;
-    let pN = pB + (c.fraisSupplementaires || 0) - (c.remise || 0);
-    let reste = pN - (parseInt(c.montantPaye) || 0);
-    document.getElementById('res-reste').innerText = formatArgent(reste) + " CFA";
+    const conf = scanModes[currentScanMode];
+    const total = parseInt(c.quantiteEnvoyee) || 1;
 
-    // Génération de la checklist des sous-colis
-    // On vérifie la checklist propre à l'étape en cours
-    let scannes = c[`colisScannes_${currentScanMode}`] || [];
-    // Rétrocompatibilité : si aucun chargement trouvé et qu'on est en mode chargement, regarder l'ancienne variable
-    if (currentScanMode === 'chargement' && scannes.length === 0) scannes = c.colisScannes || [];
-    
-    let qte = parseInt(c.quantiteEnvoyee) || 1;
-    let chkHtml = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid #ddd;"><strong>Détail des colis :</strong><div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">';
-    for(let i=1; i<=qte; i++) {
-        let isJustScanned = batchScannedIndices.includes(i);
-        let isAlreadyScanned = scannes.includes(i);
-        let icon = (isJustScanned || isAlreadyScanned) ? '✅' : '❌';
-        let color = (isJustScanned || isAlreadyScanned) ? '#27ae60' : '#c0392b';
-        let bg = isJustScanned ? '#e8f5e9' : '#fff';
-        let border = isJustScanned ? '2px solid #27ae60' : '1px solid #eee';
-        let fw = isJustScanned ? 'bold' : 'normal';
-        let txt = isJustScanned ? 'Nouveau Scan' : (isAlreadyScanned ? 'Déjà Pointé' : 'Attente');
-        
-        chkHtml += `<div style="background:${bg}; border:${border}; border-radius:6px; padding:6px; font-size:12px; font-weight:${fw}; line-height:1.2;">
-            ${icon} Colis ${i}/${qte} <div style="font-size:10px; color:${color}; margin-top:3px;">${txt}</div>
-        </div>`;
+    // Avatar
+    const initials = (c.nom || 'CL').substring(0, 2).toUpperCase();
+    const avatarEl = document.getElementById('res-avatar');
+    if (avatarEl) { avatarEl.textContent = initials; avatarEl.style.background = conf.color; }
+
+    document.getElementById('res-client').textContent = `${c.nom} ${c.prenom}`;
+    document.getElementById('res-ref').textContent    = c.reference;
+    document.getElementById('res-tel').textContent    = c.tel || '-';
+    document.getElementById('res-desc').textContent   = `${total} colis — ${c.description}`;
+    document.getElementById('res-pv').textContent     = c.type.startsWith('aerien')
+        ? `${c.poidsEnvoye || 0} Kg`
+        : `${c.volumeEnvoye || 0} CBM`;
+    document.getElementById('res-statut').textContent = c.status || 'En attente';
+    document.getElementById('res-mode-label').textContent = 'Action';
+    document.getElementById('res-mode-val').textContent = `${conf.emoji} ${conf.label}`;
+
+    // Reste à payer
+    let pB    = parseInt((c.prixEstime || '0').replace(/\D/g, '')) || 0;
+    let pN    = pB + (c.fraisSupplementaires || 0) - (c.remise || 0);
+    let reste = pN - (parseInt(c.montantPaye) || 0);
+    const resteEl = document.getElementById('res-reste');
+    if (resteEl) {
+        resteEl.textContent = reste > 0
+            ? formatArgent(reste) + ' CFA'
+            : '✅ Soldé';
+        resteEl.style.color = reste > 0 ? '#F5A623' : '#27ae60';
+    }
+
+    // Checklist des colis
+    let chkHtml = `<div style="margin-top:10px; padding-top:10px; border-top:1px solid #eee;">
+        <div style="font-size:12px; font-weight:700; color:#555; margin-bottom:8px; text-transform:uppercase; letter-spacing:.04em;">Colis scannés dans ce lot</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">`;
+    for (let i = 1; i <= total; i++) {
+        const ok = batchScannedIndices.includes(i);
+        chkHtml += `<div style="
+            width:36px; height:36px; border-radius:8px;
+            background:${ok ? conf.color : '#f0f2f5'};
+            color:${ok ? 'white' : '#bbb'};
+            display:flex; align-items:center; justify-content:center;
+            font-size:12px; font-weight:700;
+            border:${ok ? 'none' : '1.5px dashed #ccc'};">${i}</div>`;
     }
     chkHtml += '</div></div>';
     document.getElementById('res-checklist').innerHTML = chkHtml;
 
-    // Réinitialisation des photos
-    const dApercu = document.getElementById('apercu-photos-scan');
-    if(dApercu) dApercu.innerHTML = '';
-    const pInput = document.getElementById('scan-photos');
-    if(pInput) pInput.value = '';
-    compressedPhotos = [];
-
-    let photoUI = document.getElementById('photo-capture-ui');
-    if (!photoUI) {
-        photoUI = document.createElement('div');
-        photoUI.id = 'photo-capture-ui';
-        document.getElementById('res-checklist').after(photoUI);
-    }
-    
-    let modeLabel = scanModes[currentScanMode].label;
-        photoUI.innerHTML = `
-            <div style="margin-top:12px; padding-top:12px; border-top:1px solid #ddd;">
-            <strong>📸 Photos du ${modeLabel.toLowerCase()} (Optionnel) :</strong>
-            <input type="file" id="scan-photos" accept="image/*" capture="environment" multiple style="margin-top:8px; width:100%; font-size:14px; padding:8px; border:1.5px dashed #ccc; border-radius:8px;">
-            <div id="apercu-photos-scan" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
-            </div>
-        `;
-    document.getElementById('scan-photos').addEventListener('change', async function() {
-        const d = document.getElementById('apercu-photos-scan');
-        d.innerHTML = '<span style="font-size:12px;color:#888;font-weight:bold;">⏳ Compression en cours...</span>';
-        compressedPhotos = [];
-        
-        for (let file of this.files) {
-            if (file.type.startsWith('image/')) {
-                const compressedFile = await compresserImage(file);
-                compressedPhotos.push(compressedFile);
-            }
-        }
-        
-            d.innerHTML = '';
-        compressedPhotos.forEach(f => {
-            const i = document.createElement('img');
-            i.src = URL.createObjectURL(f);
-            i.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #ddd;';
-            d.appendChild(i);
-        });
-        });
-        photoUI.style.display = 'block';
+    const btn    = document.getElementById('btn-action-scan');
+    const btnLbl = document.getElementById('btn-action-label');
+    if (btn)    btn.style.background = conf.color;
+    if (btnLbl) btnLbl.textContent   = `${conf.emoji} Confirmer — ${conf.label}`;
 
     document.getElementById('scan-result').style.display = 'block';
 }
 
+function annulerRafale() {
+    currentBatchClientData = null;
+    batchScannedIndices    = [];
+    compressedPhotos       = [];
+    updateBatchUI();
+    document.getElementById('scan-result').style.display    = 'none';
+    document.getElementById('scanner-container').style.display = 'block';
+    document.getElementById('scan-status').textContent = 'Scan annulé. Prêt à scanner.';
+    document.getElementById('apercu-photos-scan').innerHTML = '';
+    document.getElementById('scan-photos').value = '';
+    if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
+}
+
 async function executerActionScan() {
-    if(!currentBatchClientData) return;
+    if (!currentBatchClientData) return;
     const actionBtn = document.getElementById('btn-action-scan');
-    if(actionBtn) { actionBtn.disabled = true; actionBtn.style.opacity = '0.6'; }
-    document.getElementById('scan-status').innerText = "Enregistrement en cours...";
+    if (actionBtn) { actionBtn.disabled = true; actionBtn.style.opacity = '0.6'; }
 
     const conf = scanModes[currentScanMode];
     let isOfflineSaved = false;
 
-    if (!navigator.onLine) {
-        // Sauvegarde locale si pas d'internet
-        sauvegarderScanHorsLigne(currentBatchClientData.id, currentScanMode, batchScannedIndices, conf.status);
-        isOfflineSaved = true;
-    } else {
-        // Tentative d'envoi classique
-        let updates = { 
-            status: conf.status,
-            dateModification: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        if(currentScanMode === 'dechargement' || currentScanMode === 'livre') {
-            updates.estArrive = true;
-        }
-        
-        let timeStr = new Date().toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        updates[`dateDernier_${currentScanMode}`] = timeStr;
+    const updates = {
+        status: conf.status,
+        dateModification: firebase.firestore.FieldValue.serverTimestamp(),
+        [`dateDernier_${currentScanMode}`]: new Date().toLocaleString('fr-FR', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }),
+    };
+    if (currentScanMode === 'dechargement' || currentScanMode === 'livre') updates.estArrive = true;
+    if (batchScannedIndices.length > 0) {
+        updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
+        updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
+    }
 
-        if (batchScannedIndices.length > 0) {
-            updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
-            updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
-            
-            // Horodatage individuel pour chaque colis (pour l'affichage au survol)
-            let datesObj = currentBatchClientData[`dates_${currentScanMode}`] || {};
-            batchScannedIndices.forEach(idx => {
-                datesObj[idx] = timeStr;
-            });
-            updates[`dates_${currentScanMode}`] = datesObj;
-        }
-
-        try {
+    try {
+        if (navigator.onLine) {
             await db.collection('expeditions').doc(currentBatchClientData.id).update(updates);
+            // Upload photos en arrière-plan
             if (compressedPhotos.length > 0) {
-                uploaderPhotosEnArrierePlan(currentBatchClientData.id, currentBatchClientData.reference, currentScanMode, compressedPhotos);
-                compressedPhotos = []; 
+                uploaderPhotosEnArrierePlan(
+                    currentBatchClientData.id,
+                    currentBatchClientData.reference,
+                    currentScanMode,
+                    [...compressedPhotos]
+                );
             }
-        } catch(err) {
-            console.warn("Erreur réseau Firestore, basculement en mode hors-ligne...", err);
-            sauvegarderScanHorsLigne(currentBatchClientData.id, currentScanMode, batchScannedIndices, conf.status);
+        } else {
+            sauvegarderScanHorsLigne(
+                currentBatchClientData.id, currentScanMode, batchScannedIndices, conf.status
+            );
             isOfflineSaved = true;
         }
+    } catch (e) {
+        console.error(e);
+        sauvegarderScanHorsLigne(
+            currentBatchClientData.id, currentScanMode, batchScannedIndices, conf.status
+        );
+        isOfflineSaved = true;
     }
-    
+
     // Ajouter à l'historique de session
     sessionScans.unshift({
-        heure: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        action: conf.label + (isOfflineSaved ? ' (Hors-ligne)' : ''), actionColor: conf.color,
-        ref: currentBatchClientData.reference, client: `${currentBatchClientData.nom} ${currentBatchClientData.prenom}`
+        heure:       new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        action:      conf.label + (isOfflineSaved ? ' ✈️ hors-ligne' : ''),
+        actionColor: conf.color,
+        ref:         currentBatchClientData.reference,
+        client:      `${currentBatchClientData.nom} ${currentBatchClientData.prenom}`,
+        count:       batchScannedIndices.length,
+        total:       parseInt(currentBatchClientData.quantiteEnvoyee) || 1,
     });
-    
-    showCustomAlert(isOfflineSaved ? `✅ Lot enregistré hors-ligne ! (À synchroniser)` : `✅ Lot validé avec succès !`, 'success');
-    
-    // RESET RAFALE
+
+    vibrer([80, 40, 80]);
+    showCustomAlert(
+        isOfflineSaved
+            ? `✅ Enregistré hors-ligne (${batchScannedIndices.length} colis). Synchronisez dès que possible.`
+            : `✅ ${conf.label} validé ! ${batchScannedIndices.length} colis mis à jour.`,
+        'success'
+    );
+
+    // Reset
     currentBatchClientData = null;
-    batchScannedIndices = [];
+    batchScannedIndices    = [];
+    compressedPhotos       = [];
     updateBatchUI();
-    
-    document.getElementById('scan-result').style.display = 'none';
+    document.getElementById('scan-result').style.display    = 'none';
     document.getElementById('scanner-container').style.display = 'block';
-    document.getElementById('scan-status').innerText = "Prêt à scanner.";
+    document.getElementById('scan-status').textContent = 'Prêt à scanner.';
     document.getElementById('manual-ref').value = '';
+    document.getElementById('apercu-photos-scan').innerHTML = '';
+    document.getElementById('scan-photos').value = '';
     renderSessionScans();
-    if(actionBtn) { actionBtn.disabled = false; actionBtn.style.opacity = '1'; }
+
+    if (actionBtn) { actionBtn.disabled = false; actionBtn.style.opacity = '1'; }
     if (html5QrcodeScanner.getState() === 3) html5QrcodeScanner.resume();
 }
 
+// ─── Historique session ──────────────────────────────────
 function renderSessionScans() {
-    const container = document.getElementById('session-scans-card');
-    const tbody = document.getElementById('tbody-session-scans');
-    if (sessionScans.length === 0) { container.style.display = 'none'; return; }
-    
-    container.style.display = 'block';
-    let html = '';
-    sessionScans.forEach(s => {
-        html += `<tr>
-            <td data-label="Heure">${s.heure}</td>
-            <td data-label="Action"><span class="status-badge" style="background:${s.actionColor}; font-size:10px;">${s.action}</span></td>
-            <td data-label="Réf."><strong>${s.ref}</strong></td>
-            <td data-label="Client">${s.client}</td>
-        </tr>`;
-    });
-    tbody.innerHTML = html;
+    const card = document.getElementById('session-scans-card');
+    const list = document.getElementById('session-list');
+    const counter = document.getElementById('session-counter-num');
+    if (counter) counter.textContent = sessionScans.length;
+
+    if (sessionScans.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+
+    list.innerHTML = sessionScans.map(s => `
+        <div class="session-item">
+            <div class="session-dot" style="background:${s.actionColor};"></div>
+            <div style="flex:1;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="session-ref">${s.ref}</span>
+                    <span style="font-size:11px; color:${s.actionColor}; font-weight:700;">${s.action}</span>
+                </div>
+                <div class="session-meta">${s.client} — ${s.count}/${s.total} colis</div>
+            </div>
+            <div class="session-time">${s.heure}</div>
+        </div>`).join('');
 }
 
+function viderSession() {
+    sessionScans = [];
+    renderSessionScans();
+}
+
+// ─── Navigation vers paiement ────────────────────────────
 function allerPayerScan() {
-    if(!currentBatchClientData) return;
+    if (!currentBatchClientData) return;
     localStorage.setItem('autoOpenColisId', currentBatchClientData.id);
     window.location.href = 'reception.html';
 }
 
-// ==========================================
-// UTILITAIRES : COMPRESSION & UPLOAD ASYNC
-// ==========================================
-
-async function compresserImage(file, maxWidth = 1024) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob((blob) => {
-                    const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg', lastModified: Date.now() });
-                    resolve(newFile);
-                }, 'image/jpeg', 0.7); // 70% de qualité
-            };
-        };
-    });
-}
-
-async function uploaderPhotosEnArrierePlan(docId, reference, scanMode, photosToUpload) {
-    const urls = [];
-    for (let file of photosToUpload) {
-        try {
-            const ref = storage.ref(`${scanMode}/${reference}/${Date.now()}_${file.name}`);
-            await ref.put(file);
-            const url = await ref.getDownloadURL();
-            urls.push(url);
-        } catch (err) {
-            console.error("Erreur d'upload en arrière-plan :", err);
-        }
-    }
-    if (urls.length > 0) {
-        let imgUpdates = { [`photos_${scanMode}`]: firebase.firestore.FieldValue.arrayUnion(...urls) };
-        if (scanMode === 'chargement') imgUpdates.photosChargement = firebase.firestore.FieldValue.arrayUnion(...urls);
-        await db.collection('expeditions').doc(docId).update(imgUpdates);
-    }
-}
-
-// ==========================================
-// MODE HORS-LIGNE (OFFLINE SYNC)
-// ==========================================
-
+// ─── Mode hors-ligne ─────────────────────────────────────
 function updateOfflineBanner() {
-    const offlineScans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
+    const scans  = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
     const banner = document.getElementById('offline-banner');
-    const countSpan = document.getElementById('offline-count');
-    if (banner && countSpan) {
-        if (offlineScans.length > 0) {
-            banner.style.display = 'block';
-            countSpan.innerText = offlineScans.length;
-            if (navigator.onLine) {
-                banner.style.background = '#27ae60'; // Vert: Prêt à synchroniser
-                banner.innerHTML = `<i class="fas fa-wifi"></i> Synchroniser les scans en attente (<span id="offline-count">${offlineScans.length}</span>)`;
-            } else {
-                banner.style.background = '#f39c12'; // Orange: Hors-ligne
-                banner.innerHTML = `<i class="fas fa-plane-slash"></i> Mode Hors-Ligne : ${offlineScans.length} scan(s) en attente`;
-            }
-        } else {
-            banner.style.display = 'none';
-        }
+    const label  = document.getElementById('offline-label');
+    if (!banner) return;
+    if (scans.length === 0) { banner.style.display = 'none'; return; }
+    banner.style.display = 'block';
+    if (navigator.onLine) {
+        banner.className = 'offline-banner ready';
+        label.textContent = `✅ Connexion rétablie — Synchroniser ${scans.length} scan(s) en attente`;
+    } else {
+        banner.className = 'offline-banner pending';
+        label.textContent = `✈️ Hors-ligne — ${scans.length} scan(s) sauvegardé(s) localement`;
     }
 }
 
-function sauvegarderScanHorsLigne(id, scanMode, scannedIndices, status) {
-    let offlineScans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
-    offlineScans.push({ id: id, scanMode: scanMode, scannedIndices: scannedIndices, status: status, timestamp: Date.now() });
-    localStorage.setItem('amt_offline_scans', JSON.stringify(offlineScans));
+function sauvegarderScanHorsLigne(id, scanMode, indices, status) {
+    let scans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
+    scans.push({ id, scanMode, scannedIndices: indices, status, timestamp: Date.now() });
+    localStorage.setItem('amt_offline_scans', JSON.stringify(scans));
     updateOfflineBanner();
 }
 
 async function synchroniserScansHorsLigne() {
     if (!navigator.onLine) {
-        showCustomAlert("Vous êtes toujours hors-ligne. Connectez-vous à Internet pour synchroniser.", 'warning');
+        showCustomAlert('Vous êtes hors-ligne. Reconnectez-vous d\'abord.', 'warning');
         return;
     }
-    
-    let offlineScans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
-    if (offlineScans.length === 0) return;
+    const scans = JSON.parse(localStorage.getItem('amt_offline_scans') || '[]');
+    if (scans.length === 0) return;
 
     const banner = document.getElementById('offline-banner');
-    banner.innerHTML = '⏳ Synchronisation en cours...';
-    banner.style.pointerEvents = 'none';
+    if (banner) banner.textContent = '⏳ Synchronisation…';
 
     try {
         const batch = db.batch();
-        offlineScans.forEach(scan => {
-            const docRef = db.collection('expeditions').doc(scan.id);
-            let updates = { status: scan.status, dateModification: firebase.firestore.FieldValue.serverTimestamp() };
-            if (scan.scanMode === 'dechargement' || scan.scanMode === 'livre') updates.estArrive = true;
-            if (scan.scannedIndices && scan.scannedIndices.length > 0) {
-                updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(...scan.scannedIndices);
-                updates[`colisScannes_${scan.scanMode}`] = firebase.firestore.FieldValue.arrayUnion(...scan.scannedIndices);
+        scans.forEach(s => {
+            const ref = db.collection('expeditions').doc(s.id);
+            const up  = {
+                status: s.status,
+                dateModification: firebase.firestore.FieldValue.serverTimestamp(),
+                [`dateDernier_${s.scanMode}`]: new Date(s.timestamp).toLocaleString('fr-FR'),
+            };
+            if (s.scanMode === 'dechargement' || s.scanMode === 'livre') up.estArrive = true;
+            if (s.scannedIndices && s.scannedIndices.length > 0) {
+                up.colisScannes = firebase.firestore.FieldValue.arrayUnion(...s.scannedIndices);
+                up[`colisScannes_${s.scanMode}`] = firebase.firestore.FieldValue.arrayUnion(...s.scannedIndices);
             }
-            let timeStr = new Date(scan.timestamp).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-            updates[`dateDernier_${scan.scanMode}`] = timeStr;
-            batch.update(docRef, updates);
+            batch.update(ref, up);
         });
-
         await batch.commit();
         localStorage.removeItem('amt_offline_scans');
-        showCustomAlert(`✅ ${offlineScans.length} scan(s) synchronisé(s) avec succès !`, 'success');
+        showCustomAlert(`✅ ${scans.length} scan(s) synchronisé(s) !`, 'success');
     } catch (e) {
-        console.error("Erreur Sync:", e);
-        showCustomAlert("Erreur lors de la synchronisation : " + e.message, 'error');
+        console.error(e);
+        showCustomAlert('Erreur de synchronisation : ' + e.message, 'error');
     } finally {
-        banner.style.pointerEvents = 'auto';
         updateOfflineBanner();
+    }
+}
+
+// ─── Compression & upload ────────────────────────────────
+async function compresserImage(file, maxWidth = 1024) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = ev => {
+            const img = new Image();
+            img.src = ev.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                canvas.toBlob(blob => {
+                    resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
+                        type: 'image/jpeg', lastModified: Date.now()
+                    }));
+                }, 'image/jpeg', 0.72);
+            };
+        };
+    });
+}
+
+async function uploaderPhotosEnArrierePlan(docId, reference, scanMode, photos) {
+    const urls = [];
+    for (const file of photos) {
+        try {
+            const storRef = storage.ref(`${scanMode}/${reference}/${Date.now()}_${file.name}`);
+            await storRef.put(file);
+            urls.push(await storRef.getDownloadURL());
+        } catch (err) { console.error('Upload échoué :', err); }
+    }
+    if (urls.length > 0) {
+        const up = { [`photos_${scanMode}`]: firebase.firestore.FieldValue.arrayUnion(...urls) };
+        if (scanMode === 'chargement') up.photosChargement = firebase.firestore.FieldValue.arrayUnion(...urls);
+        await db.collection('expeditions').doc(docId).update(up);
     }
 }
