@@ -34,6 +34,19 @@
     <main>
         <div class="card">
             <h2><i class="fas fa-images"></i> Listing des Scans & Photos (Concordance)</h2>
+            <div class="filter-box" style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <input type="text" id="search-listing" placeholder="🔍 Rechercher (Réf, Client, Conteneur...)" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;">
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <select id="sort-listing" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; background:#fff;">
+                        <option value="date-desc">⏳ Plus récents en premier</option>
+                        <option value="date-asc">⏳ Plus anciens en premier</option>
+                        <option value="client">👤 Trier par Client (A-Z)</option>
+                        <option value="status">📊 Trier par Statut (A-Z)</option>
+                    </select>
+                </div>
+            </div>
             <div class="table-container">
                 <table>
                     <thead>

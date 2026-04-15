@@ -75,7 +75,7 @@ function rechercheManuelle() {
 }
 
 async function traiterScanRafale(scanRef) {
-    let scanRef = ref.trim();
+    scanRef = scanRef.trim();
     let baseRef = scanRef;
     let cIdx = null;
 
