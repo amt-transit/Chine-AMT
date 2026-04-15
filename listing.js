@@ -176,13 +176,23 @@ function ouvrirDetails(dataEnc) {
     let sLi = d.colisScannes_livraison || [];
     let sLivre = d.colisScannes_livre || [];
     
-    let buildChecklist = (title, arr, color) => {
-        let html = `<div style="margin-top:10px;"><strong>${title} :</strong> <span style="font-size:12px; color:#555;">(${arr.length}/${total})</span><div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">`;
+    let buildChecklist = (title, arr, color, datesObj = {}, lastDate = '') => {
+        let dateStr = lastDate ? ` <span style="font-size:11px; font-weight:normal; color:#666; margin-left:6px;"><i class="far fa-clock"></i> ${lastDate}</span>` : '';
+        let html = `<div style="margin-top:10px; background:#fff; padding:10px; border-radius:8px; border:1px solid #eee;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                <strong style="color:${color};">${title}</strong> 
+                <span style="font-size:13px; font-weight:bold; color:#333; margin-left:6px; background:#f0f2f5; padding:2px 8px; border-radius:12px;">${arr.length}/${total}</span>
+                ${dateStr}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">`;
         for(let i=1; i<=total; i++) {
-            let icon = arr.includes(i) ? '✅' : '⏳';
-            let bg = arr.includes(i) ? color : '#f0f0f0';
-            let textCol = arr.includes(i) ? '#fff' : '#888';
-            html += `<span style="background:${bg}; color:${textCol}; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold;">${icon} Colis ${i}</span>`;
+            let isScanned = arr.includes(i);
+            let icon = isScanned ? '✅' : '⏳';
+            let bg = isScanned ? color : '#f8f9fa';
+            let textCol = isScanned ? '#fff' : '#aaa';
+            let border = isScanned ? 'none' : '1px dashed #ccc';
+            let titleAttr = (isScanned && datesObj && datesObj[i]) ? ` title="Scanné le ${datesObj[i]}"` : (isScanned ? ` title="Date exacte non enregistrée"` : '');
+            html += `<span style="background:${bg}; color:${textCol}; border:${border}; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:bold; cursor:${isScanned ? 'help' : 'default'}; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"${titleAttr}>${icon} Colis ${i}</span>`;
         }
         html += `</div></div>`;
         return html;

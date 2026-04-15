@@ -273,9 +273,20 @@ async function executerActionScan() {
         if(currentScanMode === 'dechargement' || currentScanMode === 'livre') {
             updates.estArrive = true;
         }
+        
+        let timeStr = new Date().toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        updates[`dateDernier_${currentScanMode}`] = timeStr;
+
         if (batchScannedIndices.length > 0) {
             updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
             updates[`colisScannes_${currentScanMode}`] = firebase.firestore.FieldValue.arrayUnion(...batchScannedIndices);
+            
+            // Horodatage individuel pour chaque colis (pour l'affichage au survol)
+            let datesObj = currentBatchClientData[`dates_${currentScanMode}`] || {};
+            batchScannedIndices.forEach(idx => {
+                datesObj[idx] = timeStr;
+            });
+            updates[`dates_${currentScanMode}`] = datesObj;
         }
 
         try {
@@ -447,6 +458,8 @@ async function synchroniserScansHorsLigne() {
                 updates.colisScannes = firebase.firestore.FieldValue.arrayUnion(...scan.scannedIndices);
                 updates[`colisScannes_${scan.scanMode}`] = firebase.firestore.FieldValue.arrayUnion(...scan.scannedIndices);
             }
+            let timeStr = new Date(scan.timestamp).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            updates[`dateDernier_${scan.scanMode}`] = timeStr;
             batch.update(docRef, updates);
         });
 
