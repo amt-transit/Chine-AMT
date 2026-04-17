@@ -180,7 +180,17 @@ async function genererFacture() {
     // Données Client (Gauche)
     doc.text(`NOM: ${(currentEnvoi.prenom + ' ' + currentEnvoi.nom).toUpperCase()}`, col1X, y);
     doc.text(`TÉL: ${currentEnvoi.tel}`, col1X, y + 6);
-    doc.text(`REF: ${currentEnvoi.reference}`, col1X, y + 12);
+    doc.text("RÉFÉRENCE:", col1X, y + 12);
+
+    const refText = currentEnvoi.reference || '-';
+    doc.setFont("helvetica", "bold");
+    const refWidth = doc.getTextWidth(refText);
+    doc.setFillColor(...blueColor); // Bleu nuit de la charte AMT
+    doc.rect(col1X, y + 14.5, refWidth + 6, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(refText, col1X + 3, y + 18.7);
+    doc.setTextColor(...darkColor);
+    doc.setFont("helvetica", "normal");
 
     // Données Logistique (Droite)
     doc.text(`EXPÉDITEUR: ${currentEnvoi.expediteur || 'AMT'}`, 195, y, { align: "right" });
@@ -354,10 +364,24 @@ async function genererFacture() {
 
     y += 6;
     doc.setFontSize(7);
+    
+    const term1 = "Les délais de transport sont fournis à titre purement indicatif par AMT Transit. Les retards de navires ou de dédouanement ne sauraient engager la responsabilité de l'entreprise. Le stockage est gracieux durant 7 jours calendaires après l'arrivée. Passé ce délai, des frais de magasinage s'appliquent. Toute marchandise non retirée après un délai de 30 jours (1 mois) sera considérée comme abandonnée et pourra être mise au rebut.";
+    const term2 = "L'indemnisation en cas de dommages ou pertes est strictement limitée au montant des frais de transport, sauf en cas de souscription à une assurance spécifique préalable.";
+    const term3 = "Le règlement intégral est exigé avant tout retrait de marchandise. Toute contestation doit impérativement être signalée dès réception de la facture, faute de quoi les conditions sont considérées comme acceptées sans réserve.";
+
     doc.setFont("helvetica", "normal");
-    const terms = "Les délais de transport sont fournis à titre purement indicatif par AMT Transit. Les retards de navires ou de dédouanement ne sauraient engager la responsabilité de l'entreprise. Le stockage est gracieux durant 7 jours calendaires après l'arrivée. Passé ce délai, des frais de magasinage s'appliquent. Toute marchandise non retirée après un délai de 30 jours (1 mois) sera considérée comme abandonnée et pourra être mise au rebut. L'indemnisation en cas de dommages est strictement limitée au montant des frais de transport, sauf en cas de souscription à une assurance spécifique préalable. Le règlement intégral est exigé avant tout retrait de marchandise. Toute contestation doit impérativement être signalée dès réception de la facture, faute de quoi les conditions sont considérées comme acceptées sans réserve.";
-    // Affichage du texte justifié (splitTextToSize gère le retour à la ligne)
-    doc.text(doc.splitTextToSize(terms, 180), 15, y);
+    let split1 = doc.splitTextToSize(term1, 180);
+    doc.text(split1, 15, y);
+    y += split1.length * 3; // Saut de ligne automatique
+
+    doc.setFont("helvetica", "bold");
+    let split2 = doc.splitTextToSize(term2, 180);
+    doc.text(split2, 15, y);
+    y += split2.length * 3;
+
+    doc.setFont("helvetica", "normal");
+    let split3 = doc.splitTextToSize(term3, 180);
+    doc.text(split3, 15, y);
 
     // --- PIED DE PAGE (FOOTER) ---
     const pageHeight = doc.internal.pageSize.height;
