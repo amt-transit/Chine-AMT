@@ -118,6 +118,23 @@ function fermerModalDepense(e) { if (e.target === modalDepense || e.target.class
 async function enregistrerDepense() {
     const d = document.getElementById('depense-date').value; const mt = document.getElementById('depense-motif').value; const m = parseFloat(document.getElementById('depense-montant').value) || 0; const grp = document.getElementById('depense-groupe').value.toUpperCase().trim();
     if (!d || !mt || m <= 0) { showCustomAlert('Veuillez remplir correctement tous les champs.', 'error'); return; }
-    try { await db.collection('depenses').add({ date: d, type: document.getElementById('depense-type').value, refGroupe: grp, motif: mt, montant: m, moyenPaiement: document.getElementById('depense-moyen').value, creeLe: firebase.firestore.FieldValue.serverTimestamp() }); showCustomAlert('Dépense enregistrée avec succès.', 'success'); modalDepense.style.display = 'none'; document.getElementById('form-depense').reset(); chargerCompta(currentComptaType); } catch (e) { showCustomAlert(e.message, "error"); }
+    
+    const btn = document.querySelector('button[onclick="enregistrerDepense()"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.dataset.originalText = btn.innerText;
+        btn.innerText = '⏳ Traitement...';
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    }
+
+    try { 
+        await db.collection('depenses').add({ date: d, type: document.getElementById('depense-type').value, refGroupe: grp, motif: mt, montant: m, moyenPaiement: document.getElementById('depense-moyen').value, creeLe: firebase.firestore.FieldValue.serverTimestamp() }); 
+        showCustomAlert('Dépense enregistrée avec succès.', 'success'); modalDepense.style.display = 'none'; document.getElementById('form-depense').reset(); chargerCompta(currentComptaType); 
+    } catch (e) { 
+        showCustomAlert(e.message, "error"); 
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = btn.dataset.originalText || '✅ Valider la dépense'; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+    }
 }
 async function supprimerDepense(id) { if (await showCustomConfirm('Voulez-vous vraiment supprimer cette dépense ?')) { await db.collection('depenses').doc(id).update({ deleted: true }); chargerCompta(currentComptaType); } }

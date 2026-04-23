@@ -2,6 +2,7 @@
 
 let currentAuditType = 'maritime';
 let currentDateFilter = 'all';
+let auditCharges = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     ouvrirSousOngletAudit('maritime');
@@ -27,15 +28,18 @@ function ouvrirSousOngletAudit(type) {
     const filters = document.getElementById('audit-quick-filters');
     const table = document.getElementById('audit-table-container');
     const alertes = document.getElementById('alertes-fraude');
+    const exportBtns = document.getElementById('audit-export-buttons');
     
     if (type === 'alertes') {
         if (search) search.style.display = 'none';
         if (filters) filters.style.display = 'none';
+        if (exportBtns) exportBtns.style.display = 'none';
         if (table) table.style.display = 'none';
         if (alertes) alertes.style.display = 'grid';
     } else {
         if (search) search.style.display = 'block';
         if (filters) filters.style.display = 'flex';
+        if (exportBtns) exportBtns.style.display = 'flex';
         if (table) table.style.display = 'block';
         if (alertes) alertes.style.display = 'none';
     }
@@ -92,7 +96,7 @@ async function chargerAudit() {
             if (!isMatch) return;
 
             // Historique détaillé
-            if (d.historiquePaiements && Array.isArray(d.historiquePaiements)) {
+            if (d.historiquePaiements && Array.isArray(d.historiquePaiements) && d.historiquePaiements.length > 0) {
                 d.historiquePaiements.forEach(p => {
                     let dateP = null;
                     if (p.date) {
@@ -204,6 +208,8 @@ function updateAuditView(search) {
         if (!search) return true;
         return JSON.stringify(t).toLowerCase().includes(search.toLowerCase());
     });
+    
+    auditCharges = filtered;
 
     let html = '';
     filtered.forEach(t => {

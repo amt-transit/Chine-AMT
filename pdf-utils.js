@@ -523,3 +523,94 @@ function exporterHistoriquePDF() {
     doc.autoTable({ head: headers, body: body, styles: { fontSize: 7 }, margin: { top: 15 }, foot: [["TOTAL GÉNÉRAL", "", "", "", "", "", tQ, tV.toFixed(2), formatArgent(tP) + " CFA", ""]], footStyles: { fillColor: [50, 50, 50], textColor: [0, 255, 255], fontStyle: 'bold' } });
     doc.save('Historique_Envois.pdf');
 }
+
+// Exporte l'audit en CSV (Excel)
+function exporterAuditExcel() {
+    if (typeof auditCharges === 'undefined' || auditCharges.length === 0) { showCustomAlert("Rien à exporter.", "warning"); return; }
+    let csvContent = "data:text/csv;charset=utf-8,Date,Type,Référence,Client,Description,Montant,Solde,Moyen,Agent\r\n";
+    auditCharges.forEach(t => {
+        const dateStr = t.date ? t.date.toLocaleDateString('fr-FR') + ' ' + t.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-';
+        const desc = (t.description || '').replace(/"/g, '""');
+        const client = (t.tiers || '').replace(/"/g, '""');
+        csvContent += `"${dateStr}","${t.type}","${t.ref}","${client}","${desc}",${t.montant},${t.solde},"${t.moyen}","${t.agent}"\r\n`;
+    });
+    let fileName = typeof currentAuditType !== 'undefined' ? `Audit_Paiements_${currentAuditType}.csv` : "Audit_Paiements.csv";
+    var link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", fileName); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+// Exporte l'audit en PDF
+async function exporterAuditPDF() {
+    if (typeof auditCharges === 'undefined' || auditCharges.length === 0) { showCustomAlert("Rien à exporter.", "warning"); return; }
+    const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'mm', 'a4');
+    const logo = await chargerLogo();
+    if (logo) { doc.addImage(logo, 'PNG', 14, 10, 20, 20); }
+    doc.setFontSize(18); doc.setTextColor(21, 96, 158); doc.text(`AUDIT DES PAIEMENTS - ${currentAuditType.toUpperCase()}`, 40, 22);
+
+    const headers = [["Date", "Type", "Référence", "Client", "Description", "Montant", "Solde", "Moyen", "Agent"]];
+    const body = auditCharges.map(t => {
+        const dateStr = t.date ? t.date.toLocaleDateString('fr-FR') + ' ' + t.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-';
+        return [dateStr, t.type, t.ref, t.tiers, t.description, formatArgent(t.montant) + " CFA", formatArgent(t.solde) + " CFA", t.moyen, t.agent];
+    });
+
+    doc.autoTable({ startY: 35, head: headers, body: body, styles: { fontSize: 7 }, headStyles: { fillColor: [28, 58, 94] }, alternateRowStyles: { fillColor: [245, 247, 250] } });
+    let fileName = typeof currentAuditType !== 'undefined' ? `Audit_Paiements_${currentAuditType}.pdf` : "Audit_Paiements.pdf";
+    doc.save(fileName);
+}
+
+// Exporte la comptabilité en CSV (Excel)
+function exporterComptaExcel() {
+    const tbody = document.getElementById('tbody-compta');
+    if (!tbody || tbody.children.length === 0) {
+        if(typeof showCustomAlert === 'function') showCustomAlert("Rien à exporter.", "warning");
+        return;
+    }
+    let csvContent = "data:text/csv;charset=utf-8,Date,Référence,Conteneur,Description,Client,Dû,Reste,Entrée,Sortie\r\n";
+    for(let i=0; i<tbody.rows.length; i++) {
+        const row = tbody.rows[i];
+        if(row.cells.length < 9) continue;
+        const rowData = [];
+        for(let j=0; j<9; j++) {
+            let text = row.cells[j].innerText.trim().replace(/"/g, '""');
+            rowData.push(`"${text}"`);
+        }
+        csvContent += rowData.join(",") + "\r\n";
+    }
+    let fileName = typeof currentComptaType !== 'undefined' ? `Comptabilite_${currentComptaType}.csv` : "Comptabilite.csv";
+    var link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); 
+    link.setAttribute("download", fileName); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+// Exporte la comptabilité en PDF
+async function exporterComptaPDF() {
+    const tbody = document.getElementById('tbody-compta');
+    if (!tbody || tbody.children.length === 0) {
+        if(typeof showCustomAlert === 'function') showCustomAlert("Rien à exporter.", "warning");
+        return;
+    }
+    const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'mm', 'a4');
+    const logo = await chargerLogo();
+    if (logo) { doc.addImage(logo, 'PNG', 14, 10, 20, 20); }
+    let typeStr = typeof currentComptaType !== 'undefined' ? currentComptaType : '';
+    doc.setFontSize(18); doc.setTextColor(21, 96, 158); doc.text(`RAPPORT DE COMPTABILITÉ${typeStr ? ' - ' + typeStr.toUpperCase() : ''}`, 40, 22);
+    
+    const totalCaisse = document.getElementById('total-caisse') ? document.getElementById('total-caisse').innerText : '';
+    if(totalCaisse) { doc.setFontSize(11); doc.setTextColor(0, 0, 0); doc.text(`Solde Caisse : ${totalCaisse}`, 40, 28); }
+
+    const headers = [["Date", "Référence", "Conteneur", "Description", "Client", "Dû", "Reste", "Entrée", "Sortie"]];
+    const body = [];
+    for(let i=0; i<tbody.rows.length; i++) {
+        const row = tbody.rows[i];
+        if(row.cells.length < 9) continue;
+        const rowData = [];
+        for(let j=0; j<9; j++) { rowData.push(row.cells[j].innerText.trim()); }
+        body.push(rowData);
+    }
+
+    let footData = [];
+    const tfoot = document.querySelector('#table-compta-details tfoot');
+    if (tfoot && tfoot.rows.length > 0) { footData = [[tfoot.rows[0].innerText.trim(), "", "", "", "", "", "", "", ""]]; }
+
+    doc.autoTable({ startY: 35, head: headers, body: body, foot: footData, styles: { fontSize: 7 }, headStyles: { fillColor: [28, 58, 94] }, footStyles: { fillColor: [50, 50, 50], textColor: [0, 255, 255], fontStyle: 'bold' } });
+    let fileName = typeStr ? `Comptabilite_${typeStr}.pdf` : "Comptabilite.pdf";
+    doc.save(fileName);
+}

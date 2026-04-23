@@ -328,6 +328,12 @@ async function enregistrerReception() {
 
     if (montant <= 0 && qteRecue <= 0) { showCustomAlert('Veuillez saisir un montant ou une quantité.', 'warning'); return; }
 
+    const btn = document.querySelector('button[onclick="enregistrerReception()"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Traitement...';
+    }
+
     try {
         const docRef = db.collection('expeditions').doc(currentEnvoi.id);
         const docSnap = await docRef.get();
@@ -365,7 +371,13 @@ async function enregistrerReception() {
         showCustomAlert(`Paiement enregistré !\nReste à payer : ${formatArgent(resteApres)} CFA`, 'success');
         document.getElementById('modal-backdrop').style.display = 'none';
         chargerClients();
-    } catch (e) { showCustomAlert('Erreur : ' + e.message, 'error'); console.error(e); }
+    } catch (e) { 
+        showCustomAlert('Erreur : ' + e.message, 'error'); console.error(e); 
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '✅ Valider le paiement';
+        }
+    }
 }
 
 // ─── Correction réception ────────────────────────────────
@@ -452,6 +464,16 @@ function fermerModalPaiementGroupe() {
 async function validerPaiementGroupe() {
     const moyen = document.getElementById('group-moyen').value || 'Espèce';
     const agent = currentUser ? currentUser.email : 'Inconnu';
+    
+    const btn = document.querySelector('button[onclick="validerPaiementGroupe()"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.dataset.originalText = btn.innerText;
+        btn.innerText = '⏳ Traitement...';
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    }
+
     const batch = db.batch();
     let count = 0;
     selectedReceptionIds.forEach(id => {
@@ -482,7 +504,16 @@ async function validerPaiementGroupe() {
         const ca = document.getElementById('check-all-rec'); if (ca) ca.checked = false;
         updateBoutonGroupe();
         chargerClients();
-    } catch (e) { showCustomAlert('Erreur : ' + e.message, 'error'); }
+    } catch (e) { 
+        showCustomAlert('Erreur : ' + e.message, 'error'); 
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = btn.dataset.originalText || 'Valider le paiement groupé';
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
+    }
 }
 
 // ─── WhatsApp ─────────────────────────────────────────────
