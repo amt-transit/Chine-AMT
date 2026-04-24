@@ -172,7 +172,7 @@ function _updateStep3Labels(type) {
     const isAerien = type.startsWith('aerien');
     const modeLabels = {
         aerien_normal:  ['Avion Normal',  '⚖️', 'Poids total (Kg)',    'Avion Normal',  '10 000 CFA/Kg'],
-        aerien_express: ['Avion Express', '🚀', 'Poids total (Kg)',    'Avion Express', '12 000 CFA/Kg'],
+        aerien_express: ['Avion Express', '🚀', 'Poids total (Kg)',    'Avion Express', '14 000 CFA/Kg'],
         maritime:       ['Bateau',        '📦', 'Volume total (CBM)',  'Bateau',        '250 000 CFA/CBM'],
     };
     const labels = modeLabels[type] || modeLabels['aerien_normal'];

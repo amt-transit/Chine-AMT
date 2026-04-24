@@ -7,6 +7,21 @@ document.addEventListener('DOMContentLoaded', () => {
 function ouvrirSousOngletCompta(type) {
     currentComptaType = type;
     document.querySelectorAll('.sub-nav-link').forEach(btn => { btn.classList.remove('active'); if (btn.textContent.toLowerCase().includes(type)) btn.classList.add('active'); });
+
+    // --- AJOUTEZ CECI POUR LE CHANGEMENT DE COULEUR ---
+    const btnMaritime = document.getElementById('compta-tab-maritime');
+    const btnAerien = document.getElementById('compta-tab-aerien');
+
+    if (btnMaritime && btnAerien) {
+        if (type === 'maritime') {
+            btnMaritime.classList.add('active');
+            btnAerien.classList.remove('active');
+        } else if (type === 'aerien') {
+            btnMaritime.classList.remove('active');
+            btnAerien.classList.add('active');
+        }
+    }
+
     chargerCompta(type);
 }
 
