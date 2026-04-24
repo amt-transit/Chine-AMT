@@ -284,16 +284,29 @@ function ajouterClientEtContinuer() {
 
     // Génération de la référence unique dès l'étape 3
     const pref = typeEnvoi.startsWith('aerien') ? 'AIR' : 'MRT';
-    let batchId = localStorage.getItem('amt_batchId');
-    let batchCounter = parseInt(localStorage.getItem('amt_batchCounter') || '0') + 1;
-    if (!batchId || envoiEnCours.length === 0) {
-        const now = new Date();
-        batchId = `${String(now.getFullYear()).slice(2)}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-        localStorage.setItem('amt_batchId', batchId);
-        batchCounter = 1;
+    const now = new Date();
+    const todayPrefix = `${String(now.getFullYear()).slice(2)}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    
+    let savedDatePrefix = localStorage.getItem('amt_datePrefix');
+    let dailyCounter = 1;
+    let actualPrefixToUse = todayPrefix;
+    
+    if (envoiEnCours.length > 0 && savedDatePrefix) {
+        actualPrefixToUse = savedDatePrefix;
+        dailyCounter = parseInt(localStorage.getItem('amt_dailyCounter') || '0') + 1;
+    } else {
+        if (savedDatePrefix === todayPrefix) {
+            actualPrefixToUse = todayPrefix;
+            dailyCounter = parseInt(localStorage.getItem('amt_dailyCounter') || '0') + 1;
+        } else {
+            actualPrefixToUse = todayPrefix;
+            localStorage.setItem('amt_datePrefix', todayPrefix);
+            dailyCounter = 1;
+        }
     }
-    localStorage.setItem('amt_batchCounter', batchCounter.toString());
-    const refColis = `${pref}-${batchId}-${String(batchCounter).padStart(2, '0')}`;
+    localStorage.setItem('amt_dailyCounter', dailyCounter.toString());
+    
+    const refColis = `${pref}-${actualPrefixToUse}-${String(dailyCounter).padStart(3, '0')}`;
 
     const nouveauClient = {
         reference:         refColis,
@@ -423,9 +436,6 @@ function removeClientFromList(i) {
     envoiEnCours.splice(i, 1);
     const toSave = envoiEnCours.map(c => { const copy = { ...c }; delete copy.photosFiles; return copy; });
     localStorage.setItem('amt_envoiEnCours', JSON.stringify(toSave));
-    if (envoiEnCours.length === 0) {
-        localStorage.removeItem('amt_batchId'); localStorage.removeItem('amt_batchCounter');
-    }
     renderClientsList();
 }
 
@@ -512,7 +522,7 @@ async function validerEnvoiGroupe() {
 
         await batch.commit();
         
-        localStorage.removeItem('amt_envoiEnCours'); localStorage.removeItem('amt_batchId'); localStorage.removeItem('amt_batchCounter');
+        localStorage.removeItem('amt_envoiEnCours');
 
         const askPrint = await showCustomConfirm(`✅ Envoi validé avec succès ! (${envoiEnCours.length} client(s))\n\nVoulez-vous (ré)imprimer l'ensemble des étiquettes de tout le lot maintenant ?`);
         if (askPrint && typeof genererEtiquettesBatch === 'function') {
