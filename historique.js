@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const mp = document.getElementById('modif-poids'); if(mp) mp.oninput=calculerPrixModif;
     const mr = document.getElementById('modif-remise'); if(mr) mr.oninput=calculerPrixModif;
     const mf = document.getElementById('modif-frais'); if(mf) mf.oninput=calculerPrixModif;
-    const mType = document.getElementById('modif-type'); if(mType) mType.onchange=calculerPrixModif;
+    const mType = document.getElementById('modif-type'); if(mType) mType.onchange=onTypeChange;
+    const mpu = document.getElementById('modif-prix-unitaire'); if(mpu) mpu.oninput=calculerPrixModif;
 });
 
 function ouvrirSousOngletHistorique(type) {
@@ -164,6 +165,22 @@ async function chargerGroupesPourBulk() {
     sorted.forEach(g => { const opt = document.createElement('option'); opt.value = g; opt.innerText = g; select.appendChild(opt); });
 }
 
+function onTypeChange() {
+    const typeSelect = document.getElementById('modif-type');
+    const typeEnvoi = typeSelect ? typeSelect.value : 'aerien_normal';
+    let t = 0;
+    if(typeEnvoi==='aerien_normal') {
+        t=PRIX_AERIEN_NORMAL;
+    } else if(typeEnvoi==='aerien_express') {
+        t=PRIX_AERIEN_EXPRESS;
+    } else {
+        t=PRIX_MARITIME_CBM;
+    }
+    const mpu = document.getElementById('modif-prix-unitaire');
+    if (mpu) mpu.value = t;
+    calculerPrixModif();
+}
+
 function ouvrirModalModifViaData(enc) { ouvrirModalModif(JSON.parse(decodeURIComponent(enc))); }
 const modalModif = document.getElementById('modal-modif-chine');
 function ouvrirModalModif(envoi) {
@@ -178,6 +195,17 @@ function ouvrirModalModif(envoi) {
         const elFrais = document.getElementById('modif-frais'); if(elFrais) elFrais.value = envoi.fraisSupplementaires || 0;
         const elP = document.getElementById('modif-poids');
         if((envoi.type||"").startsWith('aerien')) elP.value = envoi.poidsEnvoye; else elP.value = envoi.volumeEnvoye;
+        
+        let pB = parseInt((envoi.prixEstime||"0").replace(/\D/g,''))||0;
+        let v = parseFloat(elP.value) || 0;
+        let pu = (v > 0) ? (pB / v) : 0;
+        if (pu === 0) {
+            let tType = envoi.type || 'aerien_normal';
+            if(tType==='aerien_normal') pu=PRIX_AERIEN_NORMAL; else if(tType==='aerien_express') pu=PRIX_AERIEN_EXPRESS; else pu=PRIX_MARITIME_CBM;
+        }
+        const mpu = document.getElementById('modif-prix-unitaire');
+        if (mpu) mpu.value = pu;
+
         calculerPrixModif();
         updateModalArriveButton();
     }
@@ -196,7 +224,11 @@ function calculerPrixModif() {
         lblPoids.innerText = typeEnvoi.startsWith('aerien') ? 'Poids (Kg)' : 'Volume (CBM)';
     }
 
-    if(typeEnvoi==='aerien_normal') t=PRIX_AERIEN_NORMAL; else if(typeEnvoi==='aerien_express') t=PRIX_AERIEN_EXPRESS; else t=PRIX_MARITIME_CBM;
+    t = parseFloat(document.getElementById('modif-prix-unitaire').value);
+    if (isNaN(t)) {
+        if(typeEnvoi==='aerien_normal') t=PRIX_AERIEN_NORMAL; else if(typeEnvoi==='aerien_express') t=PRIX_AERIEN_EXPRESS; else t=PRIX_MARITIME_CBM;
+    }
+
     document.getElementById('modif-prix-final').value = formatArgent((v*t)+f-r)+' CFA';
 }
 function fermerModalModif(e) { if(e.target===modalModif || e.target.classList.contains('modal-close')) modalModif.style.display='none'; }
@@ -251,8 +283,11 @@ async function sauvegarderModificationChine() {
     if(nouveauType.startsWith('aerien')) { up.poidsEnvoye = v; if (currentModifEnvoi.type === 'maritime') up.volumeEnvoye = 0; }
     else { up.volumeEnvoye = v; if ((currentModifEnvoi.type || "").startsWith('aerien')) up.poidsEnvoye = 0; }
 
-    let t = 0;
-    if(nouveauType === 'aerien_normal') t = PRIX_AERIEN_NORMAL; else if(nouveauType === 'aerien_express') t = PRIX_AERIEN_EXPRESS; else t = PRIX_MARITIME_CBM;
+    let t = parseFloat(document.getElementById('modif-prix-unitaire').value);
+    if (isNaN(t)) {
+        if(nouveauType === 'aerien_normal') t = PRIX_AERIEN_NORMAL; else if(nouveauType === 'aerien_express') t = PRIX_AERIEN_EXPRESS; else t = PRIX_MARITIME_CBM;
+    }
+
     up.prixEstime = formatArgent(v * t) + ' CFA';
     
     const nouveauPrixVal = (v * t) + f - r;

@@ -211,10 +211,16 @@
                         <input type="number" id="modif-frais" placeholder="0">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Prix final</label>
-                    <input type="text" id="modif-prix-final" readonly
-                        style="background:#f8f9fa;font-weight:700;font-size:16px;color:#1C3A5E;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group">
+                        <label>Prix Unitaire (CFA)</label>
+                        <input type="number" id="modif-prix-unitaire" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Prix final</label>
+                        <input type="text" id="modif-prix-final" readonly
+                            style="background:#f8f9fa;font-weight:700;font-size:16px;color:#1C3A5E;">
+                    </div>
                 </div>
 
                 <div class="form-group" style="background:#e8f5e9;padding:10px;border-radius:8px;">
