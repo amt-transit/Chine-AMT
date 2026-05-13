@@ -258,11 +258,16 @@
                 </div>
             </div>
 
-            <button class="step-btn step-btn-orange" onclick="goStep(2)" style="margin-bottom:6px;">
-                ➕ Ajouter un autre client
-            </button>
-            <button class="step-btn step-btn-red" id="btn-valider-envoi-groupe" onclick="validerEnvoiGroupe()">
-                🚀 VALIDER L'ENVOI GLOBAL
+            <div style="display:flex; gap:10px; margin-top:16px;">
+              <button class="step-btn step-btn-back" onclick="retourEditerColis()" style="flex:1; margin:0; padding:12px;">
+                <i class="fas fa-arrow-left"></i> Retour
+              </button>
+              <button class="step-btn step-btn-back" onclick="ajouterUnAutreClient()" style="flex:2; margin:0; padding:12px; color:#15609e; border-color:#15609e;">
+                <i class="fas fa-user-plus"></i> + Ajouter un autre client
+              </button>
+            </div>
+            <button class="step-btn step-btn-primary" id="btn-valider-envoi-groupe" onclick="validerEnvoiGroupe()" style="background:#27ae60; margin-top:10px;">
+              🚀 VALIDER L'ENVOI GLOBAL
             </button>
             <div style="height:16px;"></div>
         </div>

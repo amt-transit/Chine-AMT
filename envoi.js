@@ -383,31 +383,9 @@ function ajouterClientEtContinuer() {
     const toSave = envoiEnCours.map(c => { const copy = { ...c }; delete copy.photosFiles; return copy; });
     localStorage.setItem('amt_envoiEnCours', JSON.stringify(toSave));
 
-    // Réinitialiser le formulaire client
-    document.getElementById('client-nom').value    = '';
-    document.getElementById('client-prenom').value = '';
-    document.getElementById('client-tel').value    = '';
-    document.getElementById('sub-desc').value      = '';
-    document.getElementById('sub-poids-vol').value = '';
-        document.getElementById('photos-colis').value  = '';
-    document.getElementById('apercu-photos').innerHTML = '';
-    document.getElementById('autocomplete-suggestions').style.display = 'none';
-    const suggTel = document.getElementById('autocomplete-suggestions-tel');
-    if (suggTel) suggTel.style.display = 'none';
-        
-        document.getElementById('multi-desc').value  = '';
-        document.getElementById('multi-qte').value   = '1';
-        document.getElementById('multi-poids').value = '';
-    if(document.getElementById('envoi-demarcheur-id')) document.getElementById('envoi-demarcheur-id').value = '';
-
-    sousColisList = [];
-        _updateMultiTable();
-
-    wizardQte = 1;
-    const qteEl = document.getElementById('qte-display');
-    if (qteEl) qteEl.textContent = '1';
-    const prixEl = document.getElementById('prix-calcule-wizard');
-    if (prixEl) prixEl.textContent = '0 CFA';
+    // ON NE VIDE PLUS LE FORMULAIRE ICI !
+    // Cela permet à l'utilisateur de cliquer sur "Retour" à l'étape 4 
+    // et de retrouver les données saisies des produits sans qu'elles soient effacées.
 
     currentEnvoi = nouveauClient;
     showCustomConfirm(`✅ Client ajouté avec succès !\n\nVoulez-vous imprimer les étiquettes pour ce colis (${nouveauClient.quantiteEnvoyee} carton(s)) maintenant ?`).then(async (askPrint) => {
@@ -416,6 +394,43 @@ function ajouterClientEtContinuer() {
         }
         goStep(4);
     });
+}
+
+// ─── Réinitialiser le formulaire client ───────────────────
+function viderFormulaireClient() {
+    document.getElementById('client-nom').value    = '';
+    document.getElementById('client-prenom').value = '';
+    document.getElementById('client-tel').value    = '';
+    document.getElementById('sub-desc').value      = '';
+    document.getElementById('sub-poids-vol').value = '';
+    document.getElementById('photos-colis').value  = '';
+    document.getElementById('apercu-photos').innerHTML = '';
+    document.getElementById('autocomplete-suggestions').style.display = 'none';
+    const suggTel = document.getElementById('autocomplete-suggestions-tel');
+    if (suggTel) suggTel.style.display = 'none';
+    
+    document.getElementById('multi-desc').value  = '';
+    document.getElementById('multi-qte').value   = '1';
+    document.getElementById('multi-poids').value = '';
+    if(document.getElementById('envoi-demarcheur-id')) document.getElementById('envoi-demarcheur-id').value = '';
+
+    sousColisList = [];
+    if (typeof _updateMultiTable === 'function') _updateMultiTable();
+
+    wizardQte = 1;
+    const qteEl = document.getElementById('qte-display');
+    if (qteEl) qteEl.textContent = '1';
+    const prixEl = document.getElementById('prix-calcule-wizard');
+    if (prixEl) prixEl.textContent = '0 CFA';
+}
+
+function ajouterUnAutreClient() {
+    viderFormulaireClient();
+    goStep(2);
+}
+
+function retourEditerColis() {
+    goStep(3);
 }
 
 // ─── Étape 4 : Afficher la liste ─────────────────────────
@@ -576,11 +591,22 @@ async function validerEnvoiGroupe() {
             };
             
             batch.set(newRef, dataToSave);
-            envoisSauvegardes.push(dataToSave);
+            envoisSauvegardes.push({ id: newRef.id, ...dataToSave });
         }
 
         await batch.commit();
         
+        // ─── GÉNÉRATION DES COMMISSIONS DÉMARCHEURS ───
+        if (typeof window.genererCommissionDemarcheur === 'function') {
+            for (const env of envoisSauvegardes) {
+                if (env.demarcheurId) {
+                    const prixBrut = parseInt((env.prixEstime || '0').replace(/\D/g, '')) || 0;
+                    // Appel asynchrone non bloquant
+                    window.genererCommissionDemarcheur(env.id, prixBrut, env.demarcheurId).catch(console.error);
+                }
+            }
+        }
+
         localStorage.removeItem('amt_envoiEnCours');
 
         const askPrint = await showCustomConfirm(`✅ Envoi validé avec succès ! (${envoiEnCours.length} client(s))\n\nVoulez-vous (ré)imprimer l'ensemble des étiquettes de tout le lot maintenant ?`);
@@ -591,9 +617,6 @@ async function validerEnvoiGroupe() {
 
         // Réinitialiser complètement
         envoiEnCours = [];
-        sousColisList = [];
-        _updateMultiTable();
-        wizardQte = 1;
         selectedTransportCard = null;
         document.querySelectorAll('.transport-card').forEach(c => c.classList.remove('selected'));
         const hiddenType = document.getElementById('type-envoi');
@@ -606,16 +629,7 @@ async function validerEnvoiGroupe() {
         if (nc) nc.value = '';
 
         // Vider les champs du formulaire client
-        document.getElementById('client-nom').value    = '';
-        document.getElementById('client-prenom').value = '';
-        document.getElementById('client-tel').value    = '';
-        document.getElementById('sub-desc').value      = '';
-        document.getElementById('sub-poids-vol').value = '';
-        document.getElementById('photos-colis').value  = '';
-        document.getElementById('apercu-photos').innerHTML = '';
-        document.getElementById('multi-desc').value  = '';
-        document.getElementById('multi-qte').value   = '1';
-        document.getElementById('multi-poids').value = '';
+        viderFormulaireClient();
         
         const btn1 = document.getElementById('btn-next-1');
         if (btn1) btn1.disabled = true;

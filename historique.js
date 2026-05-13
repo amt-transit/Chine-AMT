@@ -189,6 +189,7 @@ function ouvrirModalModif(envoi) {
         modalModif.style.display = 'flex';
         document.getElementById('modif-nom').value = envoi.nom || ''; document.getElementById('modif-prenom').value = envoi.prenom || ''; document.getElementById('modif-tel').value = envoi.tel || '';
         chargerGroupesDansModif(envoi.refGroupe);
+        chargerDemarcheursDansModif(envoi.demarcheurId);
         const typeSelect = document.getElementById('modif-type');
         if (typeSelect) typeSelect.value = envoi.type || 'aerien_normal';
         document.getElementById('modif-qte').value = envoi.quantiteEnvoyee; document.getElementById('modif-remise').value = envoi.remise || 0;
@@ -258,6 +259,23 @@ async function basculerStatutArrive() {
     } catch (e) { showCustomAlert(e.message, "error"); }
 }
 
+async function chargerDemarcheursDansModif(selectedId) {
+    const select = document.getElementById('modif-demarcheur-id');
+    if (!select) return;
+    select.innerHTML = '<option value="">— Aucun démarcheur —</option>';
+    try {
+        const snap = await db.collection('demarcheurs').get();
+        snap.forEach(doc => {
+            const d = doc.data();
+            const opt = document.createElement('option');
+            opt.value = doc.id;
+            opt.innerText = `${d.prenom} ${d.nom}`;
+            if (doc.id === selectedId) opt.selected = true;
+            select.appendChild(opt);
+        });
+    } catch(e) { console.error(e); }
+}
+
 async function sauvegarderModificationChine() {
     if(!currentModifEnvoi) return;
     if(currentRole === 'spectateur') { showCustomAlert("Action non autorisée.", "error"); return; }
@@ -265,6 +283,7 @@ async function sauvegarderModificationChine() {
     const q = parseInt(document.getElementById('modif-qte').value) || 0; const v = parseFloat(document.getElementById('modif-poids').value) || 0; const r = parseInt(document.getElementById('modif-remise').value) || 0;
     const f = parseInt(document.getElementById('modif-frais').value) || 0;
     const nouveauGroupe = document.getElementById('modif-groupe-select').value;
+    const demarcheurId = document.getElementById('modif-demarcheur-id') ? document.getElementById('modif-demarcheur-id').value : null;
 
     // 1. Récupérer les données fraîches de la base pour le calcul du statut
     let freshDoc;
@@ -280,6 +299,7 @@ async function sauvegarderModificationChine() {
     const nouveauType = typeSelect ? typeSelect.value : currentModifEnvoi.type;
 
     let up = { nom: nom, prenom: prenom, tel: tel, quantiteEnvoyee: q, remise: r, fraisSupplementaires: f, type: nouveauType, dernierModificateur: currentRole === 'chine' ? 'Agence Chine' : 'Agence Abidjan', dateModification: firebase.firestore.FieldValue.serverTimestamp() };
+    if (document.getElementById('modif-demarcheur-id')) { up.demarcheurId = demarcheurId || null; }
     if(nouveauType.startsWith('aerien')) { up.poidsEnvoye = v; if (currentModifEnvoi.type === 'maritime') up.volumeEnvoye = 0; }
     else { up.volumeEnvoye = v; if ((currentModifEnvoi.type || "").startsWith('aerien')) up.poidsEnvoye = 0; }
 
@@ -330,7 +350,16 @@ async function sauvegarderModificationChine() {
         else { if (Math.abs(diffP) > 0.1) nouveauStatut = (diffP > 0 ? 'Reçu - Supérieur' : 'Reçu - Ecart'); else nouveauStatut = 'Reçu - Conforme'; }
         up.status = nouveauStatut;
     }
-    try { await db.collection('expeditions').doc(currentModifEnvoi.id).update(up); showCustomAlert('Modifié avec succès.', 'success'); modalModif.style.display = 'none'; chargerHistoriqueChine(); } catch(e) { showCustomAlert(e.message, "error"); }
+    try { 
+        await db.collection('expeditions').doc(currentModifEnvoi.id).update(up); 
+        
+        // Générer la commission si on vient d'ajouter un démarcheur (et qu'il n'y en avait pas avant)
+        if (up.demarcheurId && !freshData.demarcheurId && typeof window.genererCommissionDemarcheur === 'function') {
+            window.genererCommissionDemarcheur(currentModifEnvoi.id, nouveauPrixVal, up.demarcheurId).catch(console.error);
+        }
+        
+        showCustomAlert('Modifié avec succès.', 'success'); modalModif.style.display = 'none'; chargerHistoriqueChine(); 
+    } catch(e) { showCustomAlert(e.message, "error"); }
 }
 
 async function chargerGroupesDansModif(groupeActuel) {

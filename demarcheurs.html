@@ -3,10 +3,147 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Démarcheurs — AMT</title>
+  <title>Démarcheurs — AMT Transit Pro</title>
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <link rel="icon" type="image/png" href="/logo_amt.png">
+  <style>
+    /* Styles supplémentaires spécifiques à la page démarcheurs */
+    .stat-box {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid #e9ecef;
+    }
+    .stat-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .stat-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6c757d;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1C3A5E;
+    }
+    .stat-value.text-green { color: #27ae60; }
+    .stat-value.text-warning { color: #f39c12; }
+    .stat-value.text-danger { color: #dc3545; }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-success { background: #d4edda; color: #155724; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-danger { background: #f8d7da; color: #721c24; }
+    .badge-info { background: #d1ecf1; color: #0c5460; }
+    
+    .progress-bar-custom {
+      background: #e9ecef;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 8px;
+    }
+    .progress-fill {
+      background: linear-gradient(90deg, #27ae60, #2ecc71);
+      height: 100%;
+      transition: width 0.3s;
+    }
+    
+    .card-header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+    }
+    
+    .chart-container {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .ranking-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .ranking-item:hover {
+      background: #f8f9fa;
+    }
+    .ranking-number {
+      width: 30px;
+      height: 30px;
+      background: #f0f0f0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .ranking-number.top1 { background: #ffd700; color: #000; }
+    .ranking-number.top2 { background: #c0c0c0; color: #000; }
+    .ranking-number.top3 { background: #cd7f32; color: #000; }
+    
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .btn-icon:hover { background: #f0f0f0; }
+    
+    .solde-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 20px;
+      color: white;
+    }
+    
+    @media (max-width: 768px) {
+      .stat-value { font-size: 18px; }
+      .filter-bar { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
     <header>
@@ -29,27 +166,88 @@
         <a href="listing.html" class="nav-link" id="nav-listing">📋 Listing</a>
         <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
         <a href="demarcheurs.html" class="nav-link active" id="nav-demarcheurs">🤝 Démarcheurs</a>
-        <a href="admin.html" class="nav-link" id="nav-admin" style="display:none; background:#8e44ad;">👑 ADMIN</a>
+        <a href="admin.html" class="nav-link" id="nav-admin" style="display:none;">👑 ADMIN</a>
     </nav>
 
   <main>
-    <!-- Onglets -->
+    <!-- Nouveaux onglets enrichis -->
     <div class="sub-nav-container" style="margin-bottom:20px;">
-      <button class="sub-nav-link active" onclick="ouvrirOnglet('reseau')"><i class="fas fa-sitemap"></i> Réseau</button>
+      <button class="sub-nav-link active" onclick="ouvrirOnglet('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
+      <button class="sub-nav-link" onclick="ouvrirOnglet('reseau')"><i class="fas fa-sitemap"></i> Réseau</button>
       <button class="sub-nav-link" onclick="ouvrirOnglet('commissions')"><i class="fas fa-coins"></i> Commissions</button>
       <button class="sub-nav-link" onclick="ouvrirOnglet('retraits')"><i class="fas fa-money-bill-wave"></i> Retraits</button>
+      <button class="sub-nav-link" onclick="ouvrirOnglet('analytique')"><i class="fas fa-chart-pie"></i> Analytique</button>
       <button class="sub-nav-link" onclick="ouvrirOnglet('parametres')" id="btn-tab-params" style="display:none;"><i class="fas fa-sliders-h"></i> Paramètres</button>
     </div>
 
-    <!-- ======================== ONGLET RÉSEAU ======================== -->
-    <div id="tab-reseau">
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-          <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-users" style="color:#1C3A5E;"></i> Réseau de démarcheurs</h2>
-          <button class="step-btn step-btn-primary" id="btn-nouveau-demarcheur" onclick="ouvrirModalDemarcheur()" style="display:none; width:auto; padding:8px 12px; margin:0; font-size:13px;">
-            <i class="fas fa-plus"></i> Nouveau démarcheur
-          </button>
+    <!-- ========== ONGLET DASHBOARD ========== -->
+    <div id="tab-dashboard">
+      <!-- KPIs principaux -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:20px;">
+        <div class="stat-box">
+          <div class="stat-label"><i class="fas fa-users"></i> Démarcheurs actifs</div>
+          <div class="stat-value" id="kpi-total-dem">0</div>
+          <small style="color:#888;">Total inscrits</small>
         </div>
+        <div class="stat-box">
+          <div class="stat-label"><i class="fas fa-chart-line"></i> Total généré</div>
+          <div class="stat-value text-green" id="kpi-total-genere">0 CFA</div>
+          <small>Commissions brutes</small>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label"><i class="fas fa-hand-holding-usd"></i> Total versé</div>
+          <div class="stat-value text-warning" id="kpi-total-paye">0 CFA</div>
+          <small>Retraits effectués</small>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label"><i class="fas fa-clock"></i> Passif (dues)</div>
+          <div class="stat-value text-danger" id="kpi-total-dette">0 CFA</div>
+          <small>Commissions à payer</small>
+        </div>
+      </div>
+
+      <!-- Graphiques -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:20px; margin-bottom:20px;">
+        <div class="chart-container">
+          <h3 style="margin-top:0; font-size:16px;"><i class="fas fa-trophy"></i> Top 5 des démarcheurs</h3>
+          <div id="top-demarcheurs-list" class="ranking-list">
+            <p style="text-align:center; color:#888;">Chargement...</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3 style="margin-top:0; font-size:16px;"><i class="fas fa-chart-bar"></i> Performance mensuelle</h3>
+          <canvas id="monthlyChart" style="max-height:250px; width:100%;"></canvas>
+        </div>
+      </div>
+
+      <!-- Alertes importantes -->
+      <div class="card" style="background:#fff3cd; border-left:4px solid #ffc107; margin-bottom:20px;">
+        <h4 style="margin:0 0 10px 0;"><i class="fas fa-bell"></i> Alertes importantes</h4>
+        <div id="alerts-container"></div>
+      </div>
+    </div>
+
+    <!-- ========== ONGLET RÉSEAU ========== -->
+    <div id="tab-reseau" style="display:none;">
+      <div class="card-header-actions">
+        <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-users" style="color:#1C3A5E;"></i> Réseau de démarcheurs</h2>
+        <button class="step-btn step-btn-primary" id="btn-nouveau-demarcheur" onclick="ouvrirModalDemarcheur()" style="display:none;">
+          <i class="fas fa-plus"></i> Nouveau démarcheur
+        </button>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="search-demarcheur" placeholder="🔍 Rechercher (nom, prénom, téléphone)..." style="flex:1;">
+        <select id="filter-statut" onchange="afficherReseau()">
+          <option value="all">Tous les statuts</option>
+          <option value="actif">Actifs</option>
+          <option value="inactif">Inactifs</option>
+        </select>
+        <select id="filter-parrain" onchange="afficherReseau()">
+          <option value="all">Tous</option>
+          <option value="avec_parrain">Avec parrain</option>
+          <option value="sans_parrain">Sans parrain</option>
+        </select>
       </div>
 
       <div id="liste-demarcheurs">
@@ -57,107 +255,120 @@
       </div>
     </div>
 
-    <!-- ======================== ONGLET COMMISSIONS ======================== -->
+    <!-- ========== ONGLET COMMISSIONS ========== -->
     <div id="tab-commissions" style="display:none;">
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-          <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-coins" style="color:#F5A623;"></i> Commissions générées</h2>
-          <select id="filtre-demarcheur-commi" onchange="chargerCommissions()" style="padding:8px 12px; border-radius:8px; border:1px solid #ddd;">
-            <option value="">Tous les démarcheurs</option>
-          </select>
+      <div class="card-header-actions">
+        <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-coins" style="color:#F5A623;"></i> Commissions générées</h2>
+        <div style="display:flex; gap:10px;">
+          <button class="step-btn step-btn-green" style="margin:0; width:auto; padding:8px 12px;" onclick="exporterCommissionsCSV()"><i class="fas fa-file-excel"></i> Exporter CSV</button>
         </div>
       </div>
 
-      <!-- Résumé stats -->
+      <div class="filter-bar">
+        <select id="filtre-date-commi" onchange="chargerCommissions()">
+          <option value="all">Toutes les dates</option>
+          <option value="month">Ce mois</option>
+          <option value="last_month">Mois dernier</option>
+          <option value="quarter">Ce trimestre</option>
+          <option value="year">Cette année</option>
+        </select>
+        <select id="filtre-demarcheur-commi" onchange="chargerCommissions()">
+          <option value="">Tous les démarcheurs</option>
+        </select>
+        <select id="filtre-type-commi" onchange="chargerCommissions()">
+          <option value="all">Tous types</option>
+          <option value="direct">Direct</option>
+          <option value="parrainage">Parrainage</option>
+        </select>
+      </div>
+
+      <!-- Stats détaillées -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:20px;">
-        <div class="stat-box">
-          <div class="stat-label">Total généré</div>
-          <div class="stat-value text-green" id="stat-total-genere">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Part AMT</div>
-          <div class="stat-value" id="stat-part-amt">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Part démarcheurs</div>
-          <div class="stat-value text-green" id="stat-part-demarcheurs">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Bonus parrainage</div>
-          <div class="stat-value" id="stat-bonus-parrainage">—</div>
-        </div>
+        <div class="stat-box"><div class="stat-label">Total généré</div><div class="stat-value text-green" id="stat-total-genere">—</div></div>
+        <div class="stat-box"><div class="stat-label">Part AMT</div><div class="stat-value" id="stat-part-amt">—</div></div>
+        <div class="stat-box"><div class="stat-label">Total Net Démarcheurs</div><div class="stat-value text-green" id="stat-part-demarcheurs">—</div></div>
+        <div class="stat-box"><div class="stat-label">Bonus parrainage</div><div class="stat-value text-warning" id="stat-bonus-parrainage">—</div></div>
       </div>
 
-      <div class="table-container card" style="padding:0; overflow:hidden;">
+      <div class="table-container card" style="padding:0; overflow-x:auto;">
         <table class="excel-table">
           <thead>
-            <tr>
-              <th>Date</th>
-              <th>Démarcheur</th>
-              <th>Type</th>
-              <th>Bénéfice CBM</th>
-              <th>Part (50%)</th>
-              <th>Bonus parrain</th>
-              <th>Net démarcheur</th>
-              <th>Part AMT</th>
-              <th>Statut</th>
-            </tr>
+            <tr><th>Date</th><th>Démarcheur</th><th>Type</th><th>Niveau</th><th>Bénéfice CBM</th><th>Part (50%)</th><th>Bonus parrain</th><th>Net démarcheur</th><th>Part AMT</th><th>Statut</th></tr>
           </thead>
           <tbody id="tbody-commissions">
-            <tr><td colspan="9" style="text-align:center; padding:20px; color:#888;">Chargement...</td></tr>
+            <tr><td colspan="10" style="text-align:center; padding:20px;">Chargement...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- ======================== ONGLET RETRAITS ======================== -->
+    <!-- ========== ONGLET RETRAITS ========== -->
     <div id="tab-retraits" style="display:none;">
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card-header-actions">
         <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-money-bill-wave" style="color:#27ae60;"></i> Retraits des commissions</h2>
+        <button class="step-btn step-btn-green" style="margin:0; width:auto; padding:8px 12px;" onclick="exporterRetraitsCSV()"><i class="fas fa-file-excel"></i> Exporter Historique</button>
       </div>
 
-      <!-- Sélecteur démarcheur pour voir son solde -->
       <div class="card" style="margin-bottom:16px;">
-        <label style="font-size:14px; color:#555; display:block; margin-bottom:8px;">Démarcheur :</label>
+        <label style="font-size:14px; color:#555; display:block; margin-bottom:8px;">Sélectionner un démarcheur :</label>
         <select id="select-demarcheur-retrait" onchange="chargerSoldeDemarcheur()" style="width:100%; max-width:400px; padding:10px 14px; border-radius:8px; border:1px solid #ddd;">
           <option value="">— Sélectionner —</option>
         </select>
 
-        <div id="bloc-solde" style="display:none; margin-top:16px; padding:16px; background:#f8f9fa; border-radius:12px; border-left:4px solid #27ae60;">
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px;">
-            <div><div class="stat-label">Total gagné</div><div class="stat-value text-green" id="rd-total-gagne">—</div></div>
-            <div><div class="stat-label">Déjà retiré</div><div class="stat-value" id="rd-total-retire">—</div></div>
-            <div><div class="stat-label" style="font-weight:700;">Solde disponible</div><div class="stat-value text-green" style="font-size:1.4rem;" id="rd-solde">—</div></div>
-            <div><div class="stat-label">Fréquence souhaitée</div><div class="stat-value" id="rd-periode">—</div></div>
+        <div id="bloc-solde" style="display:none; margin-top:16px;" class="solde-card">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:16px;">
+            <div><div class="stat-label" style="color:rgba(255,255,255,0.8);">Total gagné</div><div class="stat-value" style="color:white;" id="rd-total-gagne">—</div></div>
+            <div><div class="stat-label" style="color:rgba(255,255,255,0.8);">Déjà retiré</div><div class="stat-value" style="color:white;" id="rd-total-retire">—</div></div>
+            <div><div class="stat-label" style="color:rgba(255,255,255,0.8);">Solde disponible</div><div class="stat-value" style="font-size:28px; color:#ffd700;" id="rd-solde">—</div></div>
+            <div><div class="stat-label" style="color:rgba(255,255,255,0.8);">Fréquence</div><div class="stat-value" style="color:white;" id="rd-periode">—</div></div>
           </div>
-          <button class="step-btn step-btn-green" style="margin-top:16px; width:auto; padding:8px 16px;" id="btn-valider-retrait" onclick="validerRetrait()">
+          <button class="step-btn" style="margin-top:16px; background:#ffd700; color:#333; width:auto; padding:8px 16px;" id="btn-valider-retrait" onclick="validerRetrait()">
             <i class="fas fa-check"></i> Valider un retrait
           </button>
         </div>
       </div>
 
-      <!-- Historique des retraits -->
-      <div class="table-container card" style="padding:0; overflow:hidden;">
+      <div class="table-container card" style="padding:0; overflow-x:auto;">
         <table class="excel-table">
           <thead>
-            <tr>
-              <th>Date</th>
-              <th>Démarcheur</th>
-              <th>Montant</th>
-              <th>Période</th>
-              <th>Moyen</th>
-              <th>Validé par</th>
-              <th>Statut</th>
-            </tr>
+            <tr><th>Date</th><th>Démarcheur</th><th>Montant</th><th>Période</th><th>Moyen</th><th>Validé par</th><th>Statut</th></tr>
           </thead>
           <tbody id="tbody-retraits">
-            <tr><td colspan="7" style="text-align:center; padding:20px; color:#888;">Sélectionnez un démarcheur</td></tr>
+            <tr><td colspan="7" style="text-align:center; padding:20px;">Sélectionnez un démarcheur</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- ======================== ONGLET PARAMÈTRES ======================== -->
+    <!-- ========== ONGLET ANALYTIQUE (NOUVEAU) ========== -->
+    <div id="tab-analytique" style="display:none;">
+      <div class="card">
+        <h2 style="margin-top:0;"><i class="fas fa-chart-pie"></i> Analyses avancées</h2>
+        
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:20px; margin-bottom:20px;">
+          <div class="chart-container" style="margin:0;">
+            <h3 style="margin-top:0;">Distribution des commissions</h3>
+            <canvas id="distributionChart" style="max-height:250px; width:100%;"></canvas>
+          </div>
+          <div class="chart-container" style="margin:0;">
+            <h3 style="margin-top:0;">Évolution des performances</h3>
+            <canvas id="evolutionChart" style="max-height:250px; width:100%;"></canvas>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <h3>Indicateurs clés de performance</h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:16px;">
+            <div class="stat-box"><div class="stat-label">Commission moyenne</div><div class="stat-value text-green" id="avg-commission">—</div></div>
+            <div class="stat-box"><div class="stat-label">Meilleur mois</div><div class="stat-value text-warning" id="best-month">—</div></div>
+            <div class="stat-box"><div class="stat-label">Taux de conversion</div><div class="stat-value" id="conversion-rate">—</div></div>
+            <div class="stat-box"><div class="stat-label">Parrainage actif</div><div class="stat-value" id="active-sponsor">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== ONGLET PARAMÈTRES ========== -->
     <div id="tab-parametres" style="display:none;">
       <div class="card">
         <h2 style="margin-top:0;"><i class="fas fa-sliders-h"></i> Répartition des bénéfices</h2>
@@ -179,10 +390,18 @@
         </div>
 
         <div style="max-width:400px; margin-bottom:20px;">
-          <label style="font-size:13px; color:#555; font-weight:600;">Bonus parrainage (% des gains du filleul)</label>
+          <label style="font-size:13px; color:#555; font-weight:600;">Bonus parrainage (% de la part du démarcheur)</label>
           <input type="number" id="param-taux-parrainage" min="0" max="30" value="10"
+            oninput="mettreAJourPreview()"
             style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:1.2rem; margin-top:6px;"/>
-          <p style="font-size:12px; color:#888; margin-top:4px;">Ex: 10% → le parrain touche 10% des gains (50%) du filleul, soit 5% du bénéfice brut</p>
+        </div>
+        
+        <div style="max-width:400px; margin-bottom:20px;">
+          <label style="font-size:13px; color:#555; font-weight:600;">Qui cède la part au parrain par défaut ?</label>
+          <select id="param-qui-paie-defaut" onchange="mettreAJourPreview()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:1rem; margin-top:6px;">
+            <option value="demarcheur">Le démarcheur (Déduit de sa part)</option>
+            <option value="amt">AMT Transit (Déduit de la part AMT)</option>
+          </select>
         </div>
 
         <div id="preview-repartition" style="background:#f0f4ff; border-radius:12px; padding:16px; margin-bottom:20px; max-width:500px;">
@@ -224,8 +443,15 @@
         </div>
         <div class="form-group">
           <label>Parrainé par</label>
-          <select id="dem-parrain">
+          <select id="dem-parrain" onchange="toggleQuiPaieParrain()">
             <option value="">— Aucun parrain —</option>
+          </select>
+        </div>
+        <div class="form-group" id="group-qui-paie-parrain" style="display:none;">
+          <label>Qui cède la part au parrain ?</label>
+          <select id="dem-qui-paie-parrain">
+            <option value="demarcheur">Le démarcheur (Déduit de sa part)</option>
+            <option value="amt">AMT Transit (Déduit de ma part AMT)</option>
           </select>
         </div>
         <div class="form-group">
@@ -243,6 +469,20 @@
         <button class="btn-principal btn-small" style="width:auto; margin:0;" onclick="sauvegarderDemarcheur()">
           <i class="fas fa-save"></i> Enregistrer
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Détails démarcheur -->
+  <div id="modal-details-demarcheur" class="modal-backdrop" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+      <div class="modal-header">
+        <h3 id="modal-det-titre">Détails et Répartition</h3>
+        <button class="modal-close" onclick="fermerModal('modal-details-demarcheur')">×</button>
+      </div>
+      <div class="modal-body" id="modal-det-body"></div>
+      <div class="modal-footer">
+        <button class="btn-principal btn-small" style="background:#7f8c8d; width:auto; margin:0 auto;" onclick="fermerModal('modal-details-demarcheur')">Fermer</button>
       </div>
     </div>
   </div>
@@ -289,6 +529,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script src="demarcheurs.js"></script>

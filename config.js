@@ -121,3 +121,72 @@ window.showCustomConfirm = function(message) {
         document.getElementById('amt-dialog-btn-cancel').onclick = () => { backdrop.style.display = 'none'; resolve(false); };
     });
 };
+
+// =======================================================
+// MOTEUR GLOBAL DES COMMISSIONS (DÉMARCHEURS)
+// =======================================================
+window.genererCommissionDemarcheur = async function(expeditionId, beneficeBrut, demarcheurId) {
+    if (!demarcheurId || beneficeBrut <= 0) return;
+    try {
+        let params = { tauxAMT: 0.50, tauxDemarcheur: 0.50, tauxBonusParrainage: 0.10, quiPaieParrainDefaut: 'demarcheur' };
+        const docParams = await db.collection('parametres').doc('commissions').get();
+        if (docParams.exists) params = Object.assign(params, docParams.data());
+        
+        const docDem = await db.collection('demarcheurs').doc(demarcheurId).get();
+        if (!docDem.exists) return;
+        const dem = { id: docDem.id, ...docDem.data() };
+        
+        let partDemarcheurBrute = beneficeBrut * params.tauxDemarcheur;
+        let partAMTBrute = beneficeBrut * params.tauxAMT;
+        
+        // --- LOGIQUE MULTI-NIVEAUX (Jusqu'à 3 niveaux de parrainage) ---
+        const tauxNiveaux = [params.tauxBonusParrainage, params.tauxBonusParrainage / 2, params.tauxBonusParrainage / 4];
+        let parrainsToPay = [];
+        let totalBonusDistribue = 0;
+        let currentNiveau = 0;
+        let parentId = dem.parrainId;
+        
+        while (parentId && currentNiveau < tauxNiveaux.length) {
+            const pDoc = await db.collection('demarcheurs').doc(parentId).get();
+            if (!pDoc.exists) break;
+            const pData = pDoc.data();
+            
+            let bonusCalc = partDemarcheurBrute * tauxNiveaux[currentNiveau];
+            parrainsToPay.push({ id: pDoc.id, montant: bonusCalc, niveau: currentNiveau + 1 });
+            totalBonusDistribue += bonusCalc;
+            
+            parentId = pData.parrainId; // Remonte à l'ancêtre suivant
+            currentNiveau++;
+        }
+
+        let partDemarcheurNette = partDemarcheurBrute;
+        let partAMTNette = partAMTBrute;
+        
+        if (totalBonusDistribue > 0) {
+            const quiPaie = dem.quiPaieParrain || params.quiPaieParrainDefaut || 'demarcheur';
+            if (quiPaie === 'amt') partAMTNette -= totalBonusDistribue;
+            else partDemarcheurNette -= totalBonusDistribue;
+        }
+        
+        const batch = db.batch();
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        
+        batch.set(db.collection('commissions').doc(), {
+            expeditionId, demarcheurId, type: 'direct', montantBrut: beneficeBrut, montantDemarcheur: partDemarcheurBrute,
+            tauxDemarcheur: params.tauxDemarcheur, tauxAMT: params.tauxAMT, montantAMT: partAMTNette,
+            bonusParrainage: totalBonusDistribue, quiPaieParrain: dem.quiPaieParrain || params.quiPaieParrainDefaut || 'demarcheur',
+            montantNet: partDemarcheurNette, dateCreation: now, statut: 'en_attente'
+        });
+        batch.update(db.collection('demarcheurs').doc(demarcheurId), { totalGagne: firebase.firestore.FieldValue.increment(partDemarcheurNette), soldeDisponible: firebase.firestore.FieldValue.increment(partDemarcheurNette) });
+        
+        parrainsToPay.forEach(p => {
+            batch.set(db.collection('commissions').doc(), {
+                expeditionId, demarcheurId: p.id, type: 'parrainage', filleulId: demarcheurId, niveau: p.niveau, montantBrut: beneficeBrut,
+                bonusParrainage: p.montant, montantNet: p.montant, dateCreation: now, statut: 'en_attente'
+            });
+            batch.update(db.collection('demarcheurs').doc(p.id), { totalGagne: firebase.firestore.FieldValue.increment(p.montant), soldeDisponible: firebase.firestore.FieldValue.increment(p.montant) });
+        });
+        
+        await batch.commit();
+    } catch (e) { console.error("Erreur commission:", e); }
+};
