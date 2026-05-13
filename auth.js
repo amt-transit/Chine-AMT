@@ -51,6 +51,7 @@ auth.onAuthStateChanged(user => {
             const navCompta = document.getElementById('nav-compta'); if(navCompta) navCompta.style.display='none';
             const navAudit = document.getElementById('nav-audit'); if(navAudit) navAudit.style.display='none';
             const navListing = document.getElementById('nav-listing'); if(navListing) navListing.style.display='inline-flex';
+            const navDem = document.getElementById('nav-demarcheurs'); if(navDem) navDem.style.display='none';
             const navAdmin = document.getElementById('nav-admin'); if(navAdmin) navAdmin.style.display='none';
         } else if (currentRole === 'spectateur') {
             const navEnv = document.getElementById('nav-envoi'); if(navEnv) navEnv.style.display='none';
@@ -58,6 +59,7 @@ auth.onAuthStateChanged(user => {
             const navRec = document.getElementById('nav-reception'); if(navRec) navRec.style.display='none';
             const btnAjout = document.getElementById('btn-ajout-depense'); if(btnAjout) btnAjout.style.display = 'none';
             const navListing = document.getElementById('nav-listing'); if(navListing) navListing.style.display='inline-flex';
+            const navDem = document.getElementById('nav-demarcheurs'); if(navDem) navDem.style.display='none';
             const navAdmin = document.getElementById('nav-admin'); if(navAdmin) navAdmin.style.display='none';
         } else if (currentRole === 'superadmin') {
             const navEnv = document.getElementById('nav-envoi'); if(navEnv) navEnv.style.display='inline-flex';
@@ -67,6 +69,7 @@ auth.onAuthStateChanged(user => {
             const navScan = document.getElementById('nav-scan'); if(navScan) navScan.style.display='inline-flex';
             const navListing = document.getElementById('nav-listing'); if(navListing) navListing.style.display='inline-flex';
             const navAudit = document.getElementById('nav-audit'); if(navAudit) navAudit.style.display='inline-flex';
+            const navDem = document.getElementById('nav-demarcheurs'); if(navDem) navDem.style.display='inline-flex';
             const navAdmin = document.getElementById('nav-admin'); if(navAdmin) navAdmin.style.display='inline-flex';
             const btnAjout = document.getElementById('btn-ajout-depense');
             if(btnAjout) btnAjout.style.display = 'inline-block';
@@ -76,6 +79,7 @@ auth.onAuthStateChanged(user => {
             const navCompta = document.getElementById('nav-compta'); if(navCompta) navCompta.style.display='inline-flex';
             const navAudit = document.getElementById('nav-audit'); if(navAudit) navAudit.style.display='inline-flex';
             const navListing = document.getElementById('nav-listing'); if(navListing) navListing.style.display='inline-flex';
+            const navDem = document.getElementById('nav-demarcheurs'); if(navDem) navDem.style.display='inline-flex';
             const navAdmin = document.getElementById('nav-admin'); if(navAdmin) navAdmin.style.display='none';
             const btnAjout = document.getElementById('btn-ajout-depense');
             if(btnAjout) btnAjout.style.display = 'inline-block';

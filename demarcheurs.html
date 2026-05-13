@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Démarcheurs — AMT</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="icon" type="image/png" href="/logo_amt.png">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <button class="hamburger-btn" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+            <img src="logo_amt.png" alt="Logo AMT Transit" class="logo">
+        </div>
+        <div class="header-info">
+            <span>Agence : <span id="agence-nom">Abidjan</span></span>
+            <button onclick="deconnexion()" class="btn-secondaire btn-small" style="background-color:#dc3545;color:white;">Déconnexion</button>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="envoi.html" class="nav-link" id="nav-envoi">📦 Envoi (Chine)</a>
+        <a href="historique.html" class="nav-link" id="nav-historique">📝 Historique</a>
+        <a href="reception.html" class="nav-link" id="nav-reception">📥 Réception</a>
+        <a href="comptabilite.html" class="nav-link" id="nav-compta">💰 Comptabilité</a>
+        <a href="scan.html" class="nav-link" id="nav-scan">📷 Scanner</a>
+        <a href="listing.html" class="nav-link" id="nav-listing">📋 Listing</a>
+        <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
+        <a href="demarcheurs.html" class="nav-link active" id="nav-demarcheurs">🤝 Démarcheurs</a>
+        <a href="admin.html" class="nav-link" id="nav-admin" style="display:none; background:#8e44ad;">👑 ADMIN</a>
+    </nav>
+
+  <main>
+    <!-- Onglets -->
+    <div class="sub-nav-container" style="margin-bottom:20px;">
+      <button class="sub-nav-link active" onclick="ouvrirOnglet('reseau')"><i class="fas fa-sitemap"></i> Réseau</button>
+      <button class="sub-nav-link" onclick="ouvrirOnglet('commissions')"><i class="fas fa-coins"></i> Commissions</button>
+      <button class="sub-nav-link" onclick="ouvrirOnglet('retraits')"><i class="fas fa-money-bill-wave"></i> Retraits</button>
+      <button class="sub-nav-link" onclick="ouvrirOnglet('parametres')" id="btn-tab-params" style="display:none;"><i class="fas fa-sliders-h"></i> Paramètres</button>
+    </div>
+
+    <!-- ======================== ONGLET RÉSEAU ======================== -->
+    <div id="tab-reseau">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-users" style="color:#1C3A5E;"></i> Réseau de démarcheurs</h2>
+          <button class="step-btn step-btn-primary" id="btn-nouveau-demarcheur" onclick="ouvrirModalDemarcheur()" style="display:none; width:auto; padding:8px 12px; margin:0; font-size:13px;">
+            <i class="fas fa-plus"></i> Nouveau démarcheur
+          </button>
+        </div>
+      </div>
+
+      <div id="liste-demarcheurs">
+        <p style="text-align:center; color:#888;">Chargement...</p>
+      </div>
+    </div>
+
+    <!-- ======================== ONGLET COMMISSIONS ======================== -->
+    <div id="tab-commissions" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-coins" style="color:#F5A623;"></i> Commissions générées</h2>
+          <select id="filtre-demarcheur-commi" onchange="chargerCommissions()" style="padding:8px 12px; border-radius:8px; border:1px solid #ddd;">
+            <option value="">Tous les démarcheurs</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Résumé stats -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:20px;">
+        <div class="stat-box">
+          <div class="stat-label">Total généré</div>
+          <div class="stat-value text-green" id="stat-total-genere">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Part AMT</div>
+          <div class="stat-value" id="stat-part-amt">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Part démarcheurs</div>
+          <div class="stat-value text-green" id="stat-part-demarcheurs">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Bonus parrainage</div>
+          <div class="stat-value" id="stat-bonus-parrainage">—</div>
+        </div>
+      </div>
+
+      <div class="table-container card" style="padding:0; overflow:hidden;">
+        <table class="excel-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Démarcheur</th>
+              <th>Type</th>
+              <th>Bénéfice CBM</th>
+              <th>Part (50%)</th>
+              <th>Bonus parrain</th>
+              <th>Net démarcheur</th>
+              <th>Part AMT</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-commissions">
+            <tr><td colspan="9" style="text-align:center; padding:20px; color:#888;">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======================== ONGLET RETRAITS ======================== -->
+    <div id="tab-retraits" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <h2 style="margin:0; font-size:1.1rem;"><i class="fas fa-money-bill-wave" style="color:#27ae60;"></i> Retraits des commissions</h2>
+      </div>
+
+      <!-- Sélecteur démarcheur pour voir son solde -->
+      <div class="card" style="margin-bottom:16px;">
+        <label style="font-size:14px; color:#555; display:block; margin-bottom:8px;">Démarcheur :</label>
+        <select id="select-demarcheur-retrait" onchange="chargerSoldeDemarcheur()" style="width:100%; max-width:400px; padding:10px 14px; border-radius:8px; border:1px solid #ddd;">
+          <option value="">— Sélectionner —</option>
+        </select>
+
+        <div id="bloc-solde" style="display:none; margin-top:16px; padding:16px; background:#f8f9fa; border-radius:12px; border-left:4px solid #27ae60;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px;">
+            <div><div class="stat-label">Total gagné</div><div class="stat-value text-green" id="rd-total-gagne">—</div></div>
+            <div><div class="stat-label">Déjà retiré</div><div class="stat-value" id="rd-total-retire">—</div></div>
+            <div><div class="stat-label" style="font-weight:700;">Solde disponible</div><div class="stat-value text-green" style="font-size:1.4rem;" id="rd-solde">—</div></div>
+            <div><div class="stat-label">Fréquence souhaitée</div><div class="stat-value" id="rd-periode">—</div></div>
+          </div>
+          <button class="step-btn step-btn-green" style="margin-top:16px; width:auto; padding:8px 16px;" id="btn-valider-retrait" onclick="validerRetrait()">
+            <i class="fas fa-check"></i> Valider un retrait
+          </button>
+        </div>
+      </div>
+
+      <!-- Historique des retraits -->
+      <div class="table-container card" style="padding:0; overflow:hidden;">
+        <table class="excel-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Démarcheur</th>
+              <th>Montant</th>
+              <th>Période</th>
+              <th>Moyen</th>
+              <th>Validé par</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-retraits">
+            <tr><td colspan="7" style="text-align:center; padding:20px; color:#888;">Sélectionnez un démarcheur</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======================== ONGLET PARAMÈTRES ======================== -->
+    <div id="tab-parametres" style="display:none;">
+      <div class="card">
+        <h2 style="margin-top:0;"><i class="fas fa-sliders-h"></i> Répartition des bénéfices</h2>
+        <p style="color:#666; font-size:14px;">Modifiez la part de chaque côté. Total doit toujours faire 100%.</p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:600px; margin:20px 0;">
+          <div>
+            <label style="font-size:13px; color:#555; font-weight:600;">Part AMT (%)</label>
+            <input type="number" id="param-taux-amt" min="10" max="90" value="50"
+              oninput="syncTaux('amt')"
+              style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:1.2rem; margin-top:6px;"/>
+          </div>
+          <div>
+            <label style="font-size:13px; color:#555; font-weight:600;">Part démarcheur (%)</label>
+            <input type="number" id="param-taux-dem" min="10" max="90" value="50"
+              oninput="syncTaux('dem')"
+              style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:1.2rem; margin-top:6px;"/>
+          </div>
+        </div>
+
+        <div style="max-width:400px; margin-bottom:20px;">
+          <label style="font-size:13px; color:#555; font-weight:600;">Bonus parrainage (% des gains du filleul)</label>
+          <input type="number" id="param-taux-parrainage" min="0" max="30" value="10"
+            style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:1.2rem; margin-top:6px;"/>
+          <p style="font-size:12px; color:#888; margin-top:4px;">Ex: 10% → le parrain touche 10% des gains (50%) du filleul, soit 5% du bénéfice brut</p>
+        </div>
+
+        <div id="preview-repartition" style="background:#f0f4ff; border-radius:12px; padding:16px; margin-bottom:20px; max-width:500px;">
+          <p style="margin:0 0 8px; font-weight:600; color:#1C3A5E;">Exemple sur 100 000 CFA de bénéfice brut :</p>
+          <div id="preview-content"></div>
+        </div>
+
+        <button class="step-btn step-btn-primary" onclick="sauvegarderParametres()" style="width:auto; padding:10px 16px;">
+          <i class="fas fa-save"></i> Enregistrer les paramètres
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Nouveau/Édition démarcheur -->
+  <div id="modal-demarcheur" class="modal-backdrop" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+      <div class="modal-header">
+        <h3 id="modal-dem-titre">Nouveau démarcheur</h3>
+        <button class="modal-close" onclick="fermerModal('modal-demarcheur')">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="dem-id"/>
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" id="dem-nom" placeholder="Nom de famille"/>
+        </div>
+        <div class="form-group">
+          <label>Prénom</label>
+          <input type="text" id="dem-prenom" placeholder="Prénom"/>
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="tel" id="dem-telephone" placeholder="+225 07 XX XX XX XX"/>
+        </div>
+        <div class="form-group">
+          <label>Email (optionnel)</label>
+          <input type="email" id="dem-email" placeholder="email@exemple.com"/>
+        </div>
+        <div class="form-group">
+          <label>Parrainé par</label>
+          <select id="dem-parrain">
+            <option value="">— Aucun parrain —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fréquence de retrait souhaitée</label>
+          <select id="dem-periode">
+            <option value="mensuel">Mensuel</option>
+            <option value="trimestriel">Trimestriel</option>
+            <option value="semestriel">Semestriel</option>
+            <option value="annuel">Annuel</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondaire btn-small" style="background:#7f8c8d; border:none; color:white; padding:8px 12px; margin-right:8px;" onclick="fermerModal('modal-demarcheur')">Annuler</button>
+        <button class="btn-principal btn-small" style="width:auto; margin:0;" onclick="sauvegarderDemarcheur()">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Retrait -->
+  <div id="modal-retrait" class="modal-backdrop" style="display:none;">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">
+        <h3>Valider un retrait</h3>
+        <button class="modal-close" onclick="fermerModal('modal-retrait')">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="retrait-dem-nom" style="font-weight:600; font-size:1.1rem; margin-bottom:16px;"></p>
+        <div class="form-group">
+          <label>Montant à retirer (CFA)</label>
+          <input type="number" id="retrait-montant" placeholder="ex: 50000"/>
+          <small id="retrait-solde-info" style="color:#27ae60; font-size:12px;"></small>
+        </div>
+        <div class="form-group">
+          <label>Période couverte</label>
+          <input type="text" id="retrait-periode" placeholder="ex: 2025-T2 ou Janvier 2025"/>
+        </div>
+        <div class="form-group">
+          <label>Moyen de paiement</label>
+          <select id="retrait-moyen">
+            <option>Espèce</option>
+            <option>Wave</option>
+            <option>Orange Money</option>
+            <option>Chèque</option>
+            <option>Virement</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondaire btn-small" style="background:#7f8c8d; border:none; color:white; padding:8px 12px; margin-right:8px;" onclick="fermerModal('modal-retrait')">Annuler</button>
+        <button class="btn-principal btn-small" style="background:#27ae60; width:auto; margin:0;" onclick="confirmerRetrait()">
+          <i class="fas fa-check"></i> Confirmer le retrait
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="demarcheurs.js"></script>
+</body>
+</html>

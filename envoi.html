@@ -28,6 +28,7 @@
         <a href="scan.html" class="nav-link" id="nav-scan">📷 Scanner</a>
         <a href="listing.html" class="nav-link" id="nav-listing">📋 Listing</a>
         <a href="audit.html" class="nav-link" id="nav-audit">📊 Audit</a>
+        <a href="demarcheurs.html" class="nav-link" id="nav-demarcheurs">🤝 Démarcheurs</a>
         <a href="admin.html" class="nav-link" id="nav-admin" style="display:none; background:#8e44ad;">👑 ADMIN</a>
     </nav>
 
@@ -104,6 +105,14 @@
                     <span class="lbl-icon">👤</span> Qui reçoit le colis ?
                 </div>
 
+                <!-- Démarcheur -->
+                <div class="form-group">
+                    <label>Démarcheur (si applicable)</label>
+                    <select id="envoi-demarcheur-id" class="big-input" style="padding:10px; margin-bottom:8px;">
+                        <option value="">— Aucun démarcheur —</option>
+                    </select>
+                </div>
+
                 <!-- Expéditeur (replié) -->
                 <details style="margin-bottom:14px; border:1px solid #eee; padding:10px; border-radius:8px;">
                     <summary style="cursor:pointer; color:#888; font-size:13px; font-weight:600;">✏️ Modifier l'expéditeur (défaut : AMT)</summary>
@@ -124,9 +133,12 @@
                 </div>
                 <div class="big-label"><span class="lbl-icon">📝</span> Prénom</div>
                 <input type="text" class="big-input" id="client-prenom" placeholder="Prénom" required>
-                <div class="big-label"><span class="lbl-icon">📱</span> Numéro de téléphone</div>
-                <input type="tel" class="big-input" id="client-tel" placeholder="+225 07 00 00 00 00"
-                    oninput="checkStep2()" required>
+                <div class="autocomplete-container">
+                    <div class="big-label"><span class="lbl-icon">📱</span> Numéro de téléphone</div>
+                    <input type="tel" class="big-input highlight" id="client-tel" autocomplete="off" placeholder="+225 07 00 00 00 00"
+                        oninput="onTelInput()" required>
+                    <div id="autocomplete-suggestions-tel" class="autocomplete-items"></div>
+                </div>
             </div>
             <div style="display:flex; gap:10px;">
                 <button class="step-btn step-btn-back" onclick="goStep(1)" style="flex:1;">← Retour</button>

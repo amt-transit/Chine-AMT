@@ -1,0 +1,94 @@
+/* =======================================================
+   STYLES ADDITIONNELS — Module Démarcheurs
+   À ajouter dans style.css ou lier en feuille séparée
+   ======================================================= */
+
+/* Stat boxes */
+.stat-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1px solid #eee;
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1C3A5E;
+}
+
+/* Bouton édition compact */
+.btn-edit-small {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: #555;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-edit-small:hover {
+    background: #f0f0f0;
+    border-color: #1C3A5E;
+    color: #1C3A5E;
+}
+
+/* Bouton vert */
+.step-btn-green {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+}
+
+.step-btn-green:hover {
+    background-color: #219a52;
+}
+
+/* =============================================
+   INTÉGRATION DANS ENVOI.JS & RECEPTION.JS
+   =============================================
+
+   Dans envoi.html — Ajouter un champ "Démarcheur"
+   au formulaire d'envoi (après le nom du client) :
+   
+   <div class="form-group">
+     <label>Démarcheur (si applicable)</label>
+     <select id="envoi-demarcheur-id">
+       <option value="">— Aucun démarcheur —</option>
+       <!-- Rempli dynamiquement depuis la collection demarcheurs -->
+     </select>
+   </div>
+
+   Dans envoi.js — Sauvegarder le champ :
+   
+   data.demarcheurId = document.getElementById('envoi-demarcheur-id').value || null;
+
+   Dans reception.js — Lors de la confirmation d'arrivée,
+   ajouter APRÈS la mise à jour de l'expédition :
+   
+   // Calcul bénéfice de cet envoi
+   const prixVente = parseInt((expedition.prixEstime || "0").replace(/\D/g,'')) || 0;
+   const frais = expedition.fraisSupplementaires || 0;
+   const remise = expedition.remise || 0;
+   const benefice = prixVente - frais - remise; // Adapter selon votre logique
+   
+   if (expedition.demarcheurId && benefice > 0) {
+     await window.creerCommissionPourExpedition(
+       expeditionId,
+       benefice,
+       expedition.demarcheurId
+     );
+   }
+
+   ============================================= */

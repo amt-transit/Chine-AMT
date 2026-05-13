@@ -8,6 +8,7 @@ let wizardQte = 1;
 // ─── Initialisation ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     loadAllClientsForAutocomplete();
+    chargerListeDemarcheurs();
 
     // Date du jour par défaut
     const dateInput = document.getElementById('date-envoi');
@@ -17,11 +18,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const ni = document.getElementById('client-nom');
     if (ni) {
         ni.addEventListener('input', onNomInput);
-        document.addEventListener('click', e => {
-            if (!e.target.closest('.autocomplete-container'))
-                document.getElementById('autocomplete-suggestions').style.display = 'none';
-        });
     }
+    const ti = document.getElementById('client-tel');
+    if (ti) {
+        ti.addEventListener('input', onTelInput);
+    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.autocomplete-container')) {
+            const suggNom = document.getElementById('autocomplete-suggestions');
+            const suggTel = document.getElementById('autocomplete-suggestions-tel');
+            if (suggNom) suggNom.style.display = 'none';
+            if (suggTel) suggTel.style.display = 'none';
+        }
+    });
 
     // Aperçu photos
     const photosInput = document.getElementById('photos-colis');
@@ -59,6 +68,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) { console.error("Erreur sauvegarde locale", e); }
     }
 });
+
+async function chargerListeDemarcheurs() {
+    const sel = document.getElementById('envoi-demarcheur-id');
+    if(!sel) return;
+    try {
+        const snap = await db.collection('demarcheurs').get();
+        snap.forEach(doc => {
+            const d = doc.data();
+            sel.innerHTML += `<option value="${doc.id}">${d.prenom} ${d.nom}</option>`;
+        });
+    } catch(e) { console.error("Erreur chargement démarcheurs", e); }
+}
 
 // ─── Navigation entre étapes ─────────────────────────────
 function goStep(n) {
@@ -139,6 +160,37 @@ function onNomInput() {
     const m = allPastClients.filter(c => c.nom.toLowerCase().startsWith(q));
     showSuggestions(m);
     checkStep2();
+}
+
+function onTelInput() {
+    const q = document.getElementById('client-tel').value.toLowerCase().replace(/[^a-z0-9+]/g, '');
+    const b = document.getElementById('autocomplete-suggestions-tel');
+    if (q.length < 2) { b.style.display = 'none'; checkStep2(); return; }
+    const m = allPastClients.filter(c => {
+        const telStr = (c.tel || '').toLowerCase().replace(/[^a-z0-9+]/g, '');
+        return telStr.includes(q);
+    });
+    showSuggestionsTel(m);
+    checkStep2();
+}
+
+function showSuggestionsTel(m) {
+    const b = document.getElementById('autocomplete-suggestions-tel');
+    b.innerHTML = '';
+    if (m.length === 0) { b.style.display = 'none'; return; }
+    m.slice(0, 6).forEach(c => {
+        const d = document.createElement('div');
+        d.innerHTML = `<strong>${c.tel || ''}</strong> <span style="color:#aaa;font-size:12px;">${c.nom} ${c.prenom}</span>`;
+        d.onclick = () => {
+            document.getElementById('client-nom').value = c.nom;
+            document.getElementById('client-prenom').value = c.prenom;
+            document.getElementById('client-tel').value = c.tel;
+            b.style.display = 'none';
+            checkStep2();
+        };
+        b.appendChild(d);
+    });
+    b.style.display = 'block';
 }
 
 function checkStep2() {
@@ -308,12 +360,15 @@ function ajouterClientEtContinuer() {
     
     const refColis = `${pref}-${actualPrefixToUse}-${String(dailyCounter).padStart(3, '0')}`;
 
+    const demarcheurId = document.getElementById('envoi-demarcheur-id') ? document.getElementById('envoi-demarcheur-id').value : null;
+
     const nouveauClient = {
         reference:         refColis,
         type:              typeEnvoi,
         expediteur:    (document.getElementById('expediteur-nom').value || 'AMT TRANSIT CARGO').trim(),
         telExpediteur: (document.getElementById('expediteur-tel').value || '+225 0703165050').trim(),
         nom, prenom, tel,
+        demarcheurId:      demarcheurId || null,
         description:       descriptionResume,
         detailsColis:      details,
         quantiteEnvoyee:   wizardQte,
@@ -337,10 +392,13 @@ function ajouterClientEtContinuer() {
         document.getElementById('photos-colis').value  = '';
     document.getElementById('apercu-photos').innerHTML = '';
     document.getElementById('autocomplete-suggestions').style.display = 'none';
+    const suggTel = document.getElementById('autocomplete-suggestions-tel');
+    if (suggTel) suggTel.style.display = 'none';
         
         document.getElementById('multi-desc').value  = '';
         document.getElementById('multi-qte').value   = '1';
         document.getElementById('multi-poids').value = '';
+    if(document.getElementById('envoi-demarcheur-id')) document.getElementById('envoi-demarcheur-id').value = '';
 
     sousColisList = [];
         _updateMultiTable();
@@ -505,6 +563,7 @@ async function validerEnvoiGroupe() {
                 poidsEnvoye:      c.poidsEnvoye,
                 volumeEnvoye:     c.volumeEnvoye,
                 prixEstime:       c.prixEstime,
+                demarcheurId:     c.demarcheurId || null,
                 remise:           0,
                 fraisSupplementaires: 0,
                 creeLe:           firebase.firestore.FieldValue.serverTimestamp(),

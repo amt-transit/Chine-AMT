@@ -602,3 +602,41 @@ tr.group-summary-row td { color: cyan !important; font-weight: bold; text-align:
         display: none;
     }
 }
+
+/* =======================================================
+   STYLES ADDITIONNELS — Module Démarcheurs
+   ======================================================= */
+.stat-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1px solid #eee;
+    text-align: center;
+}
+.stat-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1C3A5E;
+}
+.btn-edit-small {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: #555;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.btn-edit-small:hover {
+    background: #f0f0f0;
+    border-color: #1C3A5E;
+    color: #1C3A5E;
+}
